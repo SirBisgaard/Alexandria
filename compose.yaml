@@ -1,0 +1,7 @@
+﻿services:
+  alexandria.api:
+    image: alexandria.api
+    build:
+      context: .
+      dockerfile: Alexandria.Api/Dockerfile
+

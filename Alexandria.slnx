@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Files/">
+    <File Path=".gitignore" />
+    <File Path="compose.yaml" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="Alexandria.Api/Alexandria.Api.csproj" />
+  <Project Path="Alexandria.Business/Alexandria.Business.csproj" />
+</Solution>
