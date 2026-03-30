@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Xml.Linq;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Middleware;
+using Alexandria.Business.Models;
 
 namespace Alexandria.DataAccess.Services;
 
