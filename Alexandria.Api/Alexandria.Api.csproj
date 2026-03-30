@@ -15,6 +15,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Alexandria.Business\Alexandria.Business.csproj" />
+      <ProjectReference Include="..\Alexandria.DataAccess\Alexandria.DataAccess.csproj" />
     </ItemGroup>
 
 </Project>

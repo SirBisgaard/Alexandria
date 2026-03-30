@@ -1,6 +1,6 @@
 using Alexandria.Business.Models;
 
-namespace Alexandria.Business.Services;
+namespace Alexandria.Business.Interfaces;
 
 public interface IKoboProxyService
 {

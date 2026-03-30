@@ -8,6 +8,13 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
+      <PackageReference Include="Microsoft.AspNetCore.Http.Extensions" Version="2.3.9" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+        <HintPath>..\..\..\..\..\run\host\usr\share\dotnet\shared\Microsoft.AspNetCore.App\10.0.5\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      </Reference>
     </ItemGroup>
 
 </Project>

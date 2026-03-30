@@ -1,9 +1,10 @@
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
 using Alexandria.Business.Models.Settings;
 
 namespace Alexandria.Business.Services;
 
-public class KoboProxyService(KoboRetailSettings settings, HttpClient httpClient, IKoboProxyLogger koboProxyLogger) : IKoboProxyService
+public class KoboProxyService(KoboRetailSettings settings, HttpClient httpClient) : IKoboProxyService
 {   
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =

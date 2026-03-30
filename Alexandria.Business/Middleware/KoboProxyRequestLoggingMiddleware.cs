@@ -1,13 +1,18 @@
+using System.Diagnostics;
+using Alexandria.Business.Interfaces;
+using Alexandria.Business.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.Logging;
 
-namespace Alexandria.Api.Middleware;
+namespace Alexandria.Business.Middleware;
 
 /// <summary>
 /// This middleware logs everything so we can later reverse engineer the kobo.  
 /// </summary>
 /// <param name="next"></param>
 /// <param name="logger"></param>
-public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
+public class KoboProxyRequestLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRepository koboTrafficLogRepository, ILogger<KoboProxyRequestLoggingMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -36,7 +41,9 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         using var responseBuffer = new MemoryStream();
         context.Response.Body = responseBuffer;
 
+        var stopwatch = Stopwatch.StartNew();
         await next(context);
+        stopwatch.Stop();
 
         // Read what was written
         responseBuffer.Position = 0;
@@ -56,6 +63,14 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
                         {Body}
                         """, method, url, context.Response.StatusCode,
                         responseHeaders, responseBody);
+        
+        await koboTrafficLogRepository.Log(
+            method, url,
+            requestHeaders, requestBody,
+            context.Response.StatusCode,
+            responseHeaders, responseBody,
+            stopwatch.ElapsedMilliseconds);
+
 
         // Copy the buffered response back to the original stream
         responseBuffer.Position = 0;

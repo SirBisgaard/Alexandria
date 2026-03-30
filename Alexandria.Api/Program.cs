@@ -1,6 +1,8 @@
-using Alexandria.Api.Middleware;
+using Alexandria.Business.Interfaces;
+using Alexandria.Business.Middleware;
 using Alexandria.Business.Models.Settings;
 using Alexandria.Business.Services;
+using Alexandria.DataAccess;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,16 +17,18 @@ builder.Services.AddSingleton(settings);
 // Http client for KoboStoreApi
 builder.Services.AddHttpClient<KoboProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
+// Add repositories to the container.
+builder.Services.AddSingleton<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
+
 // Add services to the container.
 builder.Services.AddTransient<IKoboProxyService, KoboProxyService>();
-builder.Services.AddTransient<IKoboProxyLogger, KoboProxyLogger>();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<KoboProxyRequestLoggingMiddleware>();
 
 app.UseAuthorization();
 app.MapControllers();
