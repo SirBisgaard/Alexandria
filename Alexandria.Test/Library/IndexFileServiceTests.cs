@@ -18,7 +18,7 @@ public class IndexFileServiceTests
         indexFilePath = Path.Combine(testDir, "index.yaml");
     }
 
-    private AlexandriaSettings CreateSettings() => new() { IndexFile = indexFilePath };
+    private AlexandriaSettings CreateSettings() => new() { IndexFile = indexFilePath, BooksFolder = testDir, CoversFolder = testDir, KepubsFolder = testDir };
 
     [TestCleanup]
     public void Cleanup()

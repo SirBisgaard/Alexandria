@@ -39,9 +39,9 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 app.UseMiddleware<KoboProxyRequestLoggingMiddleware>();
 
-// Load library index at boot.
-var indexFileService = app.Services.GetRequiredService<IIndexFileService>();
-await indexFileService.LoadAsync();
+// Index library at boot.
+var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();
+await libraryIndexer.Index();
 
 app.UseAuthorization();
 app.MapControllers();
