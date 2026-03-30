@@ -1,4 +1,5 @@
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Models;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess;
@@ -36,30 +37,30 @@ public class KoboTrafficLogRepository : IKoboTrafficLogRepository
         cmd.ExecuteNonQuery();
     }
 
-    public async Task Log(string method, string url, string requestHeaders, string requestBody, int statusCode, string responseHeaders, string responseBody, long durationMs)
+    public async Task Log(KoboTrafficLog entry)
     {
         await using var connection = new SqliteConnection(connectionString);
         connection.Open();
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO TrafficLogs 
+            INSERT INTO TrafficLogs
                 (Timestamp, Method, Url, RequestHeaders, RequestBody,
                  StatusCode, ResponseHeaders, ResponseBody, DurationMs)
-            VALUES 
+            VALUES
                 (@ts, @method, @url, @reqHeaders, @reqBody,
                  @status, @resHeaders, @resBody, @duration)
             """;
 
-        cmd.Parameters.AddWithValue("@ts", DateTime.UtcNow.ToString("O"));
-        cmd.Parameters.AddWithValue("@method", method);
-        cmd.Parameters.AddWithValue("@url", url);
-        cmd.Parameters.AddWithValue("@reqHeaders", requestHeaders);
-        cmd.Parameters.AddWithValue("@reqBody", requestBody);
-        cmd.Parameters.AddWithValue("@status", statusCode);
-        cmd.Parameters.AddWithValue("@resHeaders", responseHeaders);
-        cmd.Parameters.AddWithValue("@resBody", responseBody);
-        cmd.Parameters.AddWithValue("@duration", durationMs);
+        cmd.Parameters.AddWithValue("@ts", entry.Timestamp.ToString("O"));
+        cmd.Parameters.AddWithValue("@method", entry.Method);
+        cmd.Parameters.AddWithValue("@url", entry.Url);
+        cmd.Parameters.AddWithValue("@reqHeaders", entry.RequestHeaders);
+        cmd.Parameters.AddWithValue("@reqBody", entry.RequestBody);
+        cmd.Parameters.AddWithValue("@status", entry.StatusCode);
+        cmd.Parameters.AddWithValue("@resHeaders", entry.ResponseHeaders);
+        cmd.Parameters.AddWithValue("@resBody", entry.ResponseBody);
+        cmd.Parameters.AddWithValue("@duration", entry.DurationMs);
 
         await cmd.ExecuteNonQueryAsync();
     }

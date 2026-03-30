@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Models;
 using Alexandria.Business.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -64,12 +65,18 @@ public class KoboProxyRequestLoggingMiddleware(RequestDelegate next, IKoboTraffi
                         """, method, url, context.Response.StatusCode,
                         responseHeaders, responseBody);
         
-        await koboTrafficLogRepository.Log(
-            method, url,
-            requestHeaders, requestBody,
-            context.Response.StatusCode,
-            responseHeaders, responseBody,
-            stopwatch.ElapsedMilliseconds);
+        await koboTrafficLogRepository.Log(new KoboTrafficLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Method = method,
+            Url = url,
+            RequestHeaders = requestHeaders,
+            RequestBody = requestBody,
+            StatusCode = context.Response.StatusCode,
+            ResponseHeaders = responseHeaders,
+            ResponseBody = responseBody,
+            DurationMs = stopwatch.ElapsedMilliseconds
+        });
 
 
         // Copy the buffered response back to the original stream
