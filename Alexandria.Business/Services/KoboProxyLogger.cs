@@ -1,11 +1,11 @@
-namespace Alexandria.Business.Services;
+using Alexandria.Business.Models;
 
-public interface IKoboProxyLogger
-{
-    void FromKoboDevice(string method, string uri, string headers, string body);
-}
+namespace Alexandria.Business.Services;
 
 public class KoboProxyLogger : IKoboProxyLogger
 {
-    
+    public void FromKoboDevice()
+    {
+        throw new NotImplementedException();
+    }
 }

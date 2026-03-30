@@ -1,3 +1,5 @@
+using Alexandria.Business.Models;
+using Alexandria.Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -6,17 +8,21 @@ namespace Alexandria.Api.Controllers;
 [Route("api/kobo")]
 public class KoboDeviceController: ControllerBase
 {
+    private readonly IKoboProxyService _koboProxyService;
+
+    public KoboDeviceController(IKoboProxyService  koboProxyService)
+    {
+        _koboProxyService = koboProxyService;
+    }
+    
     [HttpGet("{**path}")]
     [HttpPost("{**path}")]
     [HttpPut("{**path}")]
     [HttpDelete("{**path}")]
-    public IActionResult CatchAll(string path)
+    public async Task CatchAll([FromRoute]string? path = null)
     {
-        var headers = Request.Headers;
-        var route = Request.Path.Value;
-
-        // path will contain everything after api/kobo/
-        // "dfsfdsf", "Test", "con/ftet", etc.
-        return Ok(new { caught = path });
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var response = await _koboProxyService.Proxy(request);
+        await response.WriteToHttpResponse(HttpContext.Response);
     }
 }

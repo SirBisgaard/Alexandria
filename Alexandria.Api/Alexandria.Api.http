@@ -3,19 +3,19 @@
 # Proxy endpoint tests
 
 ### Proxy - GET request
-GET http://localhost:8085/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/sync
+GET http://localhost:80/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/sync
 Accept: application/json
 
 ###
 
 ### Proxy - GET with additional path segments
-GET http://localhost:8085/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/books/12345
+GET http://localhost:80/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/books/12345
 Accept: application/json
 
 ###
 
 ### Proxy - POST request with body
-POST http://localhost:8085/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/tags
+POST http://localhost:80/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/tags
 Accept: application/json
 Content-Type: application/json
 
@@ -27,7 +27,7 @@ Content-Type: application/json
 ###
 
 ### Proxy - PUT request with body
-PUT http://localhost:8085/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/books/12345
+PUT http://localhost:80/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/books/12345
 Accept: application/json
 Content-Type: application/json
 
@@ -38,7 +38,7 @@ Content-Type: application/json
 ###
 
 ### Proxy - DELETE request
-DELETE http://localhost:8085/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/books/12345
+DELETE http://localhost:80/api/Kobo/00000000-0000-0000-0000-000000000001/v1/library/books/12345
 Accept: application/json
 
 ###
