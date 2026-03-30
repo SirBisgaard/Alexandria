@@ -1,7 +1,7 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
-using Alexandria.Business.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
@@ -21,20 +21,14 @@ public class KoboProxyRequestLoggingMiddleware(RequestDelegate next, IKoboTraffi
         context.Request.EnableBuffering();
 
         var method = context.Request.Method;
-        var url = context.Request.GetDisplayUrl();
+        var url = context.Request.GetEncodedUrl();
         var requestHeaders = string.Join($"{Environment.NewLine}",
             context.Request.Headers.Select(h => $"{h.Key}={h.Value}"));
         using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
         var requestBody = await reader.ReadToEndAsync();
         context.Request.Body.Position = 0;
 
-        logger.LogInformation("""
-                        Request: {Method}:{Url}
-                        HEADERS:
-                        {Headers}
-                        BODY:
-                        {Body}
-                        """, method, url, requestHeaders, requestBody);
+        logger.LogInformation("Request: {Method}:{Url}", method, url);
 
         // ── Response ──
         // Swap the response body with a buffer we can read back
@@ -48,28 +42,25 @@ public class KoboProxyRequestLoggingMiddleware(RequestDelegate next, IKoboTraffi
 
         // Read what was written
         responseBuffer.Position = 0;
-        var contentType = context.Response.ContentType ?? "";
-        var responseBody = contentType.StartsWith("application/json") || contentType.StartsWith("text/")
-            ? await new StreamReader(responseBuffer).ReadToEndAsync()
-            : $"[binary data, {responseBuffer.Length} bytes]";
-
+        
+        var contentEncoding = context.Response.Headers.ContainsKey("Content-Encoding") ? 
+            context.Response.Headers["Content-Encoding"].ToString() :
+            string.Empty;
+        
+        var responseBody = contentEncoding.Contains("gzip")
+            ? await DecompressGzipAsync(responseBuffer)
+            : await new StreamReader(responseBuffer).ReadToEndAsync();
+        
         var responseHeaders = string.Join($",{Environment.NewLine}",
             context.Response.Headers.Select(h => $"{h.Key}={h.Value}"));
 
-        logger.LogInformation("""
-                        Response: {Method}:{Url} {StatusCode}
-                        HEADERS:
-                        {Headers}
-                        BODY:
-                        {Body}
-                        """, method, url, context.Response.StatusCode,
-                        responseHeaders, responseBody);
+        logger.LogInformation("Response: {Method}:{Url} {StatusCode}", method, url, context.Response.StatusCode);
         
         await koboTrafficLogRepository.Log(new KoboTrafficLog
         {
             Timestamp = DateTime.UtcNow,
             Method = method,
-            Url = url,
+            Url = context.Request.GetDisplayUrl(),
             RequestHeaders = requestHeaders,
             RequestBody = requestBody,
             StatusCode = context.Response.StatusCode,
@@ -83,5 +74,13 @@ public class KoboProxyRequestLoggingMiddleware(RequestDelegate next, IKoboTraffi
         responseBuffer.Position = 0;
         await responseBuffer.CopyToAsync(originalBodyStream);
         context.Response.Body = originalBodyStream;
+    }
+    
+    private static async Task<string> DecompressGzipAsync(MemoryStream compressed)
+    {
+        compressed.Position = 0;
+        await using var gzip = new GZipStream(compressed, CompressionMode.Decompress, leaveOpen: true);
+        using var reader = new StreamReader(gzip);
+        return await reader.ReadToEndAsync();
     }
 }
