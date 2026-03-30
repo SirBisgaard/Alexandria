@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Alexandria.DataAccess;
+namespace Alexandria.DataAccess.Services;
 
 public class KepubifyConverter
 {

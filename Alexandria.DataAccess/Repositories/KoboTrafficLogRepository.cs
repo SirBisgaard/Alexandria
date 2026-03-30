@@ -2,7 +2,7 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
 using Microsoft.Data.Sqlite;
 
-namespace Alexandria.DataAccess;
+namespace Alexandria.DataAccess.Repositories;
 
 public class KoboTrafficLogRepository : IKoboTrafficLogRepository
 {
