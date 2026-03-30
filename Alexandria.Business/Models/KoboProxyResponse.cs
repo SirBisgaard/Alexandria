@@ -12,7 +12,6 @@ public class KoboProxyResponse
     {
         response.StatusCode = StatusCode;
 
-        // Headers that the framework manages — skip these to avoid conflicts
         HashSet<string> skipHeaders = ["transfer-encoding", "content-length", "content-type"];
 
         foreach (var header in Headers)
@@ -23,7 +22,6 @@ public class KoboProxyResponse
             response.Headers[header.Key] = header.Value;
         }
 
-        // Preserve content-type explicitly
         if (Headers.TryGetValue("Content-Type", out var contentType))
             response.ContentType = contentType.First();
 

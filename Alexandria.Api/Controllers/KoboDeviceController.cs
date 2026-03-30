@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers;
 
 [ApiController]
-[Route("api/kobo")]
+[Route("/")]
 public class KoboDeviceController: ControllerBase
 {
     private readonly IKoboProxyService _koboProxyService;
