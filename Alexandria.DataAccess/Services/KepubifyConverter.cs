@@ -1,8 +1,9 @@
 using System.Diagnostics;
+using Alexandria.Business.Interfaces;
 
 namespace Alexandria.DataAccess.Services;
 
-public class KepubifyConverter
+public class KepubifyConverter : IKepubifyConverter
 {
     private readonly string kepubifyPath;
 
