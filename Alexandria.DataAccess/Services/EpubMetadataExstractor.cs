@@ -166,7 +166,7 @@ public class EpubMetadataExstractor : IEpubMetadataExstractor
         if (string.IsNullOrEmpty(extension))
             extension = ".jpg";
 
-        var outputPath = Path.Combine(outputDirectory, $"cover{extension}");
+        var outputPath = Path.Combine(outputDirectory, $"{metadata.Uuid}{extension}");
 
         using var entryStream = coverEntry.Open();
         using var fileStream = File.Create(outputPath);

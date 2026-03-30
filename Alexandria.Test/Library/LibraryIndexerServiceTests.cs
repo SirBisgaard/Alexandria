@@ -1,6 +1,7 @@
 using Alexandria.Business.Models.Settings;
 using Alexandria.Business.Services;
 using Alexandria.DataAccess.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alexandria.Tests.Library;
 
@@ -42,7 +43,7 @@ public sealed class LibraryIndexerServiceTests
         var indexFileService = new IndexFileService(settings);
         var extractor = new EpubMetadataExstractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter);
+        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
@@ -66,7 +67,7 @@ public sealed class LibraryIndexerServiceTests
         var indexFileService = new IndexFileService(settings);
         var extractor = new EpubMetadataExstractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter);
+        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
         var firstRunCount = indexFileService.Books.Count;
@@ -86,7 +87,7 @@ public sealed class LibraryIndexerServiceTests
         var indexFileService = new IndexFileService(settings);
         var extractor = new EpubMetadataExstractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter);
+        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
@@ -108,7 +109,7 @@ public sealed class LibraryIndexerServiceTests
         var indexFileService = new IndexFileService(settings);
         var extractor = new EpubMetadataExstractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter);
+        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         // Index the book.
         await indexer.Index();
@@ -132,7 +133,7 @@ public sealed class LibraryIndexerServiceTests
         var indexFileService = new IndexFileService(settings);
         var extractor = new EpubMetadataExstractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter);
+        var indexer = new LibraryIndexerService(settings, indexFileService, extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
