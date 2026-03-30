@@ -8,4 +8,5 @@
   <Project Path="Alexandria.Api/Alexandria.Api.csproj" />
   <Project Path="Alexandria.Business/Alexandria.Business.csproj" />
   <Project Path="Alexandria.DataAccess/Alexandria.DataAccess.csproj" />
+  <Project Path="Alexandria.Test\Alexandria.Test.csproj" />
 </Solution>

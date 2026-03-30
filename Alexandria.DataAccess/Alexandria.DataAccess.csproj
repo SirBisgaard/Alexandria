@@ -7,11 +7,26 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Alexandria.Business\Alexandria.Business.csproj" />
+        <ProjectReference Include="..\Alexandria.Business\Alexandria.Business.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5"/>
     </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="runtimes\linux-x64\native\"/>
+        <None Include="runtimes/linux-x64/native/kepubify">
+            <Pack>true</Pack>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishSingleFile>Always</CopyToPublishSingleFile>
+            <Link>kepubify</Link>
+        </None>
+    </ItemGroup>
+
+    <Target Name="SetKepubifyPermissions" AfterTargets="Build">
+        <Exec Command="chmod +x $(OutputPath)kepubify"/>
+    </Target>
 
 </Project>
