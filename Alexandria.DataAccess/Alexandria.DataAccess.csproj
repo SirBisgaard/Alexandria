@@ -26,7 +26,7 @@
     </ItemGroup>
 
     <Target Name="SetKepubifyPermissions" AfterTargets="Build">
-        <Exec Command="chmod +x $(OutputPath)kepubify" />
+        <Exec Command="chmod +x $(OutputPath)/kepubify" />
     </Target>
 
 </Project>
