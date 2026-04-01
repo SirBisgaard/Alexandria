@@ -5,7 +5,7 @@ namespace Alexandria.Business.Services;
 
 public class AlexandriaLibraryService(IIndexFileService indexFileService) : IAlexandriaLibraryService
 {
-    public async Task<List<Book>> GetBooksAsync()
+    public async Task<List<Book>> GetBooks()
     {
         await indexFileService.LoadAsync();
         return indexFileService.Books;

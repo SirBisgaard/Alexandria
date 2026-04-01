@@ -10,7 +10,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpGet("books")]
     public async Task<IActionResult> GetBooks()
     {
-        var books = await alexandriaLibraryService.GetBooksAsync();
+        var books = await alexandriaLibraryService.GetBooks();
         return Ok(books);
     }
 }

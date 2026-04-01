@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.Services.Configure<KoboRetailSettings>(builder.Configuration.GetSection("KoboRetailSettings")); for reloading with IOptions<KoboRetailSettings> 
 var koboRetailSettings = builder.Configuration
     .GetSection("KoboRetailSettings")
-    .Get<KoboRetailSettings>()!;
+    .Get<KoboProxySettings>()!;
 var alexandriaSettings =  builder.Configuration
     .GetSection("AlexandriaSettings")
     .Get<AlexandriaSettings>()!;
@@ -20,7 +20,7 @@ builder.Services.AddSingleton(koboRetailSettings);
 builder.Services.AddSingleton(alexandriaSettings);
 
 // Http client for KoboStoreApi
-builder.Services.AddHttpClient<KoboProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
 // Add repositories to the container.
 builder.Services.AddSingleton<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
@@ -29,7 +29,7 @@ builder.Services.AddSingleton<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddSingleton<IKepubifyConverter, KepubifyConverter>();
 
 // Add services to the container.
-builder.Services.AddTransient<IKoboProxyService, KoboProxyService>();
+builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
 

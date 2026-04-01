@@ -18,25 +18,4 @@ public class Book
     public long KepubFileSize { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime LastModified { get; set; }
-
-    public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTime createdAt, DateTime lastModified)
-    {
-        return new Book
-        {
-            Uuid = metadata.Uuid,
-            FileHash = fileHash,
-            SourcePath = sourcePath,
-            Title = metadata.Title,
-            Authors = metadata.Authors,
-            Language = metadata.Language,
-            PublicationDate = metadata.PublicationDate,
-            Description = metadata.Description,
-            Publisher = metadata.Publisher,
-            SeriesName = metadata.SeriesName,
-            SeriesIndex = metadata.SeriesIndex,
-            CoverFilePath = metadata.CoverFilePath,
-            CreatedAt = createdAt,
-            LastModified = lastModified
-        };
-    }
 }
