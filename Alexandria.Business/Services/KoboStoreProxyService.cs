@@ -15,7 +15,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -101,7 +101,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             return await Proxy(request);
 
         // If the book does not exist on disk return 404.
-        if (book.KepubFilePath is null || !File.Exists(book.KepubFilePath))
+        var fileBytes = await fileRepository.ReadKepub(book);
+        if (fileBytes is null)
         {
             return new KoboProxyResponse
             {
@@ -111,7 +112,6 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             };
         }
 
-        var fileBytes = await File.ReadAllBytesAsync(book.KepubFilePath);
         return new KoboProxyResponse
         {
             StatusCode = StatusCodes.Status200OK,
@@ -148,7 +148,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
 
         // If the book does not have a cover return 404.
-        if (book.CoverFilePath is null || !File.Exists(book.CoverFilePath))
+        var coverBytes = await fileRepository.ReadCover(book);
+        if (coverBytes is null)
         {
             return new KoboProxyResponse
             {
@@ -157,9 +158,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 Body = []
             };
         }
-        
+
         // Return the cover.
-        var coverBytes = await File.ReadAllBytesAsync(book.CoverFilePath);
         return new KoboProxyResponse
         {
             StatusCode = StatusCodes.Status200OK,

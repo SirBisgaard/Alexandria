@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Alexandria.Business.Extensions;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
@@ -7,21 +6,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Services;
 
-public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IEpubMetadataExtractor epubMetadataExtractor, IKepubifyConverter kepubifyConverter, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
+public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IFileRepository fileRepository, IEpubMetadataExtractor epubMetadataExtractor, IKepubifyConverter kepubifyConverter, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
 {
     public async Task Index()
     {
         logger.LogInformation("Library indexing started. Books folder: {BooksFolder}", settings.BooksFolder);
 
         var books = await bookRepository.GetAll();
-
-        if (!Directory.Exists(settings.BooksFolder))
-        {
-            logger.LogWarning("Books folder does not exist: {BooksFolder}", settings.BooksFolder);
-            return;
-        }
-
-        var epubFiles = Directory.GetFiles(settings.BooksFolder, "*.epub");
+        var epubFiles = fileRepository.GetEpubFiles();
         logger.LogInformation("Found {Count} epub files", epubFiles.Length);
 
         // Remove stale entries whose source epub no longer exists on disk.
@@ -30,20 +22,14 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         foreach (var stale in staleBooks)
         {
             logger.LogInformation("Removing stale entry: {Title} ({SourcePath})", stale.Title, stale.SourcePath);
-            if (stale.CoverFilePath is not null && File.Exists(stale.CoverFilePath))
-            {
-                File.Delete(stale.CoverFilePath);
-            }
-            if (stale.KepubFilePath is not null && File.Exists(stale.KepubFilePath))
-            {
-                File.Delete(stale.KepubFilePath);
-            }
+            fileRepository.DeleteCover(stale);
+            fileRepository.DeleteKepub(stale);
             await bookRepository.Remove(stale.Uuid);
         }
 
         foreach (var epubPath in epubFiles)
         {
-            var fileHash = await ComputeFileHash(epubPath);
+            var fileHash = await fileRepository.ComputeFileHash(epubPath);
 
             // Fast path: hash unchanged, nothing to do.
             if (await bookRepository.FindByHash(fileHash) is not null)
@@ -60,14 +46,8 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 // UUID exists but hash changed — update existing entry.
                 logger.LogInformation("Updating changed book: {Title}", metadata.Title);
 
-                if (existingBook.CoverFilePath is not null && File.Exists(existingBook.CoverFilePath))
-                {
-                    File.Delete(existingBook.CoverFilePath);
-                }
-                if (existingBook.KepubFilePath is not null && File.Exists(existingBook.KepubFilePath))
-                {
-                    File.Delete(existingBook.KepubFilePath);
-                }
+                fileRepository.DeleteCover(existingBook);
+                fileRepository.DeleteKepub(existingBook);
 
                 var kepubPath = Path.Combine(settings.KepubsFolder, $"{metadata.Uuid}.kepub.epub");
                 await kepubifyConverter.ConvertAsync(epubPath, kepubPath);
@@ -86,7 +66,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 existingBook.SeriesIndex = metadata.SeriesIndex;
                 existingBook.CoverFilePath = metadata.CoverFilePath;
                 existingBook.KepubFilePath = kepubPath;
-                existingBook.KepubFileSize = new FileInfo(kepubPath).Length;
+                existingBook.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);
                 existingBook.LastModified = DateTime.UtcNow;
 
                 await bookRepository.Update(existingBook);
@@ -105,7 +85,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 var now = DateTime.UtcNow;
                 var book = Book.FromMetadata(metadata, fileHash, epubPath, now, now);
                 book.KepubFilePath = kepubPath;
-                book.KepubFileSize = new FileInfo(kepubPath).Length;
+                book.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);
                 await bookRepository.Add(book);
 
                 logger.LogInformation("Indexed: {Title} by {Authors}", book.Title, string.Join(", ", book.Authors));
@@ -114,12 +94,5 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
 
         var totalBooks = (await bookRepository.GetAll()).Count;
         logger.LogInformation("Library indexing complete. Total books: {Count}", totalBooks);
-    }
-
-    private static async Task<string> ComputeFileHash(string filePath)
-    {
-        await using var stream = File.OpenRead(filePath);
-        var hash = await SHA256.HashDataAsync(stream);
-        return $"sha256:{Convert.ToHexStringLower(hash)}";
     }
 }

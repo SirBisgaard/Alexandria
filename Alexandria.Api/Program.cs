@@ -23,11 +23,12 @@ builder.Services.AddSingleton(alexandriaSettings);
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
 // Add repositories to the container.
-builder.Services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
-builder.Services.AddSingleton<IBookRepository, BookRepository>();
-builder.Services.AddSingleton<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
-builder.Services.AddSingleton<IEpubMetadataExtractor, EpubMetadataExtractor>();
-builder.Services.AddSingleton<IKepubifyConverter, KepubifyConverter>();
+builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
+builder.Services.AddTransient<IBookRepository, BookRepository>();
+builder.Services.AddTransient<IFileRepository, FileRepository>();
+builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
+builder.Services.AddTransient<IEpubMetadataExtractor, EpubMetadataExtractor>();
+builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 
 // Add services to the container.
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
