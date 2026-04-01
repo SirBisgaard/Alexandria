@@ -1,7 +1,23 @@
-﻿services:
+services:
   alexandria.api:
     image: alexandria.api
     build:
       context: .
       dockerfile: Alexandria.Api/Dockerfile
-
+    ports:
+      - "80:8080"
+    volumes:
+      - ./Data/Books:/app/content/books
+      - ./Data/Alexandria:/app/content/data
+    environment:
+      # Logging
+      - Logging__LogLevel__Default=Information
+      # KoboProxySettings
+      - KoboProxySettings__AlexandriaApi=http://localhost
+      - KoboProxySettings__StoreApi=https://storeapi.kobo.com
+      - KoboProxySettings__SyncBatchSize=50
+      # AlexandriaSettings
+      - AlexandriaSettings__Database=/app/content/data/alexandria.db
+      - AlexandriaSettings__BooksFolder=/app/content/books
+      - AlexandriaSettings__CoversFolder=/app/content/data/covers
+      - AlexandriaSettings__KepubsFolder=/app/content/data/kepubs
