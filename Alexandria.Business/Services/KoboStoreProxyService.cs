@@ -295,6 +295,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
         var responseHeaders = response.Headers
             .Concat(response.Content.Headers)
+            .Where(h => !h.Key.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase))
             .ToDictionary(h => h.Key, h => h.Value.ToArray());
 
         return new KoboProxyResponse

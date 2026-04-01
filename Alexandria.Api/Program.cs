@@ -20,7 +20,7 @@ builder.Services.AddSingleton(koboRetailSettings);
 builder.Services.AddSingleton(alexandriaSettings);
 
 // Http client for KoboStoreApi
-builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, AutomaticDecompression = System.Net.DecompressionMethods.All });
 
 // Add repositories to the container.
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
