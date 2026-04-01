@@ -1,4 +1,5 @@
 using Alexandria.Business.Models;
+using Alexandria.Business.Models.Files;
 using Alexandria.Business.Models.KoboStore;
 
 namespace Alexandria.Business.Extensions;

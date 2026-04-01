@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models;
+using Alexandria.Business.Models.Proxy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
@@ -64,7 +64,7 @@ public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRep
 
         logger.LogDebug("Response: {Method}:{Url} {StatusCode}", method, url, context.Response.StatusCode);
         
-        await koboTrafficLogRepository.Log(new KoboTrafficLog
+        await koboTrafficLogRepository.Log(new KoboProxyTrafficLog
         {
             Timestamp = DateTime.UtcNow,
             Method = method,

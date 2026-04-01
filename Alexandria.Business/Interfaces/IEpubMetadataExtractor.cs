@@ -1,4 +1,4 @@
-using Alexandria.Business.Models;
+using Alexandria.Business.Models.Files;
 
 namespace Alexandria.Business.Interfaces;
 

@@ -1,6 +1,6 @@
-namespace Alexandria.Business.Models;
+namespace Alexandria.Business.Models.Proxy;
 
-public class KoboTrafficLog
+public class KoboProxyTrafficLog
 {
     // DB
     public int Id { get; set; }

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-namespace Alexandria.Business.Models;
+namespace Alexandria.Business.Models.Proxy;
 
 public class KoboProxyRequest
 {

@@ -1,4 +1,4 @@
-using Alexandria.Business.Models;
+using Alexandria.Business.Models.Files;
 using Alexandria.DataAccess.Services;
 
 namespace Alexandria.Tests.Library;

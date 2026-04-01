@@ -1,6 +1,6 @@
 using Alexandria.Business.Extensions;
 
-namespace Alexandria.Business.Models;
+namespace Alexandria.Business.Models.Files;
 
 public class EpubMetadata
 {

@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
+using Alexandria.Business.Interfaces;
 
 namespace Alexandria.Business.Services;
 
-public class SyncSessionService
+public class SyncSessionService : ISyncSessionService
 {
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(5);
 

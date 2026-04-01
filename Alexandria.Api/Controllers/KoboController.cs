@@ -1,5 +1,5 @@
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models;
+using Alexandria.Business.Models.Proxy;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;

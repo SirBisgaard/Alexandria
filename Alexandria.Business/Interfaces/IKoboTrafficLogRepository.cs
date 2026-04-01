@@ -1,8 +1,8 @@
-using Alexandria.Business.Models;
+using Alexandria.Business.Models.Proxy;
 
 namespace Alexandria.Business.Interfaces;
 
 public interface IKoboTrafficLogRepository
 {
-    Task Log(KoboTrafficLog entry);
+    Task Log(KoboProxyTrafficLog entry);
 }

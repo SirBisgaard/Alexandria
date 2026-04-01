@@ -1,5 +1,5 @@
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models;
+using Alexandria.Business.Models.Proxy;
 using Alexandria.Business.Models.Settings;
 using Microsoft.Data.Sqlite;
 
@@ -9,7 +9,7 @@ public class KoboTrafficLogRepository(AlexandriaSettings settings) : IKoboTraffi
 {
     private readonly string connectionString = $"Data Source={settings.Database}";
 
-    public async Task Log(KoboTrafficLog entry)
+    public async Task Log(KoboProxyTrafficLog entry)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
