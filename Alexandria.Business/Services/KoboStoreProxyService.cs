@@ -105,8 +105,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         // Only include books created or modified since the last completed sync.
         if (!syncSession.IsActive(deviceId))
         {
-            var lastSync = alexandriaToken.LastSync;
-            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt > lastSync || b.LastModified > lastSync)).ToList();
+            var lastSync = alexandriaToken.LastSync.ToUniversalTime();
+            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt.ToUniversalTime() > lastSync || b.LastModified.ToUniversalTime() > lastSync)).ToList();
             if (books.Count == 0)
             {
                 logger.LogInformation("LibrarySync: returning {Store} store items, no new/changed local books since {LastSync}", storeCount, lastSync);
@@ -136,7 +136,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
             var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.AlexandriaApi), ReadingState = readingState };
-            var isNew = book.CreatedAt > lastSyncTime;
+            var isNew = book.CreatedAt.ToUniversalTime() > lastSyncTime.ToUniversalTime();
             syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
         }
 
