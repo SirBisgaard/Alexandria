@@ -16,8 +16,8 @@ public class Book
     public string? CoverFilePath { get; set; }
     public string? KepubFilePath { get; set; }
     public long KepubFileSize { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime LastModified { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset LastModified { get; set; }
     public bool IsArchived { get; set; }
 
     public ReadingProgress? ReadingProgress { get; set; }

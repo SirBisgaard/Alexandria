@@ -24,7 +24,7 @@ public sealed class LibrarySyncTests
 
     private static readonly KoboProxySettings Settings = new() { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi, SyncBatchSize = 100 };
 
-    private static Book MakeBook(string title, DateTime createdAt, DateTime? lastModified = null)
+    private static Book MakeBook(string title, DateTimeOffset createdAt, DateTimeOffset? lastModified = null)
     {
         return new Book { Uuid = Guid.NewGuid(), Title = title, Authors = ["Test Author"], Language = "en", FileHash = "sha256:abc", SourcePath = "/test.epub", KepubFileSize = 1000, CreatedAt = createdAt, LastModified = lastModified ?? createdAt };
     }
@@ -84,7 +84,7 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task FirstSync_RawKoboToken_SendsAllBooksAsNewEntitlement()
     {
-        var now = DateTime.UtcNow;
+        var now = DateTimeOffset.UtcNow;
         var books = new List<Book> { MakeBook("Book A", now.AddMinutes(-10)), MakeBook("Book B", now.AddMinutes(-5)) };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
 
@@ -99,7 +99,7 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task SubsequentSync_NothingChanged_ReturnsZeroLocalBooks()
     {
-        var lastSync = DateTime.UtcNow;
+        var lastSync = DateTimeOffset.UtcNow;
         var oldTime = lastSync.AddHours(-1);
         var books = new List<Book> { MakeBook("Book A", oldTime), MakeBook("Book B", oldTime) };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
@@ -114,9 +114,9 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task SubsequentSync_NewBookAdded_SendsOnlyNewBookAsNewEntitlement()
     {
-        var lastSync = DateTime.UtcNow.AddMinutes(-5);
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
         var oldBook = MakeBook("Old Book", lastSync.AddHours(-1));
-        var newBook = MakeBook("New Book", DateTime.UtcNow);
+        var newBook = MakeBook("New Book", DateTimeOffset.UtcNow);
         var books = new List<Book> { oldBook, newBook };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
@@ -132,9 +132,9 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task SubsequentSync_BookUpdated_SendsOnlyChangedBookAsChangedEntitlement()
     {
-        var lastSync = DateTime.UtcNow.AddMinutes(-5);
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
         var unchangedBook = MakeBook("Unchanged", lastSync.AddHours(-1));
-        var updatedBook = MakeBook("Updated", lastSync.AddHours(-1), lastModified: DateTime.UtcNow);
+        var updatedBook = MakeBook("Updated", lastSync.AddHours(-1), lastModified: DateTimeOffset.UtcNow);
         var books = new List<Book> { unchangedBook, updatedBook };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
@@ -150,8 +150,8 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task SubsequentSync_ArchivedBookIgnored()
     {
-        var lastSync = DateTime.UtcNow.AddMinutes(-5);
-        var archivedBook = MakeBook("Archived", DateTime.UtcNow);
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var archivedBook = MakeBook("Archived", DateTimeOffset.UtcNow);
         archivedBook.IsArchived = true;
         var books = new List<Book> { archivedBook };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
@@ -166,7 +166,7 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task FirstSync_ResponseTokenWrapsKoboToken()
     {
-        var books = new List<Book> { MakeBook("Book A", DateTime.UtcNow) };
+        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
 
         var response = await service.LibrarySync(MakeRequest(KoboStoreToken));
@@ -178,8 +178,8 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task CompletedSync_AdvancesLastSync()
     {
-        var before = DateTime.UtcNow;
-        var books = new List<Book> { MakeBook("Book A", DateTime.UtcNow) };
+        var before = DateTimeOffset.UtcNow;
+        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
 
         var response = await service.LibrarySync(MakeRequest(KoboStoreToken));
@@ -191,11 +191,11 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task NoChanges_AdvancesLastSync()
     {
-        var oldLastSync = DateTime.UtcNow.AddHours(-1);
+        var oldLastSync = DateTimeOffset.UtcNow.AddHours(-1);
         var books = new List<Book> { MakeBook("Old Book", oldLastSync.AddHours(-1)) };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = oldLastSync });
-        var before = DateTime.UtcNow;
+        var before = DateTimeOffset.UtcNow;
 
         var response = await service.LibrarySync(MakeRequest(token));
 
@@ -206,7 +206,7 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task Continuation_LastSyncNotAdvancedUntilFinalPage()
     {
-        var now = DateTime.UtcNow;
+        var now = DateTimeOffset.UtcNow;
         var books = Enumerable.Range(0, 150).Select(i => MakeBook($"Book {i}", now)).ToList();
         var settingsSmallBatch = new KoboProxySettings { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi, SyncBatchSize = 100 };
         var libraryService = new FakeLibraryService(books);
@@ -220,10 +220,10 @@ public sealed class LibrarySyncTests
         Assert.AreEqual(100, items1.Count, "First page should have 100 items");
         Assert.IsTrue(response1.Headers.TryGetValue("x-kobo-sync", out var continueValues) && continueValues.Contains("continue"), "First page should have x-kobo-sync: continue");
         var token1 = ParseResponseToken(response1);
-        Assert.AreEqual(DateTime.MinValue, token1.LastSync, "LastSync should NOT be advanced during continuation");
+        Assert.AreEqual(DateTimeOffset.MinValue, token1.LastSync, "LastSync should NOT be advanced during continuation");
 
         // Second page (final) — should advance lastSync.
-        var before = DateTime.UtcNow;
+        var before = DateTimeOffset.UtcNow;
         var response2 = await service.LibrarySync(MakeRequest(syncTokenService.Generate(token1)));
         var items2 = DeserializeBody(response2);
         Assert.AreEqual(50, items2.Count, "Second page should have the remaining 50 items");
@@ -235,8 +235,8 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task KoboContinuation_PassthroughWithWrappedToken()
     {
-        var lastSync = DateTime.UtcNow.AddHours(-1);
-        var books = new List<Book> { MakeBook("Book A", DateTime.UtcNow) };
+        var lastSync = DateTimeOffset.UtcNow.AddHours(-1);
+        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(MakeContinuationStoreResponse());
         var httpClient = new HttpClient(handler);
@@ -253,7 +253,7 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task FirstSync_NoSyncTokenHeader_TreatedAsFullSync()
     {
-        var books = new List<Book> { MakeBook("Book A", DateTime.UtcNow) };
+        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
 
         var response = await service.LibrarySync(MakeRequest(syncToken: null));
@@ -266,9 +266,9 @@ public sealed class LibrarySyncTests
     [TestMethod]
     public async Task MixedNewAndChanged_CorrectEntitlementTypes()
     {
-        var lastSync = DateTime.UtcNow.AddMinutes(-5);
-        var newBook = MakeBook("New Book", DateTime.UtcNow);
-        var changedBook = MakeBook("Changed Book", lastSync.AddHours(-1), lastModified: DateTime.UtcNow);
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var newBook = MakeBook("New Book", DateTimeOffset.UtcNow);
+        var changedBook = MakeBook("Changed Book", lastSync.AddHours(-1), lastModified: DateTimeOffset.UtcNow);
         var oldBook = MakeBook("Old Book", lastSync.AddHours(-1));
         var books = new List<Book> { newBook, changedBook, oldBook };
         var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));

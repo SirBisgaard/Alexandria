@@ -66,7 +66,7 @@ public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRep
         
         await koboTrafficLogRepository.Log(new KoboProxyTrafficLog
         {
-            Timestamp = DateTime.UtcNow,
+            Timestamp = DateTimeOffset.UtcNow,
             Method = method,
             Url = context.Request.GetDisplayUrl(),
             RequestHeaders = requestHeaders,

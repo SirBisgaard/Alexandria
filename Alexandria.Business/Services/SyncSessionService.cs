@@ -16,7 +16,7 @@ public class SyncSessionService : ISyncSessionService
             return false;
         }
 
-        if (DateTime.UtcNow - session.CreatedAt >= SessionTimeout)
+        if (DateTimeOffset.UtcNow - session.CreatedAt >= SessionTimeout)
         {
             sessions.TryRemove(deviceId, out _);
             return false;
@@ -27,7 +27,7 @@ public class SyncSessionService : ISyncSessionService
 
     public void Start(string deviceId, List<Guid> uuids)
     {
-        sessions[deviceId] = new SyncSession(uuids, 0, DateTime.UtcNow);
+        sessions[deviceId] = new SyncSession(uuids, 0, DateTimeOffset.UtcNow);
     }
 
     public List<Guid> GetNextBatch(string deviceId, int batchSize)
@@ -57,5 +57,5 @@ public class SyncSessionService : ISyncSessionService
         sessions.TryRemove(deviceId, out _);
     }
 
-    private record SyncSession(List<Guid> BookUuids, int Offset, DateTime CreatedAt);
+    private record SyncSession(List<Guid> BookUuids, int Offset, DateTimeOffset CreatedAt);
 }

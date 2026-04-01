@@ -6,5 +6,5 @@ public class ReadingProgress
     public double? ProgressPercent { get; set; }
     public int? SpentReadingMinutes { get; set; }
     public int? RemainingTimeMinutes { get; set; }
-    public DateTime LastModified { get; set; }
+    public DateTimeOffset LastModified { get; set; }
 }

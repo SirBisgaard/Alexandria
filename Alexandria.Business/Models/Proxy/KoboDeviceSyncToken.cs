@@ -4,5 +4,5 @@ public record KoboDeviceSyncToken
 {
     public int V { get; init; } = 1;
     public string KoboToken { get; init; } = "";
-    public DateTime LastSync { get; init; } = DateTime.MinValue;
+    public DateTimeOffset LastSync { get; init; } = DateTimeOffset.MinValue;
 }

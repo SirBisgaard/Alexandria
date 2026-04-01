@@ -67,7 +67,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 existingBook.CoverFilePath = metadata.CoverFilePath;
                 existingBook.KepubFilePath = kepubPath;
                 existingBook.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);
-                existingBook.LastModified = DateTime.UtcNow;
+                existingBook.LastModified = DateTimeOffset.UtcNow;
 
                 await bookRepository.Update(existingBook);
 
@@ -82,7 +82,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 await kepubifyConverter.ConvertAsync(epubPath, kepubPath);
                 metadata.CoverFilePath = epubMetadataExtractor.ExtractCover(epubPath, settings.CoversFolder);
 
-                var now = DateTime.UtcNow;
+                var now = DateTimeOffset.UtcNow;
                 var book = Book.FromMetadata(metadata, fileHash, epubPath, now, now);
                 book.KepubFilePath = kepubPath;
                 book.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);

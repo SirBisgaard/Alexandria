@@ -142,8 +142,8 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
             CoverFilePath = reader.IsDBNull(reader.GetOrdinal("CoverFilePath")) ? null : reader.GetString(reader.GetOrdinal("CoverFilePath")),
             KepubFilePath = reader.IsDBNull(reader.GetOrdinal("KepubFilePath")) ? null : reader.GetString(reader.GetOrdinal("KepubFilePath")),
             KepubFileSize = reader.GetInt64(reader.GetOrdinal("KepubFileSize")),
-            CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
-            LastModified = DateTime.Parse(reader.GetString(reader.GetOrdinal("LastModified"))),
+            CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+            LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified"))),
             IsArchived = reader.GetInt32(reader.GetOrdinal("IsArchived")) == 1
         };
     }

@@ -63,7 +63,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "INSERT INTO SchemaVersion (Version, AppliedAt) VALUES (@version, @appliedAt)";
         cmd.Parameters.AddWithValue("@version", version);
-        cmd.Parameters.AddWithValue("@appliedAt", DateTime.UtcNow.ToString("O"));
+        cmd.Parameters.AddWithValue("@appliedAt", DateTimeOffset.UtcNow.ToString("O"));
         await cmd.ExecuteNonQueryAsync();
     }
 

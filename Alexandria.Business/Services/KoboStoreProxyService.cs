@@ -105,14 +105,14 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         // Only include books created or modified since the last completed sync.
         if (!syncSession.IsActive(deviceId))
         {
-            var lastSync = alexandriaToken.LastSync.ToUniversalTime();
-            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt.ToUniversalTime() > lastSync || b.LastModified.ToUniversalTime() > lastSync)).ToList();
+            var lastSync = alexandriaToken.LastSync;
+            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt > lastSync || b.LastModified > lastSync)).ToList();
             if (books.Count == 0)
             {
                 logger.LogInformation("LibrarySync: returning {Store} store items, no new/changed local books since {LastSync}", storeCount, lastSync);
                 var headers = new Dictionary<string, string[]>(koboResponse.Headers);
                 headers.Remove("x-kobo-sync");
-                headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTime.UtcNow })];
+                headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow })];
                 return JsonResponse(StatusCodes.Status200OK, syncResults, headers);
             }
 
@@ -136,7 +136,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
             var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.AlexandriaApi), ReadingState = readingState };
-            var isNew = book.CreatedAt.ToUniversalTime() > lastSyncTime.ToUniversalTime();
+            var isNew = book.CreatedAt > lastSyncTime;
             syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
         }
 
@@ -152,7 +152,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         else
         {
             responseHeaders.Remove("x-kobo-sync");
-            responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTime.UtcNow })];
+            responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow })];
             syncSession.Clear(deviceId);
             logger.LogInformation("LibrarySync: returning final {Total} items ({Local} local, {Store} store)", syncResults.Count, batchUuids.Count, storeCount);
         }
@@ -291,7 +291,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
         logger.LogInformation("ReadingState: {Method} for '{Title}' ({Uuid})", request.Method, book.Title, uuid);
 
-        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var uuidStr = uuid.ToString();
 
         if (request.Method == "PUT")

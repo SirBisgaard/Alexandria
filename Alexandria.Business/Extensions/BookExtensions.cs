@@ -6,11 +6,11 @@ namespace Alexandria.Business.Extensions;
 
 public static class BookExtensions
 {
-    private static string ToKoboTimestamp(DateTime dateTime) => dateTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+    private static string ToKoboTimestamp(DateTimeOffset dateTime) => dateTime.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
     extension(Book book)
     {
-        public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTime createdAt, DateTime lastModified)
+        public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTimeOffset createdAt, DateTimeOffset lastModified)
         {
             return new Book
             {

@@ -49,7 +49,7 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
             ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : reader.GetDouble(reader.GetOrdinal("ProgressPercent")),
             SpentReadingMinutes = reader.IsDBNull(reader.GetOrdinal("SpentReadingMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("SpentReadingMinutes")),
             RemainingTimeMinutes = reader.IsDBNull(reader.GetOrdinal("RemainingTimeMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("RemainingTimeMinutes")),
-            LastModified = DateTime.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
+            LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
         };
     }
 

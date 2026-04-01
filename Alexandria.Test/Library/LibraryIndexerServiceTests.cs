@@ -69,8 +69,8 @@ public sealed class LibraryIndexerServiceTests
             Assert.IsNotNull(book.KepubFilePath);
             Assert.IsTrue(File.Exists(book.KepubFilePath), $"KEPUB should exist for {book.Title}");
             Assert.IsTrue(book.KepubFileSize > 0, $"KepubFileSize should be positive for {book.Title}");
-            Assert.AreNotEqual(default(DateTime), book.CreatedAt, $"CreatedAt should be set for {book.Title}");
-            Assert.AreNotEqual(default(DateTime), book.LastModified, $"LastModified should be set for {book.Title}");
+            Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt, $"CreatedAt should be set for {book.Title}");
+            Assert.AreNotEqual(default(DateTimeOffset), book.LastModified, $"LastModified should be set for {book.Title}");
             Assert.AreEqual(book.CreatedAt, book.LastModified, $"CreatedAt and LastModified should match on first index for {book.Title}");
         }
     }

@@ -4,7 +4,7 @@ public class KoboProxyTrafficLog
 {
     // DB
     public int Id { get; set; }
-    public DateTime Timestamp { get; set; }
+    public DateTimeOffset Timestamp { get; set; }
 
     // Request
     public required string Method { get; set; }
