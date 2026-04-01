@@ -9,7 +9,7 @@ namespace Alexandria.Tests.Library;
 [TestClass]
 public sealed class LibraryIndexerServiceTests
 {
-    private static readonly string ContentBooksDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Content", "Books"));
+    private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
 
     private string testDir = null!;
     private string coversDir = null!;

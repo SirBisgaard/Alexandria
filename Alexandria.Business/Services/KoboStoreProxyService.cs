@@ -57,6 +57,12 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// Intercepts Kobo's /v1/library/sync endpoint. Uses a two-phase continuation model:
     /// Phase 1 — while Kobo returns x-kobo-sync: continue, pass through store results without injecting local books.
     /// Phase 2 — once Kobo is done, paginate local Alexandria books in batches using the same continuation header.
+    ///
+    /// All IDs returned for local books (EntitlementId, RevisionId, CrossRevisionId, WorkId, CoverImageId,
+    /// and Series.Id) are deterministic UUID v5 values generated via <see cref="GuidExtensions"/>.
+    /// Book UUIDs are derived from a normalized "title:authors" key (see <see cref="EpubMetadata.Uuid"/>),
+    /// and series IDs are derived from the series name. This means the same EPUB will always receive the
+    /// same identifiers regardless of when or where it is indexed.
     /// </summary>
     public async Task<KoboProxyResponse> LibrarySync(KoboProxyRequest request)
     {

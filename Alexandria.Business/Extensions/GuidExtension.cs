@@ -9,6 +9,15 @@ public static class GuidExtensions
 
     extension(Guid)
     {
+        /// <summary>
+        /// Generates a deterministic UUID v5 from the given <paramref name="name"/> using SHA-1 and
+        /// a fixed Alexandria-specific namespace (<c>cd4631e2-04f2-4cc2-b938-b34c1e3c85a0</c>).
+        /// The same <paramref name="name"/> will always produce the same GUID, following RFC 9562 §5.5.
+        /// Byte order is swapped before hashing and after construction to account for .NET's
+        /// mixed-endian GUID layout.
+        /// </summary>
+        /// <param name="name">The input string to hash (e.g. a normalized "title:authors" key).</param>
+        /// <returns>A deterministic UUID v5 with version nibble 0101 and variant bits 10.</returns>
         public static Guid GenerateUuidV5(string name)
         {
             var namespaceBytes = Namespace.ToByteArray();

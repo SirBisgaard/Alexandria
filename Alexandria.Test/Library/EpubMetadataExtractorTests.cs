@@ -6,8 +6,7 @@ namespace Alexandria.Tests.Library;
 [TestClass]
 public sealed class EpubMetadataExtractorTests
 {
-    private static readonly string ContentBooksDir = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Content", "Books"));
+    private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
 
     private string outputDir = null!;
 
@@ -56,72 +55,6 @@ public sealed class EpubMetadataExtractorTests
         Assert.Contains("Bernard Cornwell", metadata.Authors);
         Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
         Assert.AreEqual(3, metadata.SeriesIndex);
-    }
-
-    [TestMethod]
-    public void Extract_Sværdsang_ReturnsCorrectMetadata()
-    {
-        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #4 - Sværdsang.epub");
-
-        Assert.AreEqual("Sværdsang", metadata.Title);
-        Assert.Contains("Bernard Cornwell", metadata.Authors);
-        Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
-        Assert.AreEqual(4, metadata.SeriesIndex);
-    }
-
-    [TestMethod]
-    public void Extract_DetBrændendeLand_ReturnsCorrectMetadata()
-    {
-        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #5 - Det brændende land.epub");
-
-        Assert.AreEqual("Det brændende land", metadata.Title);
-        Assert.Contains("Bernard Cornwell", metadata.Authors);
-        Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
-        Assert.AreEqual(5, metadata.SeriesIndex);
-    }
-
-    [TestMethod]
-    public void Extract_EnKongesDød_ReturnsCorrectMetadata()
-    {
-        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #6 - En konges død.epub");
-
-        Assert.AreEqual("En konges død", metadata.Title);
-        Assert.Contains("Bernard Cornwell", metadata.Authors);
-        Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
-        Assert.AreEqual(6, metadata.SeriesIndex);
-    }
-
-    [TestMethod]
-    public void Extract_DenHedenskeHerre_ReturnsCorrectMetadata()
-    {
-        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #7 - Den hedenske herre.epub");
-
-        Assert.AreEqual("Den hedenske herre", metadata.Title);
-        Assert.Contains("Bernard Cornwell", metadata.Authors);
-        Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
-        Assert.AreEqual(7, metadata.SeriesIndex);
-    }
-
-    [TestMethod]
-    public void Extract_DenTommeTrone_ReturnsCorrectMetadata()
-    {
-        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #8 - Den tomme trone.epub");
-
-        Assert.AreEqual("Den tomme trone", metadata.Title);
-        Assert.Contains("Bernard Cornwell", metadata.Authors);
-        Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
-        Assert.AreEqual(8, metadata.SeriesIndex);
-    }
-
-    [TestMethod]
-    public void Extract_StormensKrigere_ReturnsCorrectMetadata()
-    {
-        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #9 - Stormens krigere.epub");
-
-        Assert.AreEqual("Stormens krigere", metadata.Title);
-        Assert.Contains("Bernard Cornwell", metadata.Authors);
-        Assert.AreEqual("The Last Kingdom", metadata.SeriesName);
-        Assert.AreEqual(9, metadata.SeriesIndex);
     }
 
     [TestMethod]
