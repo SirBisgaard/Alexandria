@@ -1,4 +1,5 @@
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Models;
 using Alexandria.Business.Models.KoboStore;
 using Alexandria.Business.Models.Settings;
 using Microsoft.Data.Sqlite;
@@ -25,6 +26,31 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         }
 
         return MapReadingState(reader);
+    }
+
+    public async Task<ReadingProgress?> GetReadingProgress(Guid bookUuid)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT StatusInfoStatus, ProgressPercent, SpentReadingMinutes, RemainingTimeMinutes, LastModified FROM ReadingStates WHERE BookUuid = @bookUuid";
+        cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new ReadingProgress
+        {
+            Status = reader.GetString(reader.GetOrdinal("StatusInfoStatus")),
+            ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : reader.GetDouble(reader.GetOrdinal("ProgressPercent")),
+            SpentReadingMinutes = reader.IsDBNull(reader.GetOrdinal("SpentReadingMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("SpentReadingMinutes")),
+            RemainingTimeMinutes = reader.IsDBNull(reader.GetOrdinal("RemainingTimeMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("RemainingTimeMinutes")),
+            LastModified = DateTime.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
+        };
     }
 
     public async Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody)
