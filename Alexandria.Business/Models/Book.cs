@@ -19,4 +19,6 @@ public class Book
     public DateTime CreatedAt { get; set; }
     public DateTime LastModified { get; set; }
     public bool IsArchived { get; set; }
+
+    public ReadingProgress? ReadingProgress { get; set; }
 }

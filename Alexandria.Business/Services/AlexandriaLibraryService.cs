@@ -3,11 +3,16 @@ using Alexandria.Business.Models;
 
 namespace Alexandria.Business.Services;
 
-public class AlexandriaLibraryService(IBookRepository bookRepository) : IAlexandriaLibraryService
+public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingStateRepository readingStateRepository) : IAlexandriaLibraryService
 {
     public async Task<List<Book>> GetBooks()
     {
-        return await bookRepository.GetAll();
+        var books = await bookRepository.GetAll();
+        foreach (var book in books)
+        {
+            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.Uuid);
+        }
+        return books;
     }
 
     public async Task<Book?> GetBookByUuid(Guid uuid)
