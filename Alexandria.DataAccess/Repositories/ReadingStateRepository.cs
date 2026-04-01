@@ -72,8 +72,8 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         cmd.Parameters.AddWithValue("@spentReadingMinutes", (object?)state.Statistics.SpentReadingMinutes ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@remainingTimeMinutes", (object?)state.Statistics.RemainingTimeMinutes ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@statisticsLastModified", state.Statistics.LastModified);
-        cmd.Parameters.AddWithValue("@progressPercent", state.CurrentBookmark.ProgressPercent is not null ? Convert.ToDouble(state.CurrentBookmark.ProgressPercent) : DBNull.Value);
-        cmd.Parameters.AddWithValue("@contentSourceProgressPercent", state.CurrentBookmark.ContentSourceProgressPercent is not null ? Convert.ToDouble(state.CurrentBookmark.ContentSourceProgressPercent) : DBNull.Value);
+        cmd.Parameters.AddWithValue("@progressPercent", ToDoubleOrNull(state.CurrentBookmark.ProgressPercent));
+        cmd.Parameters.AddWithValue("@contentSourceProgressPercent", ToDoubleOrNull(state.CurrentBookmark.ContentSourceProgressPercent));
         cmd.Parameters.AddWithValue("@locationValue", (object?)state.CurrentBookmark.Location?.Value ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@locationType", (object?)state.CurrentBookmark.Location?.Type ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@locationSource", (object?)state.CurrentBookmark.Location?.Source ?? DBNull.Value);
@@ -127,6 +127,21 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
                 Location = location
             }
         };
+    }
+
+    private static object ToDoubleOrNull(object? value)
+    {
+        if (value is null)
+        {
+            return DBNull.Value;
+        }
+
+        if (value is System.Text.Json.JsonElement jsonElement)
+        {
+            return jsonElement.TryGetDouble(out var d) ? d : DBNull.Value;
+        }
+
+        return Convert.ToDouble(value);
     }
 
     private static object CleanProgress(double value)

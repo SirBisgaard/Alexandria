@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -7,6 +8,7 @@ using Alexandria.Business.Models;
 using Alexandria.Business.Models.KoboStore;
 using Alexandria.Business.Models.Settings;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Services;
 
@@ -15,7 +17,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -31,6 +33,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> Initialization(KoboProxyRequest request)
     {
+        logger.LogInformation("Initialization: rewriting resource URLs to route through Alexandria");
         var koboResponse = await Proxy(request);
 
         var json = JsonSerializer.Deserialize<JsonObject>(koboResponse.Body);
@@ -57,10 +60,12 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> LibrarySync(KoboProxyRequest request)
     {
+        logger.LogInformation("LibrarySync: fetching store results and merging local books");
         // 1. Forward to Kobo and get their sync results
         var koboResponse = await Proxy(request);
 
         var syncResults = new List<SyncResultItem>();
+        var storeCount = 0;
 
         // Kobo store results — deserialize as raw JSON objects and keep as-is
         if (koboResponse.StatusCode == 200)
@@ -68,11 +73,14 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             var storeResults = JsonSerializer.Deserialize<List<SyncResultItem>>(koboResponse.Body);
 
             if (storeResults is not null)
+            {
+                storeCount = storeResults.Count;
                 syncResults.AddRange(storeResults);
+            }
         }
 
         // Local books — fully typed, excluding archived
-        var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived);
+        var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived).ToList();
         foreach (var book in books)
         {
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
@@ -87,6 +95,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             });
         }
 
+        logger.LogInformation("LibrarySync: returning {Total} items ({Local} local, {Store} from store)", syncResults.Count, books.Count, storeCount);
         return JsonResponse(StatusCodes.Status200OK, syncResults, koboResponse.Headers);
     }
 
@@ -100,7 +109,10 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var book = await alexandriaLibraryService.GetBookByUuid(uuid);
         // We dont know the book.
         if (book is null)
+        {
+            logger.LogDebug("Download: book {Uuid} not local, proxying to Kobo", uuid);
             return await Proxy(request);
+        }
 
         // If the book does not exist on disk return 404.
         var fileBytes = await fileRepository.ReadKepub(book);
@@ -114,13 +126,14 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             };
         }
 
+        logger.LogInformation("Download: serving local book '{Title}' ({Uuid})", book.Title, uuid);
         return new KoboProxyResponse
         {
             StatusCode = StatusCodes.Status200OK,
             Headers = new Dictionary<string, string[]>
             {
                 { "Content-Type", ["application/epub+zip"] },
-                { "Content-Disposition", [$"attachment; filename=\"{book.Title}.kepub.epub\""] }
+                { "Content-Disposition", [$"attachment; filename*=UTF-8''{Uri.EscapeDataString(book.Title)}.kepub.epub"] }
             },
             Body = fileBytes
         };
@@ -138,6 +151,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         // We dont know the book.
         if (book is null)
         {
+            logger.LogDebug("CoverImage: book {Uuid} not local, redirecting to Kobo CDN", uuid);
             return new KoboProxyResponse
             {
                 StatusCode = StatusCodes.Status307TemporaryRedirect,
@@ -162,6 +176,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
 
         // Return the cover.
+        logger.LogInformation("CoverImage: serving cover for '{Title}' ({Uuid})", book.Title, uuid);
         return new KoboProxyResponse
         {
             StatusCode = StatusCodes.Status200OK,
@@ -185,8 +200,10 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         // We dont know the book.
         if (book is null)
         {
+            logger.LogDebug("ReadingState: book {Uuid} not local, proxying to Kobo", uuid);
             return await Proxy(request);
         }
+        logger.LogInformation("ReadingState: {Method} for '{Title}' ({Uuid})", request.Method, book.Title, uuid);
 
         var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var uuidStr = uuid.ToString();
@@ -227,7 +244,11 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var book = await alexandriaLibraryService.GetBookByUuid(uuid);
         // We dont know the book.
         if (book is null)
+        {
+            logger.LogDebug("Metadata: book {Uuid} not local, proxying to Kobo", uuid);
             return await Proxy(request);
+        }
+        logger.LogInformation("Metadata: serving metadata for '{Title}' ({Uuid})", book.Title, uuid);
         
         return JsonResponse(StatusCodes.Status200OK, new[] { book.ToMetadata(settings.AlexandriaApi) });
     }
@@ -242,8 +263,12 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var book = await alexandriaLibraryService.GetBookByUuid(uuid);
         // We dont know the book.
         if (book is null)
+        {
+            logger.LogDebug("DeleteBook: book {Uuid} not local, proxying to Kobo", uuid);
             return await Proxy(request);
+        }
 
+        logger.LogInformation("DeleteBook: archiving '{Title}' ({Uuid})", book.Title, uuid);
         await alexandriaLibraryService.ArchiveBook(uuid);
         
         return new KoboProxyResponse
@@ -263,6 +288,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     public async Task<KoboProxyResponse> Proxy(KoboProxyRequest request)
     {
         var targetUrl = $"{settings.StoreApi}{request.Path}{request.QueryString}";
+        logger.LogInformation("Proxy: {Method} {Url}", request.Method, targetUrl);
         var upstream = new HttpRequestMessage(new HttpMethod(request.Method), targetUrl);
 
         // Copy body
@@ -290,8 +316,18 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         // Send to Kobo
         var response = await httpClient.SendAsync(upstream);
 
-        // Read the full response
+        // Read and decompress the response if gzip-encoded
         var responseBody = await response.Content.ReadAsByteArrayAsync();
+        var contentEncoding = response.Content.Headers.ContentEncoding.FirstOrDefault();
+
+        if (string.Equals(contentEncoding, "gzip", StringComparison.OrdinalIgnoreCase))
+        {
+            using var compressed = new MemoryStream(responseBody);
+            using var gzip = new GZipStream(compressed, CompressionMode.Decompress);
+            using var decompressed = new MemoryStream();
+            await gzip.CopyToAsync(decompressed);
+            responseBody = decompressed.ToArray();
+        }
 
         var responseHeaders = response.Headers
             .Concat(response.Content.Headers)

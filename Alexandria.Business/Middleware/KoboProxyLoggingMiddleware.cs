@@ -36,7 +36,7 @@ public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRep
         var requestBody = await reader.ReadToEndAsync();
         context.Request.Body.Position = 0;
 
-        logger.LogInformation("Request: {Method}:{Url}", method, url);
+        logger.LogDebug("Request: {Method}:{Url}", method, url);
 
         // ── Response ──
         // Swap the response body with a buffer we can read back
@@ -62,7 +62,7 @@ public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRep
         var responseHeaders = string.Join($",{Environment.NewLine}",
             context.Response.Headers.Select(h => $"{h.Key}={h.Value}"));
 
-        logger.LogInformation("Response: {Method}:{Url} {StatusCode}", method, url, context.Response.StatusCode);
+        logger.LogDebug("Response: {Method}:{Url} {StatusCode}", method, url, context.Response.StatusCode);
         
         await koboTrafficLogRepository.Log(new KoboTrafficLog
         {
