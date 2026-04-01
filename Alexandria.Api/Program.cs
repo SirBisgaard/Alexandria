@@ -32,6 +32,7 @@ builder.Services.AddTransient<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 
 // Add services to the container.
+builder.Services.AddSingleton<SyncSessionService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();

@@ -4,4 +4,5 @@ public record KoboProxySettings
 {
     public required string AlexandriaApi { get; init; }
     public required string StoreApi { get; init; }
+    public int SyncBatchSize { get; init; } = 100;
 }

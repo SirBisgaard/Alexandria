@@ -17,7 +17,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, SyncSessionService syncSession, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -54,24 +54,30 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     }
 
     /// <summary>
-    /// Intercepts Kobo's /v1/library/sync endpoint. Proxies the request to Kobo to get store-purchased books,
-    /// then appends local Alexandria books (non-archived) as NewEntitlement items in the sync response array.
-    /// This is how the Kobo device discovers local books to download.
+    /// Intercepts Kobo's /v1/library/sync endpoint. Uses a two-phase continuation model:
+    /// Phase 1 — while Kobo returns x-kobo-sync: continue, pass through store results without injecting local books.
+    /// Phase 2 — once Kobo is done, paginate local Alexandria books in batches using the same continuation header.
     /// </summary>
     public async Task<KoboProxyResponse> LibrarySync(KoboProxyRequest request)
     {
         logger.LogInformation("LibrarySync: fetching store results and merging local books");
-        // 1. Forward to Kobo and get their sync results
+        var deviceId = GetDeviceId(request);
         var koboResponse = await Proxy(request);
+
+        // If Kobo is still paginating its own results, pass through without injecting local books.
+        if (HasKoboContinuation(koboResponse))
+        {
+            syncSession.Clear(deviceId);
+            logger.LogInformation("LibrarySync: Kobo continuation active, passing through store results");
+            return koboResponse;
+        }
 
         var syncResults = new List<SyncResultItem>();
         var storeCount = 0;
 
-        // Kobo store results — deserialize as raw JSON objects and keep as-is
         if (koboResponse.StatusCode == 200)
         {
             var storeResults = JsonSerializer.Deserialize<List<SyncResultItem>>(koboResponse.Body);
-
             if (storeResults is not null)
             {
                 storeCount = storeResults.Count;
@@ -79,10 +85,32 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             }
         }
 
-        // Local books — fully typed, excluding archived
-        var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived).ToList();
-        foreach (var book in books)
+        // Start a new local book sync session if one isn't already active.
+        if (!syncSession.IsActive(deviceId))
         {
+            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived).ToList();
+            if (books.Count == 0)
+            {
+                logger.LogInformation("LibrarySync: returning {Store} store items, no local books", storeCount);
+                return JsonResponse(StatusCodes.Status200OK, syncResults, koboResponse.Headers);
+            }
+
+            syncSession.Start(deviceId, books.Select(b => b.Uuid).ToList());
+        }
+
+        // Get next batch of local book UUIDs from the session.
+        var batchSize = settings.SyncBatchSize;
+        var batchUuids = syncSession.GetNextBatch(deviceId, batchSize);
+        var hasMore = syncSession.HasMore(deviceId);
+
+        foreach (var uuid in batchUuids)
+        {
+            var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+            if (book is null || book.IsArchived)
+            {
+                continue;
+            }
+
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
             syncResults.Add(new SyncResultItem
             {
@@ -95,8 +123,36 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             });
         }
 
-        logger.LogInformation("LibrarySync: returning {Total} items ({Local} local, {Store} from store)", syncResults.Count, books.Count, storeCount);
-        return JsonResponse(StatusCodes.Status200OK, syncResults, koboResponse.Headers);
+        var headers = new Dictionary<string, string[]>(koboResponse.Headers);
+
+        if (hasMore)
+        {
+            headers["x-kobo-sync"] = ["continue"];
+            logger.LogInformation("LibrarySync: returning {Total} items ({Local} local, {Store} store), more local books pending", syncResults.Count, batchUuids.Count, storeCount);
+        }
+        else
+        {
+            headers.Remove("x-kobo-sync");
+            syncSession.Clear(deviceId);
+            logger.LogInformation("LibrarySync: returning final {Total} items ({Local} local, {Store} store)", syncResults.Count, batchUuids.Count, storeCount);
+        }
+
+        return JsonResponse(StatusCodes.Status200OK, syncResults, headers);
+    }
+
+    private static string GetDeviceId(KoboProxyRequest request)
+    {
+        if (request.Headers.TryGetValue("x-kobo-deviceid", out var values) && values.Length > 0 && values[0] is not null)
+        {
+            return values[0]!;
+        }
+
+        return "unknown";
+    }
+
+    private static bool HasKoboContinuation(KoboProxyResponse response)
+    {
+        return response.Headers.TryGetValue("x-kobo-sync", out var values) && values.Any(v => string.Equals(v, "continue", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
