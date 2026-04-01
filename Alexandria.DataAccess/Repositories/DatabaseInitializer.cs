@@ -27,7 +27,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         var migrations = new (int Version, Func<SqliteConnection, Task> Apply)[]
         {
             (1, MigrateV1_InitialSchema),
-            (2, MigrateV2_ReadingStates)
+            (2, MigrateV2_ReadingStates),
+            (3, MigrateV3_Collections)
         };
 
         foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -137,5 +138,31 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             )
             """;
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task MigrateV3_Collections(SqliteConnection connection)
+    {
+        await using var collectionsCmd = connection.CreateCommand();
+        collectionsCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS Collections (
+                Uuid TEXT PRIMARY KEY,
+                Name TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                LastModified TEXT NOT NULL
+            )
+            """;
+        await collectionsCmd.ExecuteNonQueryAsync();
+
+        await using var joinCmd = connection.CreateCommand();
+        joinCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS CollectionBooks (
+                CollectionUuid TEXT NOT NULL,
+                BookUuid TEXT NOT NULL,
+                PRIMARY KEY (CollectionUuid, BookUuid),
+                FOREIGN KEY (CollectionUuid) REFERENCES Collections(Uuid),
+                FOREIGN KEY (BookUuid) REFERENCES Books(Uuid)
+            )
+            """;
+        await joinCmd.ExecuteNonQueryAsync();
     }
 }

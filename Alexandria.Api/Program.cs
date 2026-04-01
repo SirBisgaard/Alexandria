@@ -28,6 +28,7 @@ builder.Services.AddTransient<IBookRepository, BookRepository>();
 builder.Services.AddTransient<IFileRepository, FileRepository>();
 builder.Services.AddTransient<IReadingStateRepository, ReadingStateRepository>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
+builder.Services.AddTransient<IBookCollectionRepository, BookCollectionRepository>();
 builder.Services.AddTransient<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 
@@ -37,6 +38,7 @@ builder.Services.AddTransient<ISyncTokenService, SyncTokenService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
+builder.Services.AddTransient<IBookCollectionService, BookCollectionService>();
 
 builder.Services.AddControllers();
 

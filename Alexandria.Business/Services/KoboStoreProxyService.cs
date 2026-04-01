@@ -19,7 +19,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, ISyncSessionService syncSession, ISyncTokenService syncTokenService, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, IBookCollectionService bookCollectionService, ISyncSessionService syncSession, ISyncTokenService syncTokenService, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -98,6 +98,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             {
                 storeCount = storeResults.Count;
                 syncResults.AddRange(storeResults);
+                await PersistStoreCollections(storeResults);
             }
         }
 
@@ -109,7 +110,9 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt > lastSync || b.LastModified > lastSync)).ToList();
             if (books.Count == 0)
             {
-                logger.LogInformation("LibrarySync: returning {Store} store items, no new/changed local books since {LastSync}", storeCount, lastSync);
+                var collections = await GetCollectionSyncItems(lastSync);
+                syncResults.AddRange(collections);
+                logger.LogInformation("LibrarySync: returning {Store} store items + {Collections} collections, no new/changed local books since {LastSync}", storeCount, collections.Count, lastSync);
                 var headers = new Dictionary<string, string[]>(koboResponse.Headers);
                 headers.Remove("x-kobo-sync");
                 headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow })];
@@ -151,10 +154,12 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
         else
         {
+            var collections = await GetCollectionSyncItems(lastSyncTime);
+            syncResults.AddRange(collections);
             responseHeaders.Remove("x-kobo-sync");
             responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow })];
             syncSession.Clear(deviceId);
-            logger.LogInformation("LibrarySync: returning final {Total} items ({Local} local, {Store} store)", syncResults.Count, batchUuids.Count, storeCount);
+            logger.LogInformation("LibrarySync: returning final {Total} items ({Local} local, {Store} store, {Collections} collections)", syncResults.Count, batchUuids.Count, storeCount, collections.Count);
         }
 
         return JsonResponse(StatusCodes.Status200OK, syncResults, responseHeaders);
@@ -183,6 +188,51 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     private static bool HasKoboContinuation(KoboProxyResponse response)
     {
         return response.Headers.TryGetValue("x-kobo-sync", out var values) && values.Any(v => string.Equals(v, "continue", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<List<SyncResultItem>> GetCollectionSyncItems(DateTimeOffset lastSync)
+    {
+        var collections = lastSync == DateTimeOffset.MinValue ? await bookCollectionService.GetAll() : await bookCollectionService.GetModifiedSince(lastSync);
+        return collections.Select(c =>
+        {
+            var isNew = c.CreatedAt > lastSync;
+            var tag = new TagContainer
+            {
+                Tag = new Tag
+                {
+                    Id = c.Uuid.ToString(),
+                    Name = c.Name,
+                    Created = c.CreatedAt.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    LastModified = c.LastModified.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    Items = c.BookUuids.Select(id => new TagItem { RevisionId = id.ToString() }).ToList()
+                }
+            };
+            return isNew ? new SyncResultItem { NewTag = tag } : new SyncResultItem { ChangedTag = tag };
+        }).ToList();
+    }
+
+    private async Task PersistStoreCollections(List<SyncResultItem> storeResults)
+    {
+        foreach (var item in storeResults)
+        {
+            var tag = (item.NewTag ?? item.ChangedTag)?.Tag;
+            if (tag is null)
+            {
+                continue;
+            }
+
+            var collection = new BookCollection
+            {
+                Uuid = Guid.Parse(tag.Id),
+                Name = tag.Name,
+                BookUuids = tag.Items?.Select(i => Guid.Parse(i.RevisionId)).ToList() ?? [],
+                CreatedAt = DateTimeOffset.TryParse(tag.Created, out var created) ? created : DateTimeOffset.UtcNow,
+                LastModified = DateTimeOffset.TryParse(tag.LastModified, out var modified) ? modified : DateTimeOffset.UtcNow
+            };
+
+            await bookCollectionService.Upsert(collection);
+            logger.LogInformation("LibrarySync: persisted store collection '{Name}' ({Uuid}) with {Count} books", collection.Name, collection.Uuid, collection.BookUuids.Count);
+        }
     }
 
     /// <summary>
