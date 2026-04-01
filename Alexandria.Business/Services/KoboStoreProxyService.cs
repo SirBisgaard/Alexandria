@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -12,8 +10,13 @@ using Microsoft.AspNetCore.Http;
 
 namespace Alexandria.Business.Services;
 
+/// <summary>
+/// Man-in-the-middle proxy between Kobo e-readers and storeapi.kobo.com.
+/// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
+/// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
+/// </summary>
 public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService) : IKoboProxyService
-{   
+{
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
     [
@@ -21,10 +24,15 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         "te", "trailer", "upgrade", "host"
     ];
 
+    /// <summary>
+    /// Intercepts Kobo's /v1/initialization endpoint. Proxies the request to Kobo, then rewrites the
+    /// Resources URLs in the response so the device routes library_sync and image requests back through Alexandria.
+    /// Also overrides the API token header with a static value to keep the device happy.
+    /// </summary>
     public async Task<KoboProxyResponse> Initialization(KoboProxyRequest request)
     {
         var koboResponse = await Proxy(request);
-        
+
         var json = JsonSerializer.Deserialize<JsonObject>(koboResponse.Body);
         var resources = json?["Resources"]?.AsObject();
 
@@ -37,19 +45,16 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         resources["image_url_template"] = $"{settings.AlexandriaApi}/api/kobo/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
         resources["image_url_quality_template"] = $"{settings.AlexandriaApi}/api/kobo/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
 
-        
+
         var headers = new Dictionary<string, string[]> { { "x-kobo-apitoken", ["e30="] } };
-        var jsonContent = json?.ToString() ?? "{}";
-        var body = new StringContent(jsonContent, Encoding.UTF8, new MediaTypeHeaderValue("application/json; charset=utf-8"));
-        
-        return new KoboProxyResponse
-        {
-            StatusCode = StatusCodes.Status200OK,
-            Headers = headers,
-            Body = await body.ReadAsByteArrayAsync()
-        };
+        return JsonResponse(StatusCodes.Status200OK, json!, headers);
     }
 
+    /// <summary>
+    /// Intercepts Kobo's /v1/library/sync endpoint. Proxies the request to Kobo to get store-purchased books,
+    /// then appends local Alexandria books (non-archived) as NewEntitlement items in the sync response array.
+    /// This is how the Kobo device discovers local books to download.
+    /// </summary>
     public async Task<KoboProxyResponse> LibrarySync(KoboProxyRequest request)
     {
         // 1. Forward to Kobo and get their sync results
@@ -66,8 +71,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 syncResults.AddRange(storeResults);
         }
 
-        // Local books — fully typed
-        var books = await alexandriaLibraryService.GetBooks();
+        // Local books — fully typed, excluding archived
+        var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived);
         foreach (var book in books)
         {
             syncResults.Add(new SyncResultItem
@@ -79,90 +84,189 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 }
             });
         }
-  
-        var jsonContent = JsonSerializer.Serialize(syncResults);
-        var body = new StringContent(jsonContent, Encoding.UTF8, new MediaTypeHeaderValue("application/json; charset=utf-8"));
-        
+
+        return JsonResponse(StatusCodes.Status200OK, syncResults, koboResponse.Headers);
+    }
+
+    /// <summary>
+    /// Serves the KEPUB file for a local book when the Kobo device requests a download.
+    /// Returns the file as application/epub+zip with a Content-Disposition attachment header.
+    /// If the book is not in Alexandria's library, proxies to Kobo for store-purchased downloads.
+    /// </summary>
+    public async Task<KoboProxyResponse> Download(KoboProxyRequest request, Guid uuid)
+    {
+        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        // We dont know the book.
+        if (book is null)
+            return await Proxy(request);
+
+        // If the book does not exist on disk return 404.
+        if (book.KepubFilePath is null || !File.Exists(book.KepubFilePath))
+        {
+            return new KoboProxyResponse
+            {
+                StatusCode = StatusCodes.Status404NotFound,
+                Headers = new Dictionary<string, string[]>(),
+                Body = []
+            };
+        }
+
+        var fileBytes = await File.ReadAllBytesAsync(book.KepubFilePath);
         return new KoboProxyResponse
         {
             StatusCode = StatusCodes.Status200OK,
-            Headers = koboResponse.Headers,
-            Body = await body.ReadAsByteArrayAsync()
+            Headers = new Dictionary<string, string[]>
+            {
+                { "Content-Type", ["application/epub+zip"] },
+                { "Content-Disposition", [$"attachment; filename=\"{book.Title}.kepub.epub\""] }
+            },
+            Body = fileBytes
+        };
+
+    }
+
+    /// <summary>
+    /// Serves cover images for local books. The Kobo device requests covers via the image_url_template
+    /// that was rewritten during initialization. For unknown books, issues a 307 redirect to Kobo's CDN
+    /// at cdn.kobo.com so the device fetches store covers directly. Returns 404 if the book is local but has no cover.
+    /// </summary>
+    public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
+    {
+        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        // We dont know the book.
+        if (book is null)
+        {
+            return new KoboProxyResponse
+            {
+                StatusCode = StatusCodes.Status307TemporaryRedirect,
+                Headers = new Dictionary<string, string[]>
+                {
+                    { "Location", [$"https://cdn.kobo.com/book-images/{uuid}/{width}/{height}/false/image.jpg"] }
+                },
+                Body = []
+            };
+        }
+
+        // If the book does not have a cover return 404.
+        if (book.CoverFilePath is null || !File.Exists(book.CoverFilePath))
+        {
+            return new KoboProxyResponse
+            {
+                StatusCode = StatusCodes.Status404NotFound,
+                Headers = new Dictionary<string, string[]>(),
+                Body = []
+            };
+        }
+        
+        // Return the cover.
+        var coverBytes = await File.ReadAllBytesAsync(book.CoverFilePath);
+        return new KoboProxyResponse
+        {
+            StatusCode = StatusCodes.Status200OK,
+            Headers = new Dictionary<string, string[]>
+            {
+                { "Content-Type", ["image/jpeg"] }
+            },
+            Body = coverBytes
         };
     }
 
-    public async Task<KoboProxyResponse> Download(KoboProxyRequest request, string uuid)
+    /// <summary>
+    /// Handles reading state for local books (GET and PUT on /v1/library/{uuid}/state).
+    /// GET returns a default "ReadyToRead" state. PUT acknowledges the device's progress update with a
+    /// success response but does not persist reading state — progress resets on re-sync.
+    /// For store-purchased books, proxies to Kobo.
+    /// </summary>
+    public async Task<KoboProxyResponse> ReadingState(KoboProxyRequest request, Guid uuid)
     {
-        // TODO: FIX
-        var book = await _library.GetBookByUuidAsync(uuid);
-        if (book is not null)
+        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        // We dont know the book.
+        if (book is null)
+            return await Proxy(request);
+        
+        // Update the of the book.
+        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var uuidStr = uuid.ToString();
+        if (request.Method == "PUT")
         {
-            var stream = System.IO.File.OpenRead(book.KepubFilePath);
-            return File(stream, "application/epub+zip", 
-                $"{book.Title}.kepub.epub");
-        }
-
-        // Not our book — proxy to Kobo
-        return await Proxy(request);
-    }
-
-    public Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, string uuid, int width, int height, string? quality = null, string? greyscale = null)
-    {   
-        // TODO: FIX
-        var book = await _library.GetBookByUuidAsync(uuid);
-        if (book?.CoverFilePath is not null && System.IO.File.Exists(book.CoverFilePath))
-        {
-            var stream = System.IO.File.OpenRead(book.CoverFilePath);
-            return File(stream, "image/jpeg");
-        }
-
-        // Not our book — redirect to Kobo CDN
-        return Redirect($"https://cdn.kobo.com/book-images/{uuid}/{width}/{height}/false/image.jpg");
-    }
-
-    public async Task<KoboProxyResponse> ReadingState(KoboProxyRequest request, string uuid)
-    {
-        // TODO: FIX
-        var book = await _library.GetBookByUuidAsync(uuid);
-        if (book is not null)
-        {
-            if (Request.Method == "PUT")
+            var putResponse = new
             {
-                // Parse and store reading progress locally
-                await _library.UpdateReadingStateAsync(uuid, HttpContext.Request);
-            }
-            return Ok(new[] { BuildReadingState(book) });
+                RequestResult = "Success",
+                UpdateResults = new[]
+                {
+                    new
+                    {
+                        EntitlementId = uuidStr,
+                        CurrentBookmarkResult = new { Result = "Success" },
+                        StatisticsResult = new { Result = "Success" },
+                        StatusInfoResult = new { Result = "Success" },
+                        LastModified = now,
+                        PriorityTimestamp = now
+                    }
+                }
+            };
+            return JsonResponse(StatusCodes.Status200OK, putResponse);
         }
-        
-        // Not our book — proxy to Kobo
-        return await Proxy(request);
-    }
 
-    public async Task<KoboProxyResponse> Metadata(KoboProxyRequest request, string uuid)
-    {
-        // TODO: FIX
-        var book = await _library.GetBookByUuidAsync(uuid);
-        if (book is not null)
-            return Ok(new[] { BuildMetadata(book) });
-        
-        // Not our book — proxy to Kobo
-        return await Proxy(request);
-    }
-
-    public async Task<KoboProxyResponse> DeleteBook(KoboProxyRequest request, string uuid)
-    {
-        // TODO: FIX
-        var book = await _library.GetBookByUuidAsync(uuid);
-        if (book is not null)
+        // Return the reading state of the book.
+        var readingState = new ReadingState
         {
-            // Mark as archived locally, don't delete the file
-            await _library.ArchiveBookAsync(uuid);
-            return StatusCode(204);
-        }
+            EntitlementId = uuidStr,
+            Created = book.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            LastModified = now,
+            PriorityTimestamp = now,
+            StatusInfo = new StatusInfo { LastModified = now, Status = "ReadyToRead" },
+            Statistics = new Statistics { LastModified = now },
+            CurrentBookmark = new Bookmark { LastModified = now }
+        };
+        
+        return JsonResponse(StatusCodes.Status200OK, new[] { readingState });
 
-        return await ProxyToKobo();
     }
-    
+
+    /// <summary>
+    /// Returns metadata for a local book (title, authors, download URLs, cover image ID, series info, etc.)
+    /// as a single-element JSON array matching the Kobo /v1/library/{uuid}/metadata response format.
+    /// For store-purchased books, proxies to Kobo.
+    /// </summary>
+    public async Task<KoboProxyResponse> Metadata(KoboProxyRequest request, Guid uuid)
+    {
+        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        // We dont know the book.
+        if (book is null)
+            return await Proxy(request);
+        
+        return JsonResponse(StatusCodes.Status200OK, new[] { book.ToMetadata(settings.AlexandriaApi) });
+    }
+
+    /// <summary>
+    /// Handles book deletion from the Kobo device (DELETE /v1/library/{uuid}).
+    /// For local books, marks the book as archived in the index so it won't reappear on future syncs.
+    /// The actual EPUB/KEPUB files are not deleted. Returns 204 No Content. For store books, proxies to Kobo.
+    /// </summary>
+    public async Task<KoboProxyResponse> DeleteBook(KoboProxyRequest request, Guid uuid)
+    {
+        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        // We dont know the book.
+        if (book is null)
+            return await Proxy(request);
+
+        await alexandriaLibraryService.ArchiveBook(uuid);
+        
+        return new KoboProxyResponse
+        {
+            StatusCode = StatusCodes.Status204NoContent,
+            Headers = new Dictionary<string, string[]>(),
+            Body = []
+        };
+
+    }
+
+    /// <summary>
+    /// Transparently forwards a request to storeapi.kobo.com and returns the raw response.
+    /// Used as the fallback for store-purchased books and as the catch-all for unintercepted endpoints.
+    /// Copies all headers except hop-by-hop headers, routing content headers to the request content.
+    /// </summary>
     public async Task<KoboProxyResponse> Proxy(KoboProxyRequest request)
     {
         var targetUrl = $"{settings.StoreApi}{request.Path}{request.QueryString}";
@@ -207,10 +311,18 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             Body = responseBody
         };
     }
-    
-    private void CopyKoboSyncHeaders(KoboProxyResponse koboResponse)
+
+    private static KoboProxyResponse JsonResponse(int statusCode, object body, Dictionary<string, string[]>? extraHeaders = null)
     {
-        // These headers control sync continuation and reading state
-       
+        var json = JsonSerializer.Serialize(body);
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var headers = extraHeaders ?? new Dictionary<string, string[]>();
+        headers["Content-Type"] = ["application/json; charset=utf-8"];
+        return new KoboProxyResponse
+        {
+            StatusCode = statusCode,
+            Headers = headers,
+            Body = bytes
+        };
     }
 }

@@ -28,7 +28,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
 
     // ── Downloads: local book or proxy to Kobo ──
     [HttpGet("download/{uuid}/kepub")]
-    public async Task Download(string uuid)
+    public async Task Download(Guid uuid)
     {
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await koboProxyService.Download(request, uuid);
@@ -38,7 +38,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     // ── Covers: local book or proxy to Kobo CDN ──
     [HttpGet("{uuid}/{width}/{height}/{greyscale}/image.jpg")]
     [HttpGet("{uuid}/{width}/{height}/{quality}/{greyscale}/image.jpg")]
-    public async Task CoverImage(string uuid, int width, int height, string? quality = null, string? greyscale = null)
+    public async Task CoverImage(Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await koboProxyService.CoverImage(request, uuid, width, height, quality, greyscale);
@@ -48,7 +48,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     // ── Reading state: local book or proxy ──
     [HttpGet("v1/library/{uuid}/state")]
     [HttpPut("v1/library/{uuid}/state")]
-    public async Task ReadingState(string uuid)
+    public async Task ReadingState(Guid uuid)
     {
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await koboProxyService.ReadingState(request, uuid);
@@ -57,7 +57,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
 
     // ── Metadata: local or proxy ──
     [HttpGet("v1/library/{uuid}/metadata")]
-    public async Task Metadata(string uuid)
+    public async Task Metadata(Guid uuid)
     {
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await koboProxyService.Metadata(request, uuid);
@@ -66,7 +66,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
 
     // ── Book deletion from device ──
     [HttpDelete("v1/library/{uuid}")]
-    public async Task DeleteBook(string uuid)
+    public async Task DeleteBook(Guid uuid)
     {
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await koboProxyService.DeleteBook(request, uuid);
