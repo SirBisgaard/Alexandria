@@ -5,51 +5,18 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Repositories;
 
-public class KoboTrafficLogRepository : IKoboTrafficLogRepository
+public class KoboTrafficLogRepository(AlexandriaSettings settings) : IKoboTrafficLogRepository
 {
-    private readonly string connectionString;
-
-    public KoboTrafficLogRepository(AlexandriaSettings settings)
-    {
-        var directory = Path.GetDirectoryName(settings.TrafficLogDb);
-        if (directory != null) 
-            Directory.CreateDirectory(directory);
-        
-        connectionString = $"Data Source={settings.TrafficLogDb}";
-        InitializeDatabase();
-    }
-
-    private void InitializeDatabase()
-    {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            CREATE TABLE IF NOT EXISTS TrafficLogs (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                Timestamp TEXT NOT NULL,
-                Method TEXT NOT NULL,
-                Url TEXT NOT NULL,
-                RequestHeaders TEXT,
-                RequestBody TEXT,
-                StatusCode INTEGER NOT NULL,
-                ResponseHeaders TEXT,
-                ResponseBody TEXT,
-                DurationMs INTEGER NOT NULL
-            )
-            """;
-        cmd.ExecuteNonQuery();
-    }
+    private readonly string connectionString = $"Data Source={settings.Database}";
 
     public async Task Log(KoboTrafficLog entry)
     {
         await using var connection = new SqliteConnection(connectionString);
-        connection.Open();
+        await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO TrafficLogs
+            INSERT INTO KoboTrafficLogs
                 (Timestamp, Method, Url, RequestHeaders, RequestBody,
                  StatusCode, ResponseHeaders, ResponseBody, DurationMs)
             VALUES

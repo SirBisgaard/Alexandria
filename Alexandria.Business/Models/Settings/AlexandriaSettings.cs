@@ -1,10 +1,9 @@
 namespace Alexandria.Business.Models.Settings;
 
-public class AlexandriaSettings
+public record AlexandriaSettings
 {
-    public required string IndexFile { get; init; }
+    public required string Database { get; init; }
     public required string BooksFolder { get; init; }
     public required string CoversFolder { get; init; }
     public required string KepubsFolder { get; init; }
-    public required string TrafficLogDb { get; init; }
 }

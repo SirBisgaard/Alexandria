@@ -1,6 +1,6 @@
 namespace Alexandria.Business.Models.Settings;
 
-public class KoboProxySettings
+public record KoboProxySettings
 {
     public required string AlexandriaApi { get; init; }
     public required string StoreApi { get; init; }

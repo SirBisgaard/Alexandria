@@ -8,9 +8,9 @@ using Alexandria.DataAccess.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // App settings load.
-// builder.Services.Configure<KoboRetailSettings>(builder.Configuration.GetSection("KoboRetailSettings")); for reloading with IOptions<KoboRetailSettings> 
+// builder.Services.Configure<KoboRetailSettings>(builder.Configuration.GetSection("KoboRetailSettings")); for reloading with IOptions<KoboRetailSettings>
 var koboRetailSettings = builder.Configuration
-    .GetSection("KoboRetailSettings")
+    .GetSection("KoboProxySettings")
     .Get<KoboProxySettings>()!;
 var alexandriaSettings =  builder.Configuration
     .GetSection("AlexandriaSettings")
@@ -23,8 +23,9 @@ builder.Services.AddSingleton(alexandriaSettings);
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
 // Add repositories to the container.
+builder.Services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
+builder.Services.AddSingleton<IBookRepository, BookRepository>();
 builder.Services.AddSingleton<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
-builder.Services.AddSingleton<IIndexFileService, IndexFileService>();
 builder.Services.AddSingleton<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddSingleton<IKepubifyConverter, KepubifyConverter>();
 
@@ -39,6 +40,10 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseMiddleware<KoboProxyLoggingMiddleware>();
+
+// Initialize database schema before indexing.
+var dbInitializer = app.Services.GetRequiredService<IDatabaseInitializer>();
+await dbInitializer.Initialize();
 
 // Index library at boot.
 var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();
