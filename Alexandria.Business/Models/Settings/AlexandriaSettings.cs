@@ -6,4 +6,5 @@ public class AlexandriaSettings
     public required string BooksFolder { get; init; }
     public required string CoversFolder { get; init; }
     public required string KepubsFolder { get; init; }
+    public required string TrafficLogDb { get; init; }
 }

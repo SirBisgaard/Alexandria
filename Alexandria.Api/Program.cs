@@ -25,19 +25,20 @@ builder.Services.AddHttpClient<KoboProxyService>(_ => { }).ConfigurePrimaryHttpM
 // Add repositories to the container.
 builder.Services.AddSingleton<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddSingleton<IIndexFileService, IndexFileService>();
-builder.Services.AddSingleton<IEpubMetadataExstractor, EpubMetadataExstractor>();
+builder.Services.AddSingleton<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddSingleton<IKepubifyConverter, KepubifyConverter>();
 
 // Add services to the container.
 builder.Services.AddTransient<IKoboProxyService, KoboProxyService>();
 builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
+builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseMiddleware<KoboProxyRequestLoggingMiddleware>();
+app.UseMiddleware<KoboProxyLoggingMiddleware>();
 
 // Index library at boot.
 var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();

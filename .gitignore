@@ -401,3 +401,8 @@ FodyWeavers.xsd
 .idea/*
 
 .claude
+
+# Project Data
+/Content/Data/
+/Content/Data/*
+/Content/Data/**/*

@@ -1,5 +1,6 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
+using Alexandria.Business.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Repositories;
@@ -8,9 +9,13 @@ public class KoboTrafficLogRepository : IKoboTrafficLogRepository
 {
     private readonly string connectionString;
 
-    public KoboTrafficLogRepository(string dbPath = "kobo_traffic.db")
+    public KoboTrafficLogRepository(AlexandriaSettings settings)
     {
-        connectionString = $"Data Source={dbPath}";
+        var directory = Path.GetDirectoryName(settings.TrafficLogDb);
+        if (directory != null) 
+            Directory.CreateDirectory(directory);
+        
+        connectionString = $"Data Source={settings.TrafficLogDb}";
         InitializeDatabase();
     }
 

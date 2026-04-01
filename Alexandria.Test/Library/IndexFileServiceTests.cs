@@ -18,7 +18,7 @@ public class IndexFileServiceTests
         indexFilePath = Path.Combine(testDir, "index.yaml");
     }
 
-    private AlexandriaSettings CreateSettings() => new() { IndexFile = indexFilePath, BooksFolder = testDir, CoversFolder = testDir, KepubsFolder = testDir };
+    private AlexandriaSettings CreateSettings() => new() { IndexFile = indexFilePath, BooksFolder = testDir, CoversFolder = testDir, KepubsFolder = testDir, TrafficLogDb = Path.Combine(testDir, "kobo_traffic.db") };
 
     [TestCleanup]
     public void Cleanup()
@@ -64,7 +64,10 @@ public class IndexFileServiceTests
                 SeriesName = "Test Series",
                 SeriesIndex = 1,
                 CoverFilePath = "/covers/a1b2c3d4.jpg",
-                KepubFilePath = "/kepubs/a1b2c3d4.kepub.epub"
+                KepubFilePath = "/kepubs/a1b2c3d4.kepub.epub",
+                KepubFileSize = 1048576,
+                CreatedAt = new DateTime(2025, 6, 15, 12, 0, 0, DateTimeKind.Utc),
+                LastModified = new DateTime(2025, 7, 20, 8, 30, 0, DateTimeKind.Utc)
             }
         ];
 
@@ -89,6 +92,9 @@ public class IndexFileServiceTests
         Assert.AreEqual(1, book.SeriesIndex);
         Assert.AreEqual("/covers/a1b2c3d4.jpg", book.CoverFilePath);
         Assert.AreEqual("/kepubs/a1b2c3d4.kepub.epub", book.KepubFilePath);
+        Assert.AreEqual(1048576, book.KepubFileSize);
+        Assert.AreEqual(new DateTime(2025, 6, 15, 12, 0, 0, DateTimeKind.Utc), book.CreatedAt);
+        Assert.AreEqual(new DateTime(2025, 7, 20, 8, 30, 0, DateTimeKind.Utc), book.LastModified);
     }
 
     [TestMethod]

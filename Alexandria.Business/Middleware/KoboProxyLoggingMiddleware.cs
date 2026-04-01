@@ -13,10 +13,18 @@ namespace Alexandria.Business.Middleware;
 /// </summary>
 /// <param name="next"></param>
 /// <param name="logger"></param>
-public class KoboProxyRequestLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRepository koboTrafficLogRepository, ILogger<KoboProxyRequestLoggingMiddleware> logger)
+public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRepository koboTrafficLogRepository, ILogger<KoboProxyLoggingMiddleware> logger)
 {
+    private static readonly string[] ExcludedPaths = ["/alexandria/api", "/favicon.ico"];
+
     public async Task InvokeAsync(HttpContext context)
     {
+        if (ExcludedPaths.Any(path => context.Request.Path.StartsWithSegments(path)))
+        {
+            await next(context);
+            return;
+        }
+
         // ── Request ──
         context.Request.EnableBuffering();
 

@@ -15,8 +15,11 @@ public class Book
     public int? SeriesIndex { get; set; }
     public string? CoverFilePath { get; set; }
     public string? KepubFilePath { get; set; }
+    public long KepubFileSize { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastModified { get; set; }
 
-    public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath)
+    public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTime createdAt, DateTime lastModified)
     {
         return new Book
         {
@@ -31,7 +34,9 @@ public class Book
             Publisher = metadata.Publisher,
             SeriesName = metadata.SeriesName,
             SeriesIndex = metadata.SeriesIndex,
-            CoverFilePath = metadata.CoverFilePath
+            CoverFilePath = metadata.CoverFilePath,
+            CreatedAt = createdAt,
+            LastModified = lastModified
         };
     }
 }

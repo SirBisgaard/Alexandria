@@ -5,20 +5,42 @@ using Alexandria.Business.Models;
 
 namespace Alexandria.DataAccess.Services;
 
-public class EpubMetadataExstractor : IEpubMetadataExstractor
+public class EpubMetadataExtractor : IEpubMetadataExtractor
 {
     private static readonly XNamespace Dc = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
     private static readonly XNamespace Container = "urn:oasis:names:tc:opendocument:xmlns:container";
 
     /// <summary>
-    /// Extracts metadata from an EPUB file. Optionally extracts the cover image to disk.
+    /// Extracts metadata from an EPUB file.
     /// </summary>
     /// <param name="epubPath">Absolute or relative path to the .epub file.</param>
-    /// <param name="coverOutputDirectory">
-    /// Directory where the cover image should be saved.
-    /// </param>
-    public EpubMetadata Extract(string epubPath, string coverOutputDirectory)
+    public EpubMetadata ExtractMetadata(string epubPath)
+    {
+        if (!File.Exists(epubPath))
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+
+        using var zip = ZipFile.OpenRead(epubPath);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        using var opfStream = opfEntry.Open();
+        var opfDoc = XDocument.Load(opfStream);
+
+        var (metadata, _) = ParseMetadata(opfDoc);
+
+        return metadata;
+    }
+
+    /// <summary>
+    /// Extracts the cover image from an EPUB file to disk.
+    /// </summary>
+    /// <param name="epubPath">Absolute or relative path to the .epub file.</param>
+    /// <param name="coverOutputDirectory">Directory where the cover image should be saved.</param>
+    /// <returns>The path to the extracted cover file, or null if no cover was found.</returns>
+    public string? ExtractCover(string epubPath, string coverOutputDirectory)
     {
         if (!File.Exists(epubPath))
             throw new FileNotFoundException("EPUB file not found.", epubPath);
@@ -34,9 +56,7 @@ public class EpubMetadataExstractor : IEpubMetadataExstractor
 
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
 
-        ExtractCover(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata);
-
-        return metadata;
+        return WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.Uuid);
     }
 
     private static IEnumerable<XElement> MetaElements(XElement metadataEl)
@@ -139,11 +159,11 @@ public class EpubMetadataExstractor : IEpubMetadataExstractor
             ?.Attribute("content")?.Value?.Trim();
     }
 
-    private static void ExtractCover(ZipArchive zip, XDocument opfDoc, string opfPath, string outputDirectory, XElement metadataEl, EpubMetadata metadata)
+    private static string? WriteCoverToDisk(ZipArchive zip, XDocument opfDoc, string opfPath, string outputDirectory, XElement metadataEl, Guid uuid)
     {
         var coverHref = FindCoverHref(opfDoc, metadataEl);
         if (coverHref is null)
-            return;
+            return null;
 
         // The href in the OPF manifest is relative to the OPF file's directory.
         var opfDirectory = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
@@ -158,7 +178,7 @@ public class EpubMetadataExstractor : IEpubMetadataExstractor
                 string.Equals(e.FullName, coverEntryPath, StringComparison.OrdinalIgnoreCase));
 
         if (coverEntry is null)
-            return;
+            return null;
 
         Directory.CreateDirectory(outputDirectory);
 
@@ -166,14 +186,16 @@ public class EpubMetadataExstractor : IEpubMetadataExstractor
         if (string.IsNullOrEmpty(extension))
             extension = ".jpg";
 
-        var outputPath = Path.Combine(outputDirectory, $"{metadata.Uuid}{extension}");
+        var outputPath = Path.Combine(outputDirectory, $"{uuid}{extension}");
+
+        if (File.Exists(outputPath))
+            File.Delete(outputPath);
 
         using var entryStream = coverEntry.Open();
         using var fileStream = File.Create(outputPath);
         entryStream.CopyTo(fileStream);
 
-        metadata.CoverExtracted = true;
-        metadata.CoverFilePath = outputPath;
+        return outputPath;
     }
 
     /// <summary>

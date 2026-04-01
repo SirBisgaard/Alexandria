@@ -4,7 +4,7 @@ using Alexandria.DataAccess.Services;
 namespace Alexandria.Tests.Library;
 
 [TestClass]
-public sealed class EpubMetadataExstractorTests
+public sealed class EpubMetadataExtractorTests
 {
     private static readonly string ContentBooksDir = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Content", "Books"));
@@ -127,39 +127,38 @@ public sealed class EpubMetadataExstractorTests
     [TestMethod]
     public void Extract_AllBooks_ExtractCover()
     {
-        var extractor = new EpubMetadataExstractor();
+        var extractor = new EpubMetadataExtractor();
         var epubs = Directory.GetFiles(ContentBooksDir, "*.epub");
 
         foreach (var epub in epubs)
         {
             var coverDir = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(epub));
-            var metadata = extractor.Extract(epub, coverDir);
+            var coverPath = extractor.ExtractCover(epub, coverDir);
 
-            Assert.IsTrue(metadata.CoverExtracted, $"Cover should have been extracted for {Path.GetFileName(epub)}.");
-            Assert.IsNotNull(metadata.CoverFilePath);
-            Assert.IsTrue(File.Exists(metadata.CoverFilePath), $"Cover file should exist for {Path.GetFileName(epub)}.");
-            Assert.IsGreaterThan(0, new FileInfo(metadata.CoverFilePath).Length, $"Cover file should not be empty for {Path.GetFileName(epub)}.");
+            Assert.IsNotNull(coverPath, $"Cover should have been extracted for {Path.GetFileName(epub)}.");
+            Assert.IsTrue(File.Exists(coverPath), $"Cover file should exist for {Path.GetFileName(epub)}.");
+            Assert.IsGreaterThan(0, new FileInfo(coverPath).Length, $"Cover file should not be empty for {Path.GetFileName(epub)}.");
         }
     }
 
     [TestMethod]
     public void Extract_NonExistentFile_ThrowsFileNotFoundException()
     {
-        var extractor = new EpubMetadataExstractor();
+        var extractor = new EpubMetadataExtractor();
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
-            () => extractor.Extract(bogusPath, outputDir));
+            () => extractor.ExtractMetadata(bogusPath));
     }
 
     [TestMethod]
     public void Extract_SameBook_ProducesDeterministicUuid()
     {
-        var extractor = new EpubMetadataExstractor();
+        var extractor = new EpubMetadataExtractor();
         var inputPath = Path.Combine(ContentBooksDir, "Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var first = extractor.Extract(inputPath, Path.Combine(outputDir, "run1"));
-        var second = extractor.Extract(inputPath, Path.Combine(outputDir, "run2"));
+        var first = extractor.ExtractMetadata(inputPath);
+        var second = extractor.ExtractMetadata(inputPath);
 
         Assert.AreEqual(first.Uuid, second.Uuid, "UUID should be deterministic for the same title and authors.");
         Assert.AreNotEqual(Guid.Empty, first.Uuid);
@@ -168,22 +167,21 @@ public sealed class EpubMetadataExstractorTests
     [TestMethod]
     public void Extract_DifferentBooks_ProduceDifferentUuids()
     {
-        var extractor = new EpubMetadataExstractor();
+        var extractor = new EpubMetadataExtractor();
         var epubs = Directory.GetFiles(ContentBooksDir, "*.epub");
         var uuids = new HashSet<Guid>();
 
         foreach (var epub in epubs)
         {
-            var coverDir = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(epub));
-            var metadata = extractor.Extract(epub, coverDir);
+            var metadata = extractor.ExtractMetadata(epub);
             Assert.IsTrue(uuids.Add(metadata.Uuid), $"UUID collision for {Path.GetFileName(epub)}.");
         }
     }
 
     private EpubMetadata ExtractBook(string fileName)
     {
-        var extractor = new EpubMetadataExstractor();
+        var extractor = new EpubMetadataExtractor();
         var inputPath = Path.Combine(ContentBooksDir, fileName);
-        return extractor.Extract(inputPath, outputDir);
+        return extractor.ExtractMetadata(inputPath);
     }
 }
