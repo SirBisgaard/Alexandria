@@ -15,7 +15,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -75,12 +75,14 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived);
         foreach (var book in books)
         {
+            var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
             syncResults.Add(new SyncResultItem
             {
                 NewEntitlement = new Entitlement
                 {
                     BookEntitlement = book.ToEntitlement(),
-                    BookMetadata = book.ToMetadata(settings.AlexandriaApi)
+                    BookMetadata = book.ToMetadata(settings.AlexandriaApi),
+                    ReadingState = readingState
                 }
             });
         }
@@ -173,8 +175,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
     /// <summary>
     /// Handles reading state for local books (GET and PUT on /v1/library/{uuid}/state).
-    /// GET returns a default "ReadyToRead" state. PUT acknowledges the device's progress update with a
-    /// success response but does not persist reading state — progress resets on re-sync.
+    /// GET returns persisted reading state, or a default "ReadyToRead" if none exists.
+    /// PUT persists the device's progress (bookmark, statistics, status) and returns a success acknowledgement.
     /// For store-purchased books, proxies to Kobo.
     /// </summary>
     public async Task<KoboProxyResponse> ReadingState(KoboProxyRequest request, Guid uuid)
@@ -182,34 +184,26 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var book = await alexandriaLibraryService.GetBookByUuid(uuid);
         // We dont know the book.
         if (book is null)
-            return await Proxy(request);
-        
-        // Update the of the book.
-        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var uuidStr = uuid.ToString();
-        if (request.Method == "PUT")
         {
-            var putResponse = new
-            {
-                RequestResult = "Success",
-                UpdateResults = new[]
-                {
-                    new
-                    {
-                        EntitlementId = uuidStr,
-                        CurrentBookmarkResult = new { Result = "Success" },
-                        StatisticsResult = new { Result = "Success" },
-                        StatusInfoResult = new { Result = "Success" },
-                        LastModified = now,
-                        PriorityTimestamp = now
-                    }
-                }
-            };
-            return JsonResponse(StatusCodes.Status200OK, putResponse);
+            return await Proxy(request);
         }
 
-        // Return the reading state of the book.
-        var readingState = new ReadingState
+        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var uuidStr = uuid.ToString();
+
+        if (request.Method == "PUT")
+        {
+            return await HandleReadingStatePut(request, uuid, uuidStr, now, book);
+        }
+
+        // GET — return persisted reading state, or default.
+        var storedState = await readingStateRepository.GetByBookUuid(uuid);
+        if (storedState is not null)
+        {
+            return JsonResponse(StatusCodes.Status200OK, new[] { storedState });
+        }
+
+        var defaultState = new ReadingState
         {
             EntitlementId = uuidStr,
             Created = book.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
@@ -219,9 +213,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             Statistics = new Statistics { LastModified = now },
             CurrentBookmark = new Bookmark { LastModified = now }
         };
-        
-        return JsonResponse(StatusCodes.Status200OK, new[] { readingState });
 
+        return JsonResponse(StatusCodes.Status200OK, new[] { defaultState });
     }
 
     /// <summary>
@@ -310,6 +303,78 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             Headers = responseHeaders,
             Body = responseBody
         };
+    }
+    
+    private async Task<KoboProxyResponse> HandleReadingStatePut(KoboProxyRequest request, Guid uuid, string uuidStr, string now, Book book)
+    {
+        var rawBody = Encoding.UTF8.GetString(request.Body);
+        var putRequest = JsonSerializer.Deserialize<ReadingStatePutRequest>(rawBody);
+        var item = putRequest?.ReadingStates?.FirstOrDefault();
+
+        if (item is not null)
+        {
+            // Load existing state to handle status transitions.
+            var existing = await readingStateRepository.GetByBookUuid(uuid);
+            var timesStarted = existing?.StatusInfo.TimesStartedReading ?? 0;
+            string? lastTimeStarted = existing?.StatusInfo.LastTimeStartedReading;
+            var newStatus = item.StatusInfo?.Status ?? existing?.StatusInfo.Status ?? "ReadyToRead";
+
+            // Increment times started reading when transitioning to "Reading".
+            if (newStatus == "Reading" && (existing is null || existing.StatusInfo.Status != "Reading"))
+            {
+                timesStarted++;
+                lastTimeStarted = now;
+            }
+
+            var state = new ReadingState
+            {
+                EntitlementId = uuidStr,
+                Created = existing?.Created ?? book.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                LastModified = now,
+                PriorityTimestamp = now,
+                StatusInfo = new StatusInfo
+                {
+                    LastModified = now,
+                    Status = newStatus,
+                    TimesStartedReading = timesStarted,
+                    LastTimeStartedReading = lastTimeStarted
+                },
+                Statistics = new Statistics
+                {
+                    LastModified = now,
+                    SpentReadingMinutes = item.Statistics?.SpentReadingMinutes ?? existing?.Statistics.SpentReadingMinutes,
+                    RemainingTimeMinutes = item.Statistics?.RemainingTimeMinutes ?? existing?.Statistics.RemainingTimeMinutes
+                },
+                CurrentBookmark = new Bookmark
+                {
+                    LastModified = now,
+                    ProgressPercent = item.CurrentBookmark?.ProgressPercent ?? existing?.CurrentBookmark.ProgressPercent,
+                    ContentSourceProgressPercent = item.CurrentBookmark?.ContentSourceProgressPercent ?? existing?.CurrentBookmark.ContentSourceProgressPercent,
+                    Location = item.CurrentBookmark?.Location ?? existing?.CurrentBookmark.Location
+                }
+            };
+
+            await readingStateRepository.Upsert(uuid, state, rawBody);
+        }
+
+        var putResponse = new
+        {
+            RequestResult = "Success",
+            UpdateResults = new[]
+            {
+                new
+                {
+                    EntitlementId = uuidStr,
+                    CurrentBookmarkResult = new { Result = "Success" },
+                    StatisticsResult = new { Result = "Success" },
+                    StatusInfoResult = new { Result = "Success" },
+                    LastModified = now,
+                    PriorityTimestamp = now
+                }
+            }
+        };
+
+        return JsonResponse(StatusCodes.Status200OK, putResponse);
     }
 
     private static KoboProxyResponse JsonResponse(int statusCode, object body, Dictionary<string, string[]>? extraHeaders = null)

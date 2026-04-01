@@ -26,6 +26,7 @@ builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimary
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
 builder.Services.AddTransient<IBookRepository, BookRepository>();
 builder.Services.AddTransient<IFileRepository, FileRepository>();
+builder.Services.AddTransient<IReadingStateRepository, ReadingStateRepository>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddTransient<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();

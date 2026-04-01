@@ -41,7 +41,7 @@ public sealed class LibraryIndexerServiceTests
 
     private async Task<BookRepository> CreateRepository(AlexandriaSettings settings)
     {
-        var initializer = new DatabaseInitializer(settings);
+        var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
         return new BookRepository(settings);
     }

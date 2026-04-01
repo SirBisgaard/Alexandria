@@ -1,13 +1,16 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models.Settings;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Repositories;
 
-public class DatabaseInitializer(AlexandriaSettings settings) : IDatabaseInitializer
+public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
     public async Task Initialize()
     {
+        logger.LogInformation("Database initialization started. Database: {Database}", settings.Database);
+
         var directory = Path.GetDirectoryName(settings.Database);
         if (directory is not null)
         {
@@ -19,19 +22,25 @@ public class DatabaseInitializer(AlexandriaSettings settings) : IDatabaseInitial
 
         await EnsureSchemaVersionTable(connection);
         var currentVersion = await GetCurrentVersion(connection);
+        logger.LogInformation("Current schema version: {Version}", currentVersion);
 
         var migrations = new (int Version, Func<SqliteConnection, Task> Apply)[]
         {
-            (1, MigrateV1_InitialSchema)
+            (1, MigrateV1_InitialSchema),
+            (2, MigrateV2_ReadingStates)
         };
 
         foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
         {
+            logger.LogInformation("Applying migration V{Version}", migration.Version);
             await using var transaction = await connection.BeginTransactionAsync();
             await migration.Apply(connection);
             await SetVersion(connection, migration.Version);
             await transaction.CommitAsync();
+            logger.LogInformation("Migration V{Version} applied successfully", migration.Version);
         }
+
+        logger.LogInformation("Database initialization complete");
     }
 
     private static async Task EnsureSchemaVersionTable(SqliteConnection connection)
@@ -100,5 +109,33 @@ public class DatabaseInitializer(AlexandriaSettings settings) : IDatabaseInitial
             )
             """;
         await logsCmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task MigrateV2_ReadingStates(SqliteConnection connection)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS ReadingStates (
+                BookUuid TEXT PRIMARY KEY,
+                StatusInfoStatus TEXT NOT NULL DEFAULT 'ReadyToRead',
+                StatusInfoLastModified TEXT NOT NULL,
+                TimesStartedReading INTEGER NOT NULL DEFAULT 0,
+                LastTimeStartedReading TEXT,
+                SpentReadingMinutes INTEGER,
+                RemainingTimeMinutes INTEGER,
+                StatisticsLastModified TEXT NOT NULL,
+                ProgressPercent REAL,
+                ContentSourceProgressPercent REAL,
+                LocationValue TEXT,
+                LocationType TEXT,
+                LocationSource TEXT,
+                BookmarkLastModified TEXT NOT NULL,
+                LastModified TEXT NOT NULL,
+                PriorityTimestamp TEXT NOT NULL,
+                Created TEXT NOT NULL,
+                RawPutBody TEXT
+            )
+            """;
+        await cmd.ExecuteNonQueryAsync();
     }
 }
