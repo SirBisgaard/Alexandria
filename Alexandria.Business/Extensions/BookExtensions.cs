@@ -56,7 +56,7 @@ public static class BookExtensions
                     {
                         Format = "KEPUB",
                         Size = book.KepubFileSize,
-                        Url = $"{baseUrl}/api/kobo/download/{uuid}/kepub"
+                        Url = $"{baseUrl}/download/{uuid}/kepub"
                     }
                 ],
                 EntitlementId = uuid,

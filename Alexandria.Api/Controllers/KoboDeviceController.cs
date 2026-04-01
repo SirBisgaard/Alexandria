@@ -11,7 +11,7 @@ namespace Alexandria.Api.Controllers;
 /// local data or transparently proxy to storeapi.kobo.com.
 /// </summary>
 [ApiController]
-[Route("/api/kobo")]
+[Route("/")]
 public class KoboDeviceController(IKoboProxyService koboProxyService) : ControllerBase
 {
     /// <summary>

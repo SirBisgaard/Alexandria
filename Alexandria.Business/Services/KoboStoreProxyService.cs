@@ -40,10 +40,10 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             return koboResponse;
 
         // Override only the endpoints we need to intercept
-        resources["library_sync"] = $"{settings.AlexandriaApi}/api/kobo/v1/library/sync";
-        resources["image_host"] = $"{settings.AlexandriaApi}/api/kobo";
-        resources["image_url_template"] = $"{settings.AlexandriaApi}/api/kobo/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
-        resources["image_url_quality_template"] = $"{settings.AlexandriaApi}/api/kobo/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
+        resources["library_sync"] = $"{settings.AlexandriaApi}/v1/library/sync";
+        resources["image_host"] = $"{settings.AlexandriaApi}";
+        resources["image_url_template"] = $"{settings.AlexandriaApi}/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
+        resources["image_url_quality_template"] = $"{settings.AlexandriaApi}/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
 
 
         var headers = new Dictionary<string, string[]> { { "x-kobo-apitoken", ["e30="] } };
