@@ -1,5 +1,6 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models.Proxy;
+using Alexandria.Business.Models.Settings;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -11,8 +12,8 @@ namespace Alexandria.Api.Controllers;
 /// local data or transparently proxy to storeapi.kobo.com.
 /// </summary>
 [ApiController]
-[Route("/")]
-public class KoboDeviceController(IKoboProxyService koboProxyService) : ControllerBase
+[Route("/api/kobo")]
+public class KoboDeviceController(IKoboProxyService koboProxyService, KoboProxySettings settings) : ControllerBase
 {
     /// <summary>
     /// Intercepts /v1/initialization to rewrite Kobo's resource URLs so the device
@@ -21,7 +22,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpGet("v1/initialization")]
     public async Task Initialize()
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.Initialization(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -33,7 +34,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpGet("v1/library/sync")]
     public async Task LibrarySync()
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.LibrarySync(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -44,7 +45,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpGet("download/{uuid}/kepub")]
     public async Task Download(Guid uuid)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.Download(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -57,7 +58,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpGet("{uuid}/{width}/{height}/{quality}/{greyscale}/image.jpg")]
     public async Task CoverImage(Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.CoverImage(request, uuid, width, height, quality, greyscale);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -70,7 +71,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpPut("v1/library/{uuid}/state")]
     public async Task ReadingState(Guid uuid)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.ReadingState(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -82,7 +83,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpGet("v1/library/{uuid}/metadata")]
     public async Task Metadata(Guid uuid)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.Metadata(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -94,7 +95,7 @@ public class KoboDeviceController(IKoboProxyService koboProxyService) : Controll
     [HttpDelete("v1/library/{uuid}")]
     public async Task DeleteBook(Guid uuid)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
         var response = await koboProxyService.DeleteBook(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alexandria</title>
+    <link rel="stylesheet" href="styles/bootstrap.min.css">
+    <link rel="stylesheet" href="styles/kobo.css">
+</head>
+<body>
+<!-- Top Bar -->
+<header class="top-bar">
+    <span class="top-bar-clock" id="clock">00:00</span>
+    <div class="top-bar-icons">
+        <button id="theme-toggle" title="Toggle dark mode">
+            <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="theme-icon-moon" class="d-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <button id="sync-btn" title="Sync">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10"/><path d="M20.49 15a9 9 0 01-14.85 3.36L1 14"/></svg>
+        </button>
+        <button id="search-btn" title="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+    </div>
+</header>
+
+<div class="page">
+    <div class="home-grid">
+        <!-- Currently Reading -->
+        <div class="home-card">
+            <div class="home-card-covers">
+                <div class="home-card-cover-single" style="background:#8b0000;">Jurassic Park<br><small>Michael Crichton</small></div>
+            </div>
+            <div class="home-card-title">67% Read</div>
+            <div class="home-card-sub">3 hours to go</div>
+        </div>
+
+        <!-- Author Spotlight -->
+        <div class="home-card">
+            <div class="home-card-covers">
+                <div class="home-card-cover-stack">
+                    <div class="book-cover" style="background:#4a5568;">Det Braendende Land</div>
+                    <div class="book-cover" style="background:#5a6b7a;">Den Danske Rytter</div>
+                    <div class="book-cover" style="background:#6b7a8a;">Nordens Herrer</div>
+                </div>
+            </div>
+            <div class="home-card-title">Bernard Cornwell</div>
+            <div class="home-card-sub">9 unread books</div>
+        </div>
+
+        <!-- My Books -->
+        <a href="books.html" class="home-card">
+            <div class="home-card-covers">
+                <div class="home-card-cover-stack">
+                    <div class="book-cover" style="background:#5b7553;">Jomsviking</div>
+                    <div class="book-cover" style="background:#5a3e7a;">Archmage</div>
+                    <div class="book-cover" style="background:#8b2020;">Harry Potter</div>
+                </div>
+            </div>
+            <div class="home-card-title">My Books</div>
+            <div class="home-card-sub">212 books</div>
+        </a>
+
+        <!-- Collection -->
+        <div class="home-card">
+            <div class="home-card-covers">
+                <div class="home-card-cover-stack">
+                    <div class="book-cover" style="background:#6b5b3e;">The Man in the High Castle</div>
+                    <div class="book-cover" style="background:#4a6b3a;">Dune</div>
+                    <div class="book-cover" style="background:#7a5b3a;">Sviking</div>
+                </div>
+            </div>
+            <div class="home-card-title">Winter TBR 2025</div>
+            <div class="home-card-sub">Collection</div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+    <a href="index.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+        <span>Home</span>
+    </a>
+    <a href="books.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h5l3 3h8v13H4z"/></svg>
+        <span>My Books</span>
+    </a>
+    <a href="more.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <span>More</span>
+    </a>
+</nav>
+
+<script src="scripts/jquery.js"></script>
+<script src="scripts/bootstrap.bundle.min.js"></script>
+<script src="scripts/kobo.js"></script>
+</body>
+</html>

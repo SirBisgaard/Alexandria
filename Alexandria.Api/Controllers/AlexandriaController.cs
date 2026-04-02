@@ -8,7 +8,7 @@ namespace Alexandria.Api.Controllers;
 /// intended for web UIs or other clients managing the book collection.
 /// </summary>
 [ApiController]
-[Route("alexandria/api")]
+[Route("/api/alexandria")]
 public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService) : ControllerBase
 {
     /// <summary>

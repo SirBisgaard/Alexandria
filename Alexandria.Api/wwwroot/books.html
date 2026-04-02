@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alexandria - Books</title>
+    <link rel="stylesheet" href="styles/bootstrap.min.css">
+    <link rel="stylesheet" href="styles/kobo.css">
+</head>
+<body>
+<!-- Top Bar -->
+<header class="top-bar">
+    <span class="top-bar-clock" id="clock">00:00</span>
+    <div class="top-bar-icons">
+        <button id="theme-toggle" title="Toggle dark mode">
+            <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="theme-icon-moon" class="d-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <button id="sync-btn" title="Sync">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10"/><path d="M20.49 15a9 9 0 01-14.85 3.36L1 14"/></svg>
+        </button>
+        <button id="search-btn" title="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+    </div>
+</header>
+
+<div class="page">
+    <!-- Tab Bar -->
+    <ul class="nav nav-underline mb-2">
+        <li class="nav-item"><a class="nav-link active" href="books.html">Books</a></li>
+        <li class="nav-item"><a class="nav-link" href="authors.html">Authors</a></li>
+        <li class="nav-item"><a class="nav-link" href="series.html">Series</a></li>
+        <li class="nav-item"><a class="nav-link" href="collections.html">Collections</a></li>
+    </ul>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="dropdown">
+            <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Filter: ">Filter: All</button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" data-value="All"><span class="check">&#10003;</span> All</a></li>
+                <li><a class="dropdown-item" href="#" data-value="Unread"><span class="check"></span> Unread</a></li>
+                <li><a class="dropdown-item" href="#" data-value="Reading"><span class="check"></span> Reading</a></li>
+            </ul>
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Sort: ">Sort: Recent</button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" data-value="Recent"><span class="check">&#10003;</span> Recent</a></li>
+                <li><a class="dropdown-item" href="#" data-value="Date added"><span class="check"></span> Date added</a></li>
+                <li><a class="dropdown-item" href="#" data-value="Title"><span class="check"></span> Title</a></li>
+                <li><a class="dropdown-item" href="#" data-value="Author"><span class="check"></span> Author</a></li>
+                <li><a class="dropdown-item" href="#" data-value="Series"><span class="check"></span> Series</a></li>
+                <li><a class="dropdown-item" href="#" data-value="File size"><span class="check"></span> File size</a></li>
+            </ul>
+        </div>
+        <div class="flex-grow-1"></div>
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm rounded-circle" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" data-view-toggle="grid">Grid view</a></li>
+                <li><a class="dropdown-item" href="#" data-view-toggle="list">List view</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Grid View -->
+    <div class="book-grid view-grid-container">
+        <div class="book-card">
+            <div class="book-cover" style="background:#8b0000;">Jurassic Park<br><small>Michael Crichton</small></div>
+            <div class="book-status">67% Read</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#5b7553;">Jomsviking<br><small>Bjorn A. Bull-Hansen</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#4a5568;">Nordens Herrer<br><small>Bernard Cornwell</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#6b5b3e;">The Adventures of Tom Bombadil<br><small>J.R.R. Tolkien</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#2e6b4f;">Afdelingen for magisk fremtid<br><small>Morten Munster</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#7c6e5b;">Altid Fremad<br><small>Martin Lindstrom</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#5a3e7a;">Archmage<br><small>R.A. Salvatore</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover" style="background:#8b7d3c;">Armor of Light<br><small>Ken Follett</small></div>
+            <div class="book-status">Unread</div>
+            <div class="book-menu">&middot;&middot;&middot;</div>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div class="view-list-container d-none">
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#8b0000;">Jurassic Park</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Jurassic Park</div>
+                <div class="book-list-series">JURASSIC PARK - 1</div>
+                <div class="book-list-author">Michael Crichton</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">67% Read</div>
+                <div class="book-list-format">KOBO EPUB - 3.2 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#5b7553;">Jomsviking</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Jomsviking</div>
+                <div class="book-list-series">JOMSVIKINGERNE - 1</div>
+                <div class="book-list-author">Bjorn Andreas Bull-Hansen</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 1.1 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#4a5568;">Nordens Herrer</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Nordens herrer</div>
+                <div class="book-list-series">THE LAST KINGDOM - 3</div>
+                <div class="book-list-author">Bernard Cornwell</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 1.1 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#6b5b3e;">Tom Bombadil</div>
+            <div class="book-list-info">
+                <div class="book-list-title">The Adventures of Tom Bombadil</div>
+                <div class="book-list-series">THE WORKS OF J.R.R. TOLKIEN - 7</div>
+                <div class="book-list-author">J.R.R. Tolkien</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 2.5 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#2e6b4f;">Afdelingen</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Afdelingen for magisk fremtid</div>
+                <div class="book-list-series"></div>
+                <div class="book-list-author">Morten Munster</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 1.0 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#7c6e5b;">Altid Fremad</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Altid Fremad</div>
+                <div class="book-list-series"></div>
+                <div class="book-list-author">Martin Lindstrom</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 0.9 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#5a3e7a;">Archmage</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Archmage</div>
+                <div class="book-list-series">HOMECOMING - 1</div>
+                <div class="book-list-author">R.A. Salvatore</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 2.1 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+        <div class="book-list-item">
+            <div class="book-list-thumb" style="background:#8b7d3c;">Armor of Light</div>
+            <div class="book-list-info">
+                <div class="book-list-title">Armor of Light</div>
+                <div class="book-list-series">THE PILLARS OF THE EARTH - 5</div>
+                <div class="book-list-author">Ken Follett</div>
+            </div>
+            <div class="book-list-right">
+                <div class="book-list-read-status">Unread</div>
+                <div class="book-list-format">KOBO EPUB - 4.3 MB</div>
+                <div class="book-menu">&middot;&middot;&middot;</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+    <a href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+        <span>Home</span>
+    </a>
+    <a href="books.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h5l3 3h8v13H4z"/></svg>
+        <span>My Books</span>
+    </a>
+    <a href="more.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <span>More</span>
+    </a>
+</nav>
+
+<script src="scripts/jquery.js"></script>
+<script src="scripts/bootstrap.bundle.min.js"></script>
+<script src="scripts/kobo.js"></script>
+</body>
+</html>

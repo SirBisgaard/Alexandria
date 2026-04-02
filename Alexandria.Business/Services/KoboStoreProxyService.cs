@@ -38,17 +38,24 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         logger.LogInformation("Initialization: rewriting resource URLs to route through Alexandria");
         var koboResponse = await Proxy(request);
 
-        var json = JsonSerializer.Deserialize<JsonObject>(koboResponse.Body);
-        var resources = json?["Resources"]?.AsObject();
+        var jsonNode = JsonSerializer.Deserialize<JsonNode>(koboResponse.Body);
+        if (jsonNode is not JsonObject json)
+        {
+            return koboResponse;
+        }
+
+        var resources = json["Resources"]?.AsObject();
 
         if (resources is null)
+        {
             return koboResponse;
+        }
 
         // Override only the endpoints we need to intercept
-        resources["library_sync"] = $"{settings.AlexandriaApi}/v1/library/sync";
-        resources["image_host"] = $"{settings.AlexandriaApi}";
-        resources["image_url_template"] = $"{settings.AlexandriaApi}/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
-        resources["image_url_quality_template"] = $"{settings.AlexandriaApi}/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
+        resources["library_sync"] = $"{settings.KoboApiUrl}/v1/library/sync";
+        resources["image_host"] = $"{settings.KoboApiUrl}";
+        resources["image_url_template"] = $"{settings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
+        resources["image_url_quality_template"] = $"{settings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
 
 
         var headers = new Dictionary<string, string[]> { { "x-kobo-apitoken", ["e30="] } };
@@ -138,7 +145,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             }
 
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
-            var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.AlexandriaApi), ReadingState = readingState };
+            var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = readingState };
             var isNew = book.CreatedAt > lastSyncTime;
             syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
         }
@@ -386,7 +393,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
         logger.LogInformation("Metadata: serving metadata for '{Title}' ({Uuid})", book.Title, uuid);
         
-        return JsonResponse(StatusCodes.Status200OK, new[] { book.ToMetadata(settings.AlexandriaApi) });
+        return JsonResponse(StatusCodes.Status200OK, new[] { book.ToMetadata(settings.KoboApiUrl) });
     }
 
     /// <summary>

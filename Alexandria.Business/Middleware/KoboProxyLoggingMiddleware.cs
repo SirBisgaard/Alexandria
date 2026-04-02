@@ -19,7 +19,7 @@ public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRep
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (ExcludedPaths.Any(path => context.Request.Path.StartsWithSegments(path)))
+        if (!context.Request.Path.StartsWithSegments("/api/kobo"))
         {
             await next(context);
             return;
@@ -45,7 +45,15 @@ public class KoboProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRep
         context.Response.Body = responseBuffer;
 
         var stopwatch = Stopwatch.StartNew();
-        await next(context);
+        try
+        {
+            await next(context);
+        }
+        catch
+        {
+            context.Response.Body = originalBodyStream;
+            throw;
+        }
         stopwatch.Stop();
 
         // Read what was written

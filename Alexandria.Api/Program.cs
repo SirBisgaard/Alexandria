@@ -56,6 +56,8 @@ var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();
 await libraryIndexer.Index();
 
 app.UseAuthorization();
+
+app.UseFileServer();   
 app.MapControllers();
 
 app.Run();

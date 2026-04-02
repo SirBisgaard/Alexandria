@@ -10,7 +10,7 @@ public class KoboProxyRequest
     public required Dictionary<string, string?[]> Headers { get; init; }
     public required byte[] Body { get; init; }
 
-    public static async Task<KoboProxyRequest> FromHttpRequest(HttpRequest request)
+    public static async Task<KoboProxyRequest> FromHttpRequest(HttpRequest request, string routePrefix)
     {
         request.EnableBuffering();
 
@@ -23,7 +23,7 @@ public class KoboProxyRequest
         return new KoboProxyRequest
         {
             Method = request.Method,
-            Path = request.Path,
+            Path = request.Path.Value?.Replace(routePrefix, "") ?? request.Path,
             QueryString = request.QueryString.ToString(),
             Headers = headers,
             Body = ms.ToArray()
