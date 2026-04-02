@@ -66,15 +66,15 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         };
     }
 
-    public async Task<Author?> GetAuthorByName(string name)
+    public async Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null)
     {
         var books = await GetBooks();
-        var authorBooks = books.Where(b => b.Authors.Contains(name, StringComparer.OrdinalIgnoreCase)).OrderBy(b => b.Title).ToList();
+        var authorBooks = books.Where(b => b.Authors.Contains(name, StringComparer.OrdinalIgnoreCase)).ToList();
         if (authorBooks.Count == 0)
         {
             return null;
         }
-        return new Author { Name = name, Books = authorBooks };
+        return new Author { Name = name, Books = SortBooks(authorBooks, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)) };
     }
 
     public async Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null)
@@ -134,6 +134,19 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
     }
 
     public async Task<BookCollection?> GetCollectionByUuid(Guid uuid) => await collectionRepository.FindByUuid(uuid);
+
+    public async Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null)
+    {
+        var collection = await collectionRepository.FindByUuid(uuid);
+        if (collection is null)
+        {
+            return null;
+        }
+        var allBooks = await GetBooks();
+        var uuidSet = new HashSet<Guid>(collection.BookUuids);
+        var books = allBooks.Where(b => uuidSet.Contains(b.Uuid)).ToList();
+        return new CollectionWithBooks { Uuid = collection.Uuid, Name = collection.Name, Books = SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, LastModified = collection.LastModified };
+    }
 
     public async Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids)
     {

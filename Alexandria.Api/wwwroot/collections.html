@@ -93,10 +93,10 @@ $(function () {
             $.each(collections, function (i, c) {
                 var count = (c.bookUuids || []).length;
                 $list.append(
-                    '<div class="list-group-item d-flex justify-content-between align-items-center px-0">' +
+                    '<a href="collection-detail.html?uuid=' + c.uuid + '" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">' +
                         '<span class="fw-semibold">' + escapeHtml(c.name) + '</span>' +
                         '<span class="text-body-secondary">' + count + (count === 1 ? ' book' : ' books') + '</span>' +
-                    '</div>'
+                    '</a>'
                 );
             });
         });

@@ -300,12 +300,13 @@ public sealed class LibrarySyncTests
         public Task ArchiveBook(Guid uuid) => Task.CompletedTask;
         public Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null) => Task.FromResult<List<BookCollection>>([]);
         public Task<BookCollection?> GetCollectionByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
+        public Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<CollectionWithBooks?>(null);
         public Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids) => Task.FromResult(new BookCollection());
         public Task UpsertCollection(BookCollection collection) => Task.CompletedTask;
         public Task DeleteCollection(Guid uuid) => Task.CompletedTask;
         public Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
         public Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null) => Task.FromResult<List<Author>>([]);
-        public Task<Author?> GetAuthorByName(string name) => Task.FromResult<Author?>(null);
+        public Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null) => Task.FromResult<Author?>(null);
         public Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null) => Task.FromResult<List<Series>>([]);
         public Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<Series?>(null);
         public Task<byte[]?> GetBookCover(Guid uuid) => Task.FromResult<byte[]?>(null);

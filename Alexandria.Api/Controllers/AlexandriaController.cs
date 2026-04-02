@@ -47,9 +47,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("authors/{name}")]
-    public async Task<IActionResult> GetAuthor(string name)
+    public async Task<IActionResult> GetAuthor(string name, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var author = await alexandriaLibraryService.GetAuthorByName(name);
+        var options = new BookSortOptions(sort ?? BookSortField.Title, order ?? SortOrder.Asc);
+        var author = await alexandriaLibraryService.GetAuthorByName(name, options);
         if (author is null)
         {
             return NotFound();
@@ -86,13 +87,14 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("collections/{uuid:guid}")]
-    public async Task<IActionResult> GetCollection(Guid uuid)
+    public async Task<IActionResult> GetCollection(Guid uuid, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var collection = await alexandriaLibraryService.GetCollectionByUuid(uuid);
-        if (collection is null)
+        var options = new BookSortOptions(sort ?? BookSortField.Title, order ?? SortOrder.Asc);
+        var result = await alexandriaLibraryService.GetCollectionWithBooks(uuid, options);
+        if (result is null)
         {
             return NotFound();
         }
-        return Ok(collection);
+        return Ok(result);
     }
 }
