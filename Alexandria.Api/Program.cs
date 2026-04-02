@@ -38,7 +38,6 @@ builder.Services.AddTransient<ISyncTokenService, SyncTokenService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
-builder.Services.AddTransient<IBookCollectionService, BookCollectionService>();
 
 builder.Services.AddControllers();
 

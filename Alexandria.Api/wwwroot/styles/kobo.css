@@ -1,13 +1,49 @@
 /* ===== Bootstrap Overrides & Custom Theming ===== */
 
-/* Active tab accent color */
-.nav-underline .nav-link.active {
-    color: #c0392b;
-    border-bottom-color: #c0392b;
+/* Active tab accent color — override Bootstrap's blue */
+.nav-underline .nav-link.active,
+.nav-underline .nav-link.active:hover,
+.nav-underline .nav-link.active:focus {
+    color: #c0392b !important;
+    border-bottom-color: #c0392b !important;
 }
 
 .nav-underline .nav-link {
+    color: #555;
+    font-size: 15px;
+}
+
+.nav-underline .nav-link:hover {
+    color: #333;
+}
+
+/* Dropdown toggle — strip Bootstrap's default box styling */
+.toolbar .dropdown-toggle {
+    font-style: italic;
+    font-size: 14px;
+    padding: 4px 0;
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
     color: var(--bs-body-color);
+    outline: none;
+}
+
+.toolbar .dropdown-toggle:focus,
+.toolbar .dropdown-toggle:active {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.toolbar .dropdown-toggle::after {
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+/* Dropdown menu — sharp corners, no radius */
+.dropdown-menu {
+    border-radius: 0 !important;
 }
 
 /* Dropdown checkmark column */
@@ -18,17 +54,46 @@
     font-size: 13px;
 }
 
+/* Dark mode — fix text that becomes invisible */
+[data-bs-theme="dark"] .nav-underline .nav-link {
+    color: #aaa;
+}
+
+[data-bs-theme="dark"] .nav-underline .nav-link:hover {
+    color: #ccc;
+}
+
 /* ===== Top Header Bar ===== */
-.top-bar {
+.top-bar-outer {
     position: sticky;
     top: 0;
     z-index: 100;
+    background: var(--bs-body-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.top-bar-outer,
+.top-bar {
+    position: relative;
+}
+
+.top-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    max-width: 900px;
+    margin: 0 auto;
     padding: 8px 16px;
-    background: var(--bs-body-bg);
-    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.top-bar-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    font-weight: 600;
+    color: #c0392b;
+    letter-spacing: 0.5px;
 }
 
 .top-bar-clock {
@@ -45,16 +110,20 @@
 .top-bar-icons button {
     background: none;
     border: none;
-    padding: 4px 8px;
+    padding: 6px 8px;
     cursor: pointer;
     color: var(--bs-body-color);
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
 }
 
 .top-bar-icons button svg {
     width: 20px;
     height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    display: block;
 }
 
 /* ===== Page Layout ===== */
@@ -111,19 +180,6 @@
     font-size: 14px;
 }
 
-.toolbar .dropdown-toggle {
-    font-style: italic;
-    font-size: 14px;
-    padding: 4px 0;
-    border: none;
-    background: none;
-    color: var(--bs-body-color);
-}
-
-.toolbar .dropdown-toggle::after {
-    margin-left: 4px;
-}
-
 /* ===== Book Grid ===== */
 .book-grid {
     display: grid;
@@ -141,6 +197,7 @@
     aspect-ratio: 2 / 3;
     border-radius: 2px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -150,6 +207,14 @@
     color: #fff;
     line-height: 1.3;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.book-cover small {
+    display: block;
+    margin-top: 4px;
+    font-weight: 400;
+    opacity: 0.85;
 }
 
 .book-status {

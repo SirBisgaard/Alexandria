@@ -19,7 +19,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, IBookCollectionService bookCollectionService, ISyncSessionService syncSession, ISyncTokenService syncTokenService, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, ISyncSessionService syncSession, ISyncTokenService syncTokenService, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -199,7 +199,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
     private async Task<List<SyncResultItem>> GetCollectionSyncItems(DateTimeOffset lastSync)
     {
-        var collections = lastSync == DateTimeOffset.MinValue ? await bookCollectionService.GetAll() : await bookCollectionService.GetModifiedSince(lastSync);
+        var collections = lastSync == DateTimeOffset.MinValue ? await alexandriaLibraryService.GetCollections() : await alexandriaLibraryService.GetCollectionsModifiedSince(lastSync);
         return collections.Select(c =>
         {
             var isNew = c.CreatedAt > lastSync;
@@ -237,7 +237,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 LastModified = DateTimeOffset.TryParse(tag.LastModified, out var modified) ? modified : DateTimeOffset.UtcNow
             };
 
-            await bookCollectionService.Upsert(collection);
+            await alexandriaLibraryService.UpsertCollection(collection);
             logger.LogInformation("LibrarySync: persisted store collection '{Name}' ({Uuid}) with {Count} books", collection.Name, collection.Uuid, collection.BookUuids.Count);
         }
     }

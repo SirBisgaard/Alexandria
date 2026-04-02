@@ -47,7 +47,7 @@ public sealed class LibrarySyncTests
         var readingStateRepository = new FakeReadingStateRepository();
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
-        return new KoboStoreProxyService(Settings, httpClient, libraryService, fileRepository, readingStateRepository, new FakeBookCollectionService(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        return new KoboStoreProxyService(Settings, httpClient, libraryService, fileRepository, readingStateRepository, syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
     }
 
     private static HttpResponseMessage MakeEmptyStoreResponse(string? syncToken = null)
@@ -212,7 +212,7 @@ public sealed class LibrarySyncTests
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(MakeEmptyStoreResponse(KoboStoreToken));
         var httpClient = new HttpClient(handler);
-        var service = new KoboStoreProxyService(settingsSmallBatch, httpClient, libraryService, new FakeFileRepository(), new FakeReadingStateRepository(), new FakeBookCollectionService(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        var service = new KoboStoreProxyService(settingsSmallBatch, httpClient, libraryService, new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
 
         // First page — should have continue header and lastSync NOT advanced.
         var response1 = await service.LibrarySync(MakeRequest(KoboStoreToken));
@@ -240,7 +240,7 @@ public sealed class LibrarySyncTests
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(MakeContinuationStoreResponse());
         var httpClient = new HttpClient(handler);
-        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeFileRepository(), new FakeReadingStateRepository(), new FakeBookCollectionService(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
 
         var response = await service.LibrarySync(MakeRequest(token));
@@ -298,6 +298,17 @@ public sealed class LibrarySyncTests
         public Task<List<Book>> GetBooks() => Task.FromResult(books);
         public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.Uuid == uuid));
         public Task ArchiveBook(Guid uuid) => Task.CompletedTask;
+        public Task<List<BookCollection>> GetCollections() => Task.FromResult<List<BookCollection>>([]);
+        public Task<BookCollection?> GetCollectionByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
+        public Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids) => Task.FromResult(new BookCollection());
+        public Task UpsertCollection(BookCollection collection) => Task.CompletedTask;
+        public Task DeleteCollection(Guid uuid) => Task.CompletedTask;
+        public Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
+        public Task<List<Author>> GetAuthors() => Task.FromResult<List<Author>>([]);
+        public Task<Author?> GetAuthorByName(string name) => Task.FromResult<Author?>(null);
+        public Task<List<Series>> GetSeries() => Task.FromResult<List<Series>>([]);
+        public Task<Series?> GetSeriesByUuid(Guid uuid) => Task.FromResult<Series?>(null);
+        public Task<byte[]?> GetBookCover(Guid uuid) => Task.FromResult<byte[]?>(null);
     }
 
     private class FakeFileRepository : IFileRepository
@@ -318,13 +329,4 @@ public sealed class LibrarySyncTests
         public Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody) => Task.CompletedTask;
     }
 
-    private class FakeBookCollectionService : IBookCollectionService
-    {
-        public Task<List<BookCollection>> GetAll() => Task.FromResult<List<BookCollection>>([]);
-        public Task<BookCollection?> GetByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
-        public Task<BookCollection> CreateOrUpdate(string name, List<Guid> bookUuids) => Task.FromResult(new BookCollection());
-        public Task Upsert(BookCollection collection) => Task.CompletedTask;
-        public Task Delete(Guid uuid) => Task.CompletedTask;
-        public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
-    }
 }
