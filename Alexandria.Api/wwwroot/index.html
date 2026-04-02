@@ -33,6 +33,7 @@
 </div>
 
 <!-- Bottom Navigation -->
+<div class="bottom-nav-outer">
 <nav class="bottom-nav">
     <a href="index.html" class="active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
@@ -47,6 +48,7 @@
         <span>More</span>
     </a>
 </nav>
+</div>
 
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
@@ -77,9 +79,9 @@ $(function () {
             var remaining = reading.readingProgress.remainingTimeMinutes;
             var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
             $grid.append(
-                '<div class="home-card">' +
+                '<div class="home-card" style="cursor:pointer" onclick="openBookModal(\'' + reading.uuid + '\')">' +
                     '<div class="home-card-covers">' +
-                        '<img src="' + coverUrl(reading.uuid) + '" class="home-cover-single" alt="" onerror="this.style.display=\'none\'">' +
+                        homeSingleCoverHtml(reading) +
                     '</div>' +
                     '<div class="home-card-title">' + pct + '% Read</div>' +
                     '<div class="home-card-sub">' + escapeHtml(subText) + '</div>' +
@@ -108,7 +110,7 @@ $(function () {
             var aBooks = authorMap[topAuthor].slice(0, 3);
             var stackHtml = '<div class="home-card-covers"><div class="home-card-cover-stack">';
             $.each(aBooks, function (i, b) {
-                stackHtml += '<img src="' + coverUrl(b.uuid) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+                stackHtml += homeStackCoverHtml(b);
             });
             stackHtml += '</div></div>';
             $grid.append(
@@ -123,7 +125,7 @@ $(function () {
         var firstThree = books.slice(0, 3);
         var myBooksStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
         $.each(firstThree, function (i, b) {
-            myBooksStack += '<img src="' + coverUrl(b.uuid) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+            myBooksStack += homeStackCoverHtml(b);
         });
         myBooksStack += '</div></div>';
         $grid.append(
@@ -144,7 +146,7 @@ $(function () {
             var shown = 0;
             for (var ci = 0; ci < colUuids.length && shown < 3; ci++) {
                 if (bookMap[colUuids[ci]]) {
-                    colCovers += '<img src="' + coverUrl(colUuids[ci]) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+                    colCovers += homeStackCoverHtml(bookMap[colUuids[ci]]);
                     shown++;
                 }
             }
@@ -164,7 +166,7 @@ $(function () {
             var sBooks = (latestSeries.books || []).slice(0, 3);
             var sStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
             $.each(sBooks, function (i, b) {
-                sStack += '<img src="' + coverUrl(b.uuid) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+                sStack += homeStackCoverHtml(b);
             });
             sStack += '</div></div>';
             var sCount = (latestSeries.books || []).length;

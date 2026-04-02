@@ -29,9 +29,108 @@ function bookCoverHtml(book, cssClass) {
            '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).join(", ")) + '</small></div>';
 }
 
+function homeStackCoverHtml(book) {
+    return '<div class="home-cover-slot">' +
+               '<img src="' + coverUrl(book.uuid) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+               '<div class="home-cover-fallback" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div>' +
+           '</div>';
+}
+
+function homeSingleCoverHtml(book) {
+    return '<div class="home-cover-single-slot">' +
+               '<img src="' + coverUrl(book.uuid) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+               '<div class="home-cover-fallback" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div>' +
+           '</div>';
+}
+
 function escapeHtml(text) {
     if (!text) { return ""; }
     return $("<span>").text(text).html();
+}
+
+// ===== Shared renderBooks =====
+function renderBooks(books) {
+    var $grid = $("#book-grid").empty();
+    var $list = $("#book-list").empty();
+    $.each(books, function (i, book) {
+        var status = readingStatusText(book.readingProgress);
+        var authors = (book.authors || []).join(", ");
+        var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
+
+        $grid.append(
+            '<div class="book-card" data-book-uuid="' + book.uuid + '">' +
+                bookCoverHtml(book, "book-cover-img") +
+                '<div class="book-status">' + escapeHtml(status) + '</div>' +
+                '<div class="dropdown book-menu-dropdown">' +
+                    '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
+                    '<ul class="dropdown-menu dropdown-menu-end">' +
+                        '<li><a class="dropdown-item" href="#" data-view-details="' + book.uuid + '">View Details</a></li>' +
+                    '</ul>' +
+                '</div>' +
+            '</div>'
+        );
+
+        $list.append(
+            '<div class="book-list-item" data-book-uuid="' + book.uuid + '">' +
+                '<img src="' + coverUrl(book.uuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
+                '<div class="book-list-info">' +
+                    '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
+                    '<div class="book-list-series">' + escapeHtml(series) + '</div>' +
+                    '<div class="book-list-author">' + escapeHtml(authors) + '</div>' +
+                '</div>' +
+                '<div class="book-list-right">' +
+                    '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
+                    '<div class="book-list-format">KEPUB - ' + formatFileSize(book.kepubFileSize) + '</div>' +
+                    '<div class="dropdown book-menu-dropdown">' +
+                        '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end">' +
+                            '<li><a class="dropdown-item" href="#" data-view-details="' + book.uuid + '">View Details</a></li>' +
+                        '</ul>' +
+                    '</div>' +
+                '</div>' +
+            '</div>'
+        );
+    });
+}
+
+// ===== Book Detail Modal =====
+function openBookModal(uuid) {
+    $.get("/api/alexandria/books/" + uuid, function (book) {
+        var authors = (book.authors || []).join(", ");
+        var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
+        var status = readingStatusText(book.readingProgress);
+
+        $("#bm-cover").attr("src", coverUrl(book.uuid)).show();
+        $("#bm-cover-fallback").hide().css("background", fallbackColor(book.uuid)).text(book.title);
+        $("#bm-title").text(book.title);
+        $("#bm-series").text(series).toggle(!!series);
+        $("#bm-author").text(authors);
+        $("#bm-status").text(status);
+
+        // Synopsis
+        var desc = book.description || "No description available.";
+        $("#bm-synopsis").html(desc);
+
+        // Details
+        var details = "";
+        if (book.publisher) { details += "<div class='detail-row'>Publisher: " + escapeHtml(book.publisher) + (book.publicationDate ? " (" + escapeHtml(book.publicationDate) + ")" : "") + "</div>"; }
+        if (book.language) { details += "<div class='detail-row'>Language: " + escapeHtml(book.language) + "</div>"; }
+        if (book.kepubFileSize) { details += "<div class='detail-row'>File Size: " + formatFileSize(book.kepubFileSize) + "</div>"; }
+        details += "<div class='detail-row'>File Format: KEPUB</div>";
+        $("#bm-details").html(details || "No details available.");
+
+        // Show synopsis tab by default
+        $("#bm-tab-synopsis").addClass("active");
+        $("#bm-tab-details").removeClass("active");
+        $("#bm-synopsis").show();
+        $("#bm-details").hide();
+
+        $("#book-modal-backdrop").addClass("open");
+    });
+}
+
+function closeBookModal() {
+    $("#book-modal-backdrop").removeClass("open");
 }
 
 // ===== Sort/Filter Persistence =====
@@ -59,7 +158,6 @@ function sortArrow(order) {
     return order === "Desc" ? " \u25BC" : " \u25B2";
 }
 
-// Restore a sort dropdown UI from saved prefs
 function restoreSortDropdown($dropdown, sort, order) {
     var $toggle = $dropdown.find(".dropdown-toggle");
     var $items = $dropdown.find(".dropdown-item[data-sort]");
@@ -72,7 +170,6 @@ function restoreSortDropdown($dropdown, sort, order) {
     }
 }
 
-// Restore a filter dropdown UI from saved pref
 function restoreFilterDropdown($dropdown, filter) {
     var $toggle = $dropdown.find(".dropdown-toggle");
     var $items = $dropdown.find(".dropdown-item[data-filter]");
@@ -85,10 +182,77 @@ function restoreFilterDropdown($dropdown, filter) {
     }
 }
 
-// Global page reload callback — each page sets this
 var pageReload = null;
 
 $(function () {
+    // ===== Inject Modal HTML =====
+    $("body").append(
+        '<div class="book-modal-backdrop" id="book-modal-backdrop">' +
+            '<div class="book-modal" id="book-modal">' +
+                '<div class="book-modal-title-bar">My Books</div>' +
+                '<button class="book-modal-close" id="bm-close">&times;</button>' +
+                '<div class="book-modal-info">' +
+                    '<img id="bm-cover" class="book-modal-cover" src="" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+                    '<div id="bm-cover-fallback" class="book-modal-cover-fallback" style="display:none;"></div>' +
+                    '<div class="book-modal-meta">' +
+                        '<div class="book-modal-book-title" id="bm-title"></div>' +
+                        '<div class="book-modal-series" id="bm-series"></div>' +
+                        '<div class="book-modal-author" id="bm-author"></div>' +
+                        '<div class="book-modal-status" id="bm-status"></div>' +
+                    '</div>' +
+                '</div>' +
+                '<ul class="nav nav-underline book-modal-tabs">' +
+                    '<li class="nav-item"><a class="nav-link active" id="bm-tab-synopsis" href="#">Synopsis</a></li>' +
+                    '<li class="nav-item"><a class="nav-link" id="bm-tab-details" href="#">Details</a></li>' +
+                '</ul>' +
+                '<div class="book-modal-tab-content">' +
+                    '<div id="bm-synopsis"></div>' +
+                    '<div id="bm-details" style="display:none;"></div>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    );
+
+    // ===== Modal Close =====
+    $("#bm-close").on("click", closeBookModal);
+    $("#book-modal-backdrop").on("click", function (e) {
+        if (e.target === this) { closeBookModal(); }
+    });
+
+    // ===== Modal Tabs =====
+    $("#bm-tab-synopsis").on("click", function (e) {
+        e.preventDefault();
+        $(this).addClass("active");
+        $("#bm-tab-details").removeClass("active");
+        $("#bm-synopsis").show();
+        $("#bm-details").hide();
+    });
+
+    $("#bm-tab-details").on("click", function (e) {
+        e.preventDefault();
+        $(this).addClass("active");
+        $("#bm-tab-synopsis").removeClass("active");
+        $("#bm-details").show();
+        $("#bm-synopsis").hide();
+    });
+
+    // ===== Book Card / List Item Click → Open Modal =====
+    $(document).on("click", ".book-card[data-book-uuid]", function (e) {
+        if ($(e.target).closest(".book-menu-dropdown").length) { return; }
+        openBookModal($(this).data("book-uuid"));
+    });
+
+    $(document).on("click", ".book-list-item[data-book-uuid]", function (e) {
+        if ($(e.target).closest(".book-menu-dropdown").length) { return; }
+        openBookModal($(this).data("book-uuid"));
+    });
+
+    // ===== View Details from menu =====
+    $(document).on("click", "[data-view-details]", function (e) {
+        e.preventDefault();
+        openBookModal($(this).data("view-details"));
+    });
+
     // ===== Clock =====
     function updateClock() {
         var now = new Date();
@@ -168,7 +332,7 @@ $(function () {
     });
 
     // ===== View Toggle (Grid / List) =====
-    $("[data-view-toggle]").on("click", function (e) {
+    $(document).on("click", "[data-view-toggle]", function (e) {
         e.preventDefault();
         var view = $(this).data("view-toggle");
         var $grid = $(".view-grid-container");

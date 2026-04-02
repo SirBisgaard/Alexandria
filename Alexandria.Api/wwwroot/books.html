@@ -78,6 +78,7 @@
 </div>
 
 <!-- Bottom Navigation -->
+<div class="bottom-nav-outer">
 <nav class="bottom-nav">
     <a href="index.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
@@ -92,6 +93,7 @@
         <span>More</span>
     </a>
 </nav>
+</div>
 
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
@@ -113,40 +115,6 @@ $(function () {
                 books = books.filter(function (b) { return b.readingProgress && b.readingProgress.status !== "ReadyToRead"; });
             }
             renderBooks(books);
-        });
-    }
-
-    function renderBooks(books) {
-        var $grid = $("#book-grid").empty();
-        var $list = $("#book-list").empty();
-        $.each(books, function (i, book) {
-            var status = readingStatusText(book.readingProgress);
-            var authors = (book.authors || []).join(", ");
-            var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
-
-            $grid.append(
-                '<div class="book-card">' +
-                    bookCoverHtml(book, "book-cover-img") +
-                    '<div class="book-status">' + escapeHtml(status) + '</div>' +
-                    '<div class="book-menu">&middot;&middot;&middot;</div>' +
-                '</div>'
-            );
-
-            $list.append(
-                '<div class="book-list-item">' +
-                    '<img src="' + coverUrl(book.uuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
-                    '<div class="book-list-info">' +
-                        '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
-                        '<div class="book-list-series">' + escapeHtml(series) + '</div>' +
-                        '<div class="book-list-author">' + escapeHtml(authors) + '</div>' +
-                    '</div>' +
-                    '<div class="book-list-right">' +
-                        '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
-                        '<div class="book-list-format">KEPUB - ' + formatFileSize(book.kepubFileSize) + '</div>' +
-                        '<div class="book-menu">&middot;&middot;&middot;</div>' +
-                    '</div>' +
-                '</div>'
-            );
         });
     }
 
