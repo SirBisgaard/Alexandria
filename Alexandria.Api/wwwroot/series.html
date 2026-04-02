@@ -102,21 +102,22 @@ $(function () {
             var authors = firstBook ? (firstBook.authors || []).join(", ") : "";
 
             if (firstBook) {
+                var detailUrl = "series-detail.html?uuid=" + s.uuid;
                 $grid.append(
-                    '<div class="book-card">' +
+                    '<a href="' + detailUrl + '" class="book-card">' +
                         bookCoverHtml(firstBook, "book-cover-img") +
                         '<div class="book-status">' + escapeHtml(countText) + '</div>' +
-                    '</div>'
+                    '</a>'
                 );
                 $list.append(
-                    '<div class="series-list-item">' +
+                    '<a href="' + detailUrl + '" class="series-list-item">' +
                         '<img src="' + coverUrl(firstBook.uuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
                         '<div class="series-list-info">' +
                             '<div class="series-list-title">' + escapeHtml(s.name) + '</div>' +
                             '<div class="series-list-author">' + escapeHtml(authors) + '</div>' +
                             '<div class="series-list-count">' + escapeHtml(countText) + '</div>' +
                         '</div>' +
-                    '</div>'
+                    '</a>'
                 );
             }
         });

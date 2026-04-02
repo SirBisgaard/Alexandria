@@ -55,10 +55,12 @@
 $(function () {
     $.when(
         $.get("/api/alexandria/books"),
-        $.get("/api/alexandria/collections")
-    ).done(function (booksResult, collectionsResult) {
+        $.get("/api/alexandria/collections"),
+        $.get("/api/alexandria/series?sort=Recent&order=Desc")
+    ).done(function (booksResult, collectionsResult, seriesResult) {
         var books = booksResult[0];
         var collections = collectionsResult[0];
+        var seriesList = seriesResult[0];
         var $grid = $("#home-grid");
 
         // Currently reading
@@ -130,6 +132,24 @@ $(function () {
                 '<div class="home-card-sub">' + books.length + ' books</div>' +
             '</a>'
         );
+
+        // Latest series
+        if (seriesList.length > 0) {
+            var latestSeries = seriesList[0];
+            var sBooks = (latestSeries.books || []).slice(0, 3);
+            var sStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+            $.each(sBooks, function (i, b) {
+                sStack += '<img src="' + coverUrl(b.uuid) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+            });
+            sStack += '</div></div>';
+            var sCount = (latestSeries.books || []).length;
+            $grid.append(
+                '<a href="series-detail.html?uuid=' + latestSeries.uuid + '" class="home-card">' + sStack +
+                    '<div class="home-card-title">' + escapeHtml(latestSeries.name) + '</div>' +
+                    '<div class="home-card-sub">' + sCount + (sCount === 1 ? ' book' : ' books') + '</div>' +
+                '</a>'
+            );
+        }
 
         // First collection
         if (collections.length > 0) {

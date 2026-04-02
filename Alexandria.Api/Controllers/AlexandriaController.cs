@@ -66,9 +66,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("series/{uuid:guid}")]
-    public async Task<IActionResult> GetSeriesByUuid(Guid uuid)
+    public async Task<IActionResult> GetSeriesByUuid(Guid uuid, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var series = await alexandriaLibraryService.GetSeriesByUuid(uuid);
+        var options = new BookSortOptions(sort ?? BookSortField.BookNumber, order ?? SortOrder.Asc);
+        var series = await alexandriaLibraryService.GetSeriesByUuid(uuid, options);
         if (series is null)
         {
             return NotFound();

@@ -26,6 +26,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             BookSortField.Author => desc ? books.OrderByDescending(b => b.Authors.FirstOrDefault() ?? "").ThenByDescending(b => b.Title).ToList() : books.OrderBy(b => b.Authors.FirstOrDefault() ?? "").ThenBy(b => b.Title).ToList(),
             BookSortField.Series => desc ? books.OrderBy(b => b.SeriesName is null ? 1 : 0).ThenByDescending(b => b.SeriesName).ThenByDescending(b => b.SeriesIndex ?? 0).ToList() : books.OrderBy(b => b.SeriesName is null ? 1 : 0).ThenBy(b => b.SeriesName).ThenBy(b => b.SeriesIndex ?? 0).ToList(),
             BookSortField.FileSize => desc ? books.OrderByDescending(b => b.KepubFileSize).ToList() : books.OrderBy(b => b.KepubFileSize).ToList(),
+            BookSortField.BookNumber => desc ? books.OrderByDescending(b => b.SeriesIndex ?? 0).ToList() : books.OrderBy(b => b.SeriesIndex ?? 0).ToList(),
             _ => desc ? books.OrderByDescending(b => b.LastModified).ToList() : books.OrderBy(b => b.LastModified).ToList()
         };
     }
@@ -94,10 +95,15 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         };
     }
 
-    public async Task<Series?> GetSeriesByUuid(Guid uuid)
+    public async Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null)
     {
         var allSeries = await GetSeries();
-        return allSeries.FirstOrDefault(s => s.Uuid == uuid);
+        var series = allSeries.FirstOrDefault(s => s.Uuid == uuid);
+        if (series is not null)
+        {
+            series.Books = SortBooks(series.Books, sortOptions ?? new BookSortOptions(BookSortField.BookNumber, SortOrder.Asc));
+        }
+        return series;
     }
 
     public async Task<byte[]?> GetBookCover(Guid uuid)

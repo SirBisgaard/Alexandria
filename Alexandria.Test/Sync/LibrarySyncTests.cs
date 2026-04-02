@@ -307,7 +307,7 @@ public sealed class LibrarySyncTests
         public Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null) => Task.FromResult<List<Author>>([]);
         public Task<Author?> GetAuthorByName(string name) => Task.FromResult<Author?>(null);
         public Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null) => Task.FromResult<List<Series>>([]);
-        public Task<Series?> GetSeriesByUuid(Guid uuid) => Task.FromResult<Series?>(null);
+        public Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<Series?>(null);
         public Task<byte[]?> GetBookCover(Guid uuid) => Task.FromResult<byte[]?>(null);
     }
 

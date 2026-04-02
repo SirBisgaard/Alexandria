@@ -13,7 +13,8 @@ public enum BookSortField
     Title,
     Author,
     Series,
-    FileSize
+    FileSize,
+    BookNumber
 }
 
 public enum AuthorSortField
