@@ -39,12 +39,12 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-        <div class="dropdown">
+        <div class="dropdown" id="collections-sort-dropdown" data-page-key="collections">
             <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Sort: ">Sort: Collection name</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" data-value="Collection name"><span class="check">&#10003;</span> Collection name</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Number of books"><span class="check"></span> Number of books</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Date created"><span class="check"></span> Date created</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="CollectionName" data-default-order="Asc" data-value="Collection name"><span class="check">&#10003;</span> Collection name</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="NumberOfBooks" data-default-order="Desc" data-value="Number of books"><span class="check"></span> Number of books</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="DateCreated" data-default-order="Desc" data-value="Date created"><span class="check"></span> Date created</a></li>
             </ul>
         </div>
         <div class="flex-grow-1"></div>
@@ -57,20 +57,9 @@
     </div>
 
     <!-- Collection List -->
-    <div class="list-group list-group-flush">
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Winter TBR 2025</span>
-            <span class="text-body-secondary">5 books</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Favorites</span>
-            <span class="text-body-secondary">12 books</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">To Re-read</span>
-            <span class="text-body-secondary">3 books</span>
-        </div>
-    </div>
+    <div class="list-group list-group-flush" id="collection-list"></div>
+
+
 </div>
 
 <!-- Bottom Navigation -->
@@ -92,5 +81,30 @@
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
 <script src="scripts/kobo.js"></script>
+<script>
+$(function () {
+    var sortPrefs = getSortPrefs("collections", "CollectionName", "Asc");
+    restoreSortDropdown($("#collections-sort-dropdown"), sortPrefs.sort, sortPrefs.order);
+
+    function loadCollections() {
+        var prefs = getSortPrefs("collections", "CollectionName", "Asc");
+        $.get("/api/alexandria/collections?sort=" + prefs.sort + "&order=" + prefs.order, function (collections) {
+            var $list = $("#collection-list").empty();
+            $.each(collections, function (i, c) {
+                var count = (c.bookUuids || []).length;
+                $list.append(
+                    '<div class="list-group-item d-flex justify-content-between align-items-center px-0">' +
+                        '<span class="fw-semibold">' + escapeHtml(c.name) + '</span>' +
+                        '<span class="text-body-secondary">' + count + (count === 1 ? ' book' : ' books') + '</span>' +
+                    '</div>'
+                );
+            });
+        });
+    }
+
+    pageReload = loadCollections;
+    loadCollections();
+});
+</script>
 </body>
 </html>

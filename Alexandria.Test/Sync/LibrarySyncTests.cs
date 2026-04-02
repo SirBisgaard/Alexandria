@@ -295,18 +295,18 @@ public sealed class LibrarySyncTests
 
     private class FakeLibraryService(List<Book> books) : IAlexandriaLibraryService
     {
-        public Task<List<Book>> GetBooks() => Task.FromResult(books);
+        public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books);
         public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.Uuid == uuid));
         public Task ArchiveBook(Guid uuid) => Task.CompletedTask;
-        public Task<List<BookCollection>> GetCollections() => Task.FromResult<List<BookCollection>>([]);
+        public Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null) => Task.FromResult<List<BookCollection>>([]);
         public Task<BookCollection?> GetCollectionByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
         public Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids) => Task.FromResult(new BookCollection());
         public Task UpsertCollection(BookCollection collection) => Task.CompletedTask;
         public Task DeleteCollection(Guid uuid) => Task.CompletedTask;
         public Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
-        public Task<List<Author>> GetAuthors() => Task.FromResult<List<Author>>([]);
+        public Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null) => Task.FromResult<List<Author>>([]);
         public Task<Author?> GetAuthorByName(string name) => Task.FromResult<Author?>(null);
-        public Task<List<Series>> GetSeries() => Task.FromResult<List<Series>>([]);
+        public Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null) => Task.FromResult<List<Series>>([]);
         public Task<Series?> GetSeriesByUuid(Guid uuid) => Task.FromResult<Series?>(null);
         public Task<byte[]?> GetBookCover(Guid uuid) => Task.FromResult<byte[]?>(null);
     }
@@ -314,7 +314,7 @@ public sealed class LibrarySyncTests
     private class FakeFileRepository : IFileRepository
     {
         public Task<byte[]?> ReadKepub(Book book) => Task.FromResult<byte[]?>(null);
-        public Task<byte[]?> ReadCover(Book book) => Task.FromResult<byte[]?>(null);
+        public Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null) => Task.FromResult<byte[]?>(null);
         public void DeleteCover(Book book) { }
         public void DeleteKepub(Book book) { }
         public string[] GetEpubFiles() => [];

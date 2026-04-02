@@ -39,23 +39,23 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-        <div class="dropdown">
+        <div class="dropdown" data-page-key="books">
             <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Filter: ">Filter: All</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" data-value="All"><span class="check">&#10003;</span> All</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Unread"><span class="check"></span> Unread</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Reading"><span class="check"></span> Reading</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="all" data-value="All"><span class="check">&#10003;</span> All</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="unread" data-value="Unread"><span class="check"></span> Unread</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="reading" data-value="Reading"><span class="check"></span> Reading</a></li>
             </ul>
         </div>
-        <div class="dropdown">
+        <div class="dropdown" id="books-sort-dropdown" data-page-key="books">
             <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Sort: ">Sort: Recent</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" data-value="Recent"><span class="check">&#10003;</span> Recent</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Date added"><span class="check"></span> Date added</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Title"><span class="check"></span> Title</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Author"><span class="check"></span> Author</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Series"><span class="check"></span> Series</a></li>
-                <li><a class="dropdown-item" href="#" data-value="File size"><span class="check"></span> File size</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="Recent" data-default-order="Desc" data-value="Recent"><span class="check">&#10003;</span> Recent</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="DateAdded" data-default-order="Desc" data-value="Date added"><span class="check"></span> Date added</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="Title" data-default-order="Asc" data-value="Title"><span class="check"></span> Title</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="Author" data-default-order="Asc" data-value="Author"><span class="check"></span> Author</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="Series" data-default-order="Asc" data-value="Series"><span class="check"></span> Series</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="FileSize" data-default-order="Desc" data-value="File size"><span class="check"></span> File size</a></li>
             </ul>
         </div>
         <div class="flex-grow-1"></div>
@@ -69,156 +69,12 @@
     </div>
 
     <!-- Grid View -->
-    <div class="book-grid view-grid-container">
-        <div class="book-card">
-            <div class="book-cover" style="background:#8b0000;">Jurassic Park<br><small>Michael Crichton</small></div>
-            <div class="book-status">67% Read</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#5b7553;">Jomsviking<br><small>Bjorn A. Bull-Hansen</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#4a5568;">Nordens Herrer<br><small>Bernard Cornwell</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#6b5b3e;">The Adventures of Tom Bombadil<br><small>J.R.R. Tolkien</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#2e6b4f;">Afdelingen for magisk fremtid<br><small>Morten Munster</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#7c6e5b;">Altid Fremad<br><small>Martin Lindstrom</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#5a3e7a;">Archmage<br><small>R.A. Salvatore</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#8b7d3c;">Armor of Light<br><small>Ken Follett</small></div>
-            <div class="book-status">Unread</div>
-            <div class="book-menu">&middot;&middot;&middot;</div>
-        </div>
-    </div>
+    <div class="book-grid view-grid-container" id="book-grid"></div>
 
     <!-- List View -->
-    <div class="view-list-container d-none">
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#8b0000;">Jurassic Park</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Jurassic Park</div>
-                <div class="book-list-series">JURASSIC PARK - 1</div>
-                <div class="book-list-author">Michael Crichton</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">67% Read</div>
-                <div class="book-list-format">KOBO EPUB - 3.2 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#5b7553;">Jomsviking</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Jomsviking</div>
-                <div class="book-list-series">JOMSVIKINGERNE - 1</div>
-                <div class="book-list-author">Bjorn Andreas Bull-Hansen</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 1.1 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#4a5568;">Nordens Herrer</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Nordens herrer</div>
-                <div class="book-list-series">THE LAST KINGDOM - 3</div>
-                <div class="book-list-author">Bernard Cornwell</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 1.1 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#6b5b3e;">Tom Bombadil</div>
-            <div class="book-list-info">
-                <div class="book-list-title">The Adventures of Tom Bombadil</div>
-                <div class="book-list-series">THE WORKS OF J.R.R. TOLKIEN - 7</div>
-                <div class="book-list-author">J.R.R. Tolkien</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 2.5 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#2e6b4f;">Afdelingen</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Afdelingen for magisk fremtid</div>
-                <div class="book-list-series"></div>
-                <div class="book-list-author">Morten Munster</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 1.0 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#7c6e5b;">Altid Fremad</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Altid Fremad</div>
-                <div class="book-list-series"></div>
-                <div class="book-list-author">Martin Lindstrom</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 0.9 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#5a3e7a;">Archmage</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Archmage</div>
-                <div class="book-list-series">HOMECOMING - 1</div>
-                <div class="book-list-author">R.A. Salvatore</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 2.1 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-        <div class="book-list-item">
-            <div class="book-list-thumb" style="background:#8b7d3c;">Armor of Light</div>
-            <div class="book-list-info">
-                <div class="book-list-title">Armor of Light</div>
-                <div class="book-list-series">THE PILLARS OF THE EARTH - 5</div>
-                <div class="book-list-author">Ken Follett</div>
-            </div>
-            <div class="book-list-right">
-                <div class="book-list-read-status">Unread</div>
-                <div class="book-list-format">KOBO EPUB - 4.3 MB</div>
-                <div class="book-menu">&middot;&middot;&middot;</div>
-            </div>
-        </div>
-    </div>
+    <div class="view-list-container d-none" id="book-list"></div>
+
+
 </div>
 
 <!-- Bottom Navigation -->
@@ -240,5 +96,63 @@
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
 <script src="scripts/kobo.js"></script>
+<script>
+$(function () {
+    var sortPrefs = getSortPrefs("books", "Recent", "Desc");
+    var filterPref = getFilterPref("books", "all");
+    restoreSortDropdown($("#books-sort-dropdown"), sortPrefs.sort, sortPrefs.order);
+    restoreFilterDropdown($("[data-page-key='books']").first(), filterPref);
+
+    function loadBooks() {
+        var prefs = getSortPrefs("books", "Recent", "Desc");
+        var filter = getFilterPref("books", "all");
+        $.get("/api/alexandria/books?sort=" + prefs.sort + "&order=" + prefs.order, function (books) {
+            if (filter === "unread") {
+                books = books.filter(function (b) { return !b.readingProgress || b.readingProgress.status === "ReadyToRead"; });
+            } else if (filter === "reading") {
+                books = books.filter(function (b) { return b.readingProgress && b.readingProgress.status !== "ReadyToRead"; });
+            }
+            renderBooks(books);
+        });
+    }
+
+    function renderBooks(books) {
+        var $grid = $("#book-grid").empty();
+        var $list = $("#book-list").empty();
+        $.each(books, function (i, book) {
+            var status = readingStatusText(book.readingProgress);
+            var authors = (book.authors || []).join(", ");
+            var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
+
+            $grid.append(
+                '<div class="book-card">' +
+                    bookCoverHtml(book, "book-cover-img") +
+                    '<div class="book-status">' + escapeHtml(status) + '</div>' +
+                    '<div class="book-menu">&middot;&middot;&middot;</div>' +
+                '</div>'
+            );
+
+            $list.append(
+                '<div class="book-list-item">' +
+                    '<img src="' + coverUrl(book.uuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
+                    '<div class="book-list-info">' +
+                        '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
+                        '<div class="book-list-series">' + escapeHtml(series) + '</div>' +
+                        '<div class="book-list-author">' + escapeHtml(authors) + '</div>' +
+                    '</div>' +
+                    '<div class="book-list-right">' +
+                        '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
+                        '<div class="book-list-format">KEPUB - ' + formatFileSize(book.kepubFileSize) + '</div>' +
+                        '<div class="book-menu">&middot;&middot;&middot;</div>' +
+                    '</div>' +
+                '</div>'
+            );
+        });
+    }
+
+    pageReload = loadBooks;
+    loadBooks();
+});
+</script>
 </body>
 </html>

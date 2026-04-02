@@ -306,8 +306,9 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             };
         }
 
-        // If the book does not have a cover return 404.
-        var coverBytes = await fileRepository.ReadCover(book);
+        // Serve a resized thumbnail if possible, otherwise the original cover.
+        var qualityInt = int.TryParse(quality, out var q) ? q : 80;
+        var coverBytes = await fileRepository.ReadCover(book, width, height, qualityInt);
         if (coverBytes is null)
         {
             return new KoboProxyResponse

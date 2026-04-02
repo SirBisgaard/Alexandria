@@ -39,60 +39,21 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-        <div class="dropdown">
+        <div class="dropdown" id="authors-sort-dropdown" data-page-key="authors">
             <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Sort: ">Sort: Last name</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" data-value="Last name"><span class="check">&#10003;</span> Last name</a></li>
-                <li><a class="dropdown-item" href="#" data-value="First name"><span class="check"></span> First name</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Recent"><span class="check"></span> Recent</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Number of books"><span class="check"></span> Number of books</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="LastName" data-default-order="Asc" data-value="Last name"><span class="check">&#10003;</span> Last name</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="FirstName" data-default-order="Asc" data-value="First name"><span class="check"></span> First name</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="Recent" data-default-order="Desc" data-value="Recent"><span class="check"></span> Recent</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="NumberOfBooks" data-default-order="Desc" data-value="Number of books"><span class="check"></span> Number of books</a></li>
             </ul>
         </div>
     </div>
 
     <!-- Author List -->
-    <div class="list-group list-group-flush">
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Steffen Andersen</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Isaac Asimov</span>
-            <span class="text-body-secondary">7 books</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Jane Austen</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Frans G. Bengtsson</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Jim Blandy</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Max Brooks</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Bjorn Andreas Bull-Hansen</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Christopher Buehlman</span>
-            <span class="text-body-secondary">1 book</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">James Clavell</span>
-            <span class="text-body-secondary">10 books</span>
-        </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span class="fw-semibold">Bernard Cornwell</span>
-            <span class="text-body-secondary">9 books</span>
-        </div>
-    </div>
+    <div class="list-group list-group-flush" id="author-list"></div>
+
+
 </div>
 
 <!-- Bottom Navigation -->
@@ -114,5 +75,30 @@
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
 <script src="scripts/kobo.js"></script>
+<script>
+$(function () {
+    var sortPrefs = getSortPrefs("authors", "LastName", "Asc");
+    restoreSortDropdown($("#authors-sort-dropdown"), sortPrefs.sort, sortPrefs.order);
+
+    function loadAuthors() {
+        var prefs = getSortPrefs("authors", "LastName", "Asc");
+        $.get("/api/alexandria/authors?sort=" + prefs.sort + "&order=" + prefs.order, function (authors) {
+            var $list = $("#author-list").empty();
+            $.each(authors, function (i, author) {
+                var count = (author.books || []).length;
+                $list.append(
+                    '<div class="list-group-item d-flex justify-content-between align-items-center px-0">' +
+                        '<span class="fw-semibold">' + escapeHtml(author.name) + '</span>' +
+                        '<span class="text-body-secondary">' + count + (count === 1 ? ' book' : ' books') + '</span>' +
+                    '</div>'
+                );
+            });
+        });
+    }
+
+    pageReload = loadAuthors;
+    loadAuthors();
+});
+</script>
 </body>
 </html>

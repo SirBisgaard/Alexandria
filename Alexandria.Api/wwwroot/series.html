@@ -39,12 +39,12 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-        <div class="dropdown">
+        <div class="dropdown" id="series-sort-dropdown" data-page-key="series">
             <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Sort: ">Sort: Series Title</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" data-value="Series Title"><span class="check">&#10003;</span> Series Title</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Recent"><span class="check"></span> Recent</a></li>
-                <li><a class="dropdown-item" href="#" data-value="Number of books"><span class="check"></span> Number of books</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="SeriesTitle" data-default-order="Asc" data-value="Series Title"><span class="check">&#10003;</span> Series Title</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="Recent" data-default-order="Desc" data-value="Recent"><span class="check"></span> Recent</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="NumberOfBooks" data-default-order="Desc" data-value="Number of books"><span class="check"></span> Number of books</a></li>
             </ul>
         </div>
         <div class="flex-grow-1"></div>
@@ -58,108 +58,12 @@
     </div>
 
     <!-- Grid View -->
-    <div class="book-grid view-grid-container">
-        <div class="book-card">
-            <div class="book-cover" style="background:#6b3a3a;">Asian Saga<br><small>James Clavell</small></div>
-            <div class="book-status">10 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#4a6b7a;">Aubrey / Maturin<br><small>Patrick O'Brian</small></div>
-            <div class="book-status">21 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#3a5a4b;">Cormoran Strike<br><small>Robert Galbraith</small></div>
-            <div class="book-status">3 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#7a6b3a;">Dominion<br><small>Tom Holland</small></div>
-            <div class="book-status">10 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#5a3e6b;">Elminster<br><small>Ed Greenwood</small></div>
-            <div class="book-status">8 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#3a4a6b;">Foundation<br><small>Isaac Asimov</small></div>
-            <div class="book-status">7 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#8b2020;">Harry Potter<br><small>J.K. Rowling</small></div>
-            <div class="book-status">7 books</div>
-        </div>
-        <div class="book-card">
-            <div class="book-cover" style="background:#5b7553;">Jomsvikingerne<br><small>Bjorn A. Bull-Hansen</small></div>
-            <div class="book-status">1 book</div>
-        </div>
-    </div>
+    <div class="book-grid view-grid-container" id="series-grid"></div>
 
     <!-- List View -->
-    <div class="view-list-container d-none">
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#6b3a3a;">Asian Saga</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Asian Saga</div>
-                <div class="series-list-author">James Clavell</div>
-                <div class="series-list-count">10 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#4a6b7a;">Aubrey / Maturin</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Aubrey / Maturin</div>
-                <div class="series-list-author">Patrick O'Brian</div>
-                <div class="series-list-count">21 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#3a5a4b;">Cormoran Strike</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Cormoran Strike</div>
-                <div class="series-list-author">Robert Galbraith</div>
-                <div class="series-list-count">3 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#7a6b3a;">Dominion</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Dominion</div>
-                <div class="series-list-author">Tom Holland, Petri Silen, Frans G. Bengtsson</div>
-                <div class="series-list-count">10 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#5a3e6b;">Elminster</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Elminster</div>
-                <div class="series-list-author">Ed Greenwood</div>
-                <div class="series-list-count">8 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#3a4a6b;">Foundation</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Foundation</div>
-                <div class="series-list-author">Isaac Asimov</div>
-                <div class="series-list-count">7 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#8b2020;">Harry Potter</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Harry Potter</div>
-                <div class="series-list-author">J.K. Rowling</div>
-                <div class="series-list-count">7 books</div>
-            </div>
-        </div>
-        <div class="series-list-item">
-            <div class="book-list-thumb" style="background:#5b7553;">Jomsvikingerne</div>
-            <div class="series-list-info">
-                <div class="series-list-title">Jomsvikingerne</div>
-                <div class="series-list-author">Bjorn Andreas Bull-Hansen</div>
-                <div class="series-list-count">1 book</div>
-            </div>
-        </div>
-    </div>
+    <div class="view-list-container d-none" id="series-list"></div>
+
+
 </div>
 
 <!-- Bottom Navigation -->
@@ -181,5 +85,47 @@
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
 <script src="scripts/kobo.js"></script>
+<script>
+$(function () {
+    var sortPrefs = getSortPrefs("series", "SeriesTitle", "Asc");
+    restoreSortDropdown($("#series-sort-dropdown"), sortPrefs.sort, sortPrefs.order);
+
+    function loadSeries() {
+        var prefs = getSortPrefs("series", "SeriesTitle", "Asc");
+        $.get("/api/alexandria/series?sort=" + prefs.sort + "&order=" + prefs.order, function (seriesList) {
+        var $grid = $("#series-grid").empty();
+        var $list = $("#series-list").empty();
+        $.each(seriesList, function (i, s) {
+            var count = (s.books || []).length;
+            var countText = count + (count === 1 ? " book" : " books");
+            var firstBook = s.books && s.books.length > 0 ? s.books[0] : null;
+            var authors = firstBook ? (firstBook.authors || []).join(", ") : "";
+
+            if (firstBook) {
+                $grid.append(
+                    '<div class="book-card">' +
+                        bookCoverHtml(firstBook, "book-cover-img") +
+                        '<div class="book-status">' + escapeHtml(countText) + '</div>' +
+                    '</div>'
+                );
+                $list.append(
+                    '<div class="series-list-item">' +
+                        '<img src="' + coverUrl(firstBook.uuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
+                        '<div class="series-list-info">' +
+                            '<div class="series-list-title">' + escapeHtml(s.name) + '</div>' +
+                            '<div class="series-list-author">' + escapeHtml(authors) + '</div>' +
+                            '<div class="series-list-count">' + escapeHtml(countText) + '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+        });
+    });
+    }
+
+    pageReload = loadSeries;
+    loadSeries();
+});
+</script>
 </body>
 </html>

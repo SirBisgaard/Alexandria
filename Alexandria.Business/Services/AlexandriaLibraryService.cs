@@ -6,14 +6,28 @@ namespace Alexandria.Business.Services;
 
 public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingStateRepository readingStateRepository, IBookCollectionRepository collectionRepository, IFileRepository fileRepository) : IAlexandriaLibraryService
 {
-    public async Task<List<Book>> GetBooks()
+    public async Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null)
     {
         var books = await bookRepository.GetAll();
         foreach (var book in books)
         {
             book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.Uuid);
         }
-        return books;
+        return SortBooks(books, sortOptions ?? new BookSortOptions());
+    }
+
+    private static List<Book> SortBooks(List<Book> books, BookSortOptions options)
+    {
+        var desc = options.Order == SortOrder.Desc;
+        return options.Sort switch
+        {
+            BookSortField.DateAdded => desc ? books.OrderByDescending(b => b.CreatedAt).ToList() : books.OrderBy(b => b.CreatedAt).ToList(),
+            BookSortField.Title => desc ? books.OrderByDescending(b => b.Title).ToList() : books.OrderBy(b => b.Title).ToList(),
+            BookSortField.Author => desc ? books.OrderByDescending(b => b.Authors.FirstOrDefault() ?? "").ThenByDescending(b => b.Title).ToList() : books.OrderBy(b => b.Authors.FirstOrDefault() ?? "").ThenBy(b => b.Title).ToList(),
+            BookSortField.Series => desc ? books.OrderBy(b => b.SeriesName is null ? 1 : 0).ThenByDescending(b => b.SeriesName).ThenByDescending(b => b.SeriesIndex ?? 0).ToList() : books.OrderBy(b => b.SeriesName is null ? 1 : 0).ThenBy(b => b.SeriesName).ThenBy(b => b.SeriesIndex ?? 0).ToList(),
+            BookSortField.FileSize => desc ? books.OrderByDescending(b => b.KepubFileSize).ToList() : books.OrderBy(b => b.KepubFileSize).ToList(),
+            _ => desc ? books.OrderByDescending(b => b.LastModified).ToList() : books.OrderBy(b => b.LastModified).ToList()
+        };
     }
 
     public async Task<Book?> GetBookByUuid(Guid uuid)
@@ -32,10 +46,23 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         await bookRepository.Update(book);
     }
 
-    public async Task<List<Author>> GetAuthors()
+    public async Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null)
     {
         var books = await GetBooks();
-        return books.SelectMany(b => b.Authors, (book, author) => new { Author = author, Book = book }).GroupBy(x => x.Author, StringComparer.OrdinalIgnoreCase).Select(g => new Author { Name = g.Key, Books = g.Select(x => x.Book).OrderBy(b => b.Title).ToList() }).OrderBy(a => a.Name).ToList();
+        var authors = books.SelectMany(b => b.Authors, (book, author) => new { Author = author, Book = book }).GroupBy(x => x.Author, StringComparer.OrdinalIgnoreCase).Select(g => new Author { Name = g.Key, Books = g.Select(x => x.Book).OrderBy(b => b.Title).ToList() }).ToList();
+        return SortAuthors(authors, sortOptions ?? new AuthorSortOptions());
+    }
+
+    private static List<Author> SortAuthors(List<Author> authors, AuthorSortOptions options)
+    {
+        var desc = options.Order == SortOrder.Desc;
+        return options.Sort switch
+        {
+            AuthorSortField.FirstName => desc ? authors.OrderByDescending(a => a.Name.Split(' ').First()).ToList() : authors.OrderBy(a => a.Name.Split(' ').First()).ToList(),
+            AuthorSortField.Recent => desc ? authors.OrderByDescending(a => a.Books.Max(b => b.LastModified)).ToList() : authors.OrderBy(a => a.Books.Max(b => b.LastModified)).ToList(),
+            AuthorSortField.NumberOfBooks => desc ? authors.OrderByDescending(a => a.Books.Count).ThenBy(a => a.Name).ToList() : authors.OrderBy(a => a.Books.Count).ThenBy(a => a.Name).ToList(),
+            _ => desc ? authors.OrderByDescending(a => a.Name).ToList() : authors.OrderBy(a => a.Name).ToList()
+        };
     }
 
     public async Task<Author?> GetAuthorByName(string name)
@@ -49,10 +76,22 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return new Author { Name = name, Books = authorBooks };
     }
 
-    public async Task<List<Series>> GetSeries()
+    public async Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null)
     {
         var books = await GetBooks();
-        return books.Where(b => b.SeriesName is not null).GroupBy(b => b.SeriesName!).Select(g => new Series { Uuid = Guid.GenerateUuidV5(g.Key), Name = g.Key, Books = g.OrderBy(b => b.SeriesIndex ?? 0).ToList() }).OrderBy(s => s.Name).ToList();
+        var series = books.Where(b => b.SeriesName is not null).GroupBy(b => b.SeriesName!).Select(g => new Series { Uuid = Guid.GenerateUuidV5(g.Key), Name = g.Key, Books = g.OrderBy(b => b.SeriesIndex ?? 0).ToList() }).ToList();
+        return SortSeries(series, sortOptions ?? new SeriesSortOptions());
+    }
+
+    private static List<Series> SortSeries(List<Series> series, SeriesSortOptions options)
+    {
+        var desc = options.Order == SortOrder.Desc;
+        return options.Sort switch
+        {
+            SeriesSortField.Recent => desc ? series.OrderByDescending(s => s.Books.Max(b => b.LastModified)).ToList() : series.OrderBy(s => s.Books.Max(b => b.LastModified)).ToList(),
+            SeriesSortField.NumberOfBooks => desc ? series.OrderByDescending(s => s.Books.Count).ThenBy(s => s.Name).ToList() : series.OrderBy(s => s.Books.Count).ThenBy(s => s.Name).ToList(),
+            _ => desc ? series.OrderByDescending(s => s.Name).ToList() : series.OrderBy(s => s.Name).ToList()
+        };
     }
 
     public async Task<Series?> GetSeriesByUuid(Guid uuid)
@@ -71,7 +110,22 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return await fileRepository.ReadCover(book);
     }
 
-    public async Task<List<BookCollection>> GetCollections() => await collectionRepository.GetAll();
+    public async Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null)
+    {
+        var collections = await collectionRepository.GetAll();
+        return SortCollections(collections, sortOptions ?? new CollectionSortOptions());
+    }
+
+    private static List<BookCollection> SortCollections(List<BookCollection> collections, CollectionSortOptions options)
+    {
+        var desc = options.Order == SortOrder.Desc;
+        return options.Sort switch
+        {
+            CollectionSortField.NumberOfBooks => desc ? collections.OrderByDescending(c => c.BookUuids.Count).ThenBy(c => c.Name).ToList() : collections.OrderBy(c => c.BookUuids.Count).ThenBy(c => c.Name).ToList(),
+            CollectionSortField.DateCreated => desc ? collections.OrderByDescending(c => c.CreatedAt).ToList() : collections.OrderBy(c => c.CreatedAt).ToList(),
+            _ => desc ? collections.OrderByDescending(c => c.Name).ToList() : collections.OrderBy(c => c.Name).ToList()
+        };
+    }
 
     public async Task<BookCollection?> GetCollectionByUuid(Guid uuid) => await collectionRepository.FindByUuid(uuid);
 

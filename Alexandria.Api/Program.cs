@@ -31,6 +31,7 @@ builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepositor
 builder.Services.AddTransient<IBookCollectionRepository, BookCollectionRepository>();
 builder.Services.AddTransient<IEpubMetadataExtractor, EpubMetadataExtractor>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
+builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();
 
 // Add services to the container.
 builder.Services.AddSingleton<ISyncSessionService, SyncSessionService>();

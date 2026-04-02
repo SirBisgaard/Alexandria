@@ -217,6 +217,43 @@
     opacity: 0.85;
 }
 
+/* Cover images from API */
+.book-cover-img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 2px;
+    display: block;
+}
+
+.book-list-cover-img {
+    width: 56px;
+    min-width: 56px;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
+.home-cover-img {
+    width: 90px;
+    height: 135px;
+    object-fit: cover;
+    border-radius: 2px;
+    position: absolute;
+    border: 1px solid var(--bs-border-color);
+}
+
+.home-cover-img:nth-child(1) { left: 0; top: 20px; z-index: 3; }
+.home-cover-img:nth-child(2) { left: 50px; top: 10px; z-index: 2; }
+.home-cover-img:nth-child(3) { left: 100px; top: 0; z-index: 1; }
+
+.home-cover-single {
+    width: 120px;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
 .book-status {
     font-size: 12px;
     color: var(--bs-secondary-color);

@@ -29,55 +29,7 @@
 </div>
 
 <div class="page">
-    <div class="home-grid">
-        <!-- Currently Reading -->
-        <div class="home-card">
-            <div class="home-card-covers">
-                <div class="home-card-cover-single" style="background:#8b0000;">Jurassic Park<br><small>Michael Crichton</small></div>
-            </div>
-            <div class="home-card-title">67% Read</div>
-            <div class="home-card-sub">3 hours to go</div>
-        </div>
-
-        <!-- Author Spotlight -->
-        <div class="home-card">
-            <div class="home-card-covers">
-                <div class="home-card-cover-stack">
-                    <div class="book-cover" style="background:#4a5568;">Det Braendende Land</div>
-                    <div class="book-cover" style="background:#5a6b7a;">Den Danske Rytter</div>
-                    <div class="book-cover" style="background:#6b7a8a;">Nordens Herrer</div>
-                </div>
-            </div>
-            <div class="home-card-title">Bernard Cornwell</div>
-            <div class="home-card-sub">9 unread books</div>
-        </div>
-
-        <!-- My Books -->
-        <a href="books.html" class="home-card">
-            <div class="home-card-covers">
-                <div class="home-card-cover-stack">
-                    <div class="book-cover" style="background:#5b7553;">Jomsviking</div>
-                    <div class="book-cover" style="background:#5a3e7a;">Archmage</div>
-                    <div class="book-cover" style="background:#8b2020;">Harry Potter</div>
-                </div>
-            </div>
-            <div class="home-card-title">My Books</div>
-            <div class="home-card-sub">212 books</div>
-        </a>
-
-        <!-- Collection -->
-        <div class="home-card">
-            <div class="home-card-covers">
-                <div class="home-card-cover-stack">
-                    <div class="book-cover" style="background:#6b5b3e;">The Man in the High Castle</div>
-                    <div class="book-cover" style="background:#4a6b3a;">Dune</div>
-                    <div class="book-cover" style="background:#7a5b3a;">Sviking</div>
-                </div>
-            </div>
-            <div class="home-card-title">Winter TBR 2025</div>
-            <div class="home-card-sub">Collection</div>
-        </div>
-    </div>
+    <div class="home-grid" id="home-grid"></div>
 </div>
 
 <!-- Bottom Navigation -->
@@ -99,5 +51,112 @@
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
 <script src="scripts/kobo.js"></script>
+<script>
+$(function () {
+    $.when(
+        $.get("/api/alexandria/books"),
+        $.get("/api/alexandria/collections")
+    ).done(function (booksResult, collectionsResult) {
+        var books = booksResult[0];
+        var collections = collectionsResult[0];
+        var $grid = $("#home-grid");
+
+        // Currently reading
+        var reading = null;
+        for (var i = 0; i < books.length; i++) {
+            var p = books[i].readingProgress;
+            if (p && p.progressPercent != null && p.status !== "ReadyToRead") {
+                reading = books[i];
+                break;
+            }
+        }
+        if (reading) {
+            var pct = Math.round(reading.readingProgress.progressPercent);
+            var remaining = reading.readingProgress.remainingTimeMinutes;
+            var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
+            $grid.append(
+                '<div class="home-card">' +
+                    '<div class="home-card-covers">' +
+                        '<img src="' + coverUrl(reading.uuid) + '" class="home-cover-single" alt="" onerror="this.style.display=\'none\'">' +
+                    '</div>' +
+                    '<div class="home-card-title">' + pct + '% Read</div>' +
+                    '<div class="home-card-sub">' + escapeHtml(subText) + '</div>' +
+                '</div>'
+            );
+        }
+
+        // Author spotlight — author with most unread books
+        var authorMap = {};
+        $.each(books, function (i, b) {
+            $.each(b.authors || [], function (j, a) {
+                if (!authorMap[a]) { authorMap[a] = []; }
+                authorMap[a].push(b);
+            });
+        });
+        var topAuthor = null;
+        var topCount = 0;
+        $.each(authorMap, function (name, authorBooks) {
+            var unread = 0;
+            $.each(authorBooks, function (i, b) {
+                if (!b.readingProgress || b.readingProgress.status === "ReadyToRead") { unread++; }
+            });
+            if (unread > topCount) { topCount = unread; topAuthor = name; }
+        });
+        if (topAuthor) {
+            var aBooks = authorMap[topAuthor].slice(0, 3);
+            var stackHtml = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+            $.each(aBooks, function (i, b) {
+                stackHtml += '<img src="' + coverUrl(b.uuid) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+            });
+            stackHtml += '</div></div>';
+            $grid.append(
+                '<div class="home-card">' + stackHtml +
+                    '<div class="home-card-title">' + escapeHtml(topAuthor) + '</div>' +
+                    '<div class="home-card-sub">' + topCount + ' unread books</div>' +
+                '</div>'
+            );
+        }
+
+        // My Books
+        var firstThree = books.slice(0, 3);
+        var myBooksStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+        $.each(firstThree, function (i, b) {
+            myBooksStack += '<img src="' + coverUrl(b.uuid) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+        });
+        myBooksStack += '</div></div>';
+        $grid.append(
+            '<a href="books.html" class="home-card">' + myBooksStack +
+                '<div class="home-card-title">My Books</div>' +
+                '<div class="home-card-sub">' + books.length + ' books</div>' +
+            '</a>'
+        );
+
+        // First collection
+        if (collections.length > 0) {
+            var col = collections[0];
+            var colUuids = col.bookUuids || [];
+            var colCount = colUuids.length;
+            var bookMap = {};
+            $.each(books, function (i, b) { bookMap[b.uuid] = b; });
+            var colCovers = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+            var shown = 0;
+            for (var ci = 0; ci < colUuids.length && shown < 3; ci++) {
+                if (bookMap[colUuids[ci]]) {
+                    colCovers += '<img src="' + coverUrl(colUuids[ci]) + '" class="home-cover-img" alt="" onerror="this.style.display=\'none\'">';
+                    shown++;
+                }
+            }
+            colCovers += '</div></div>';
+            $grid.append(
+                '<div class="home-card">' +
+                    colCovers +
+                    '<div class="home-card-title">' + escapeHtml(col.name) + '</div>' +
+                    '<div class="home-card-sub">' + colCount + (colCount === 1 ? ' book' : ' books') + '</div>' +
+                '</div>'
+            );
+        }
+    });
+});
+</script>
 </body>
 </html>

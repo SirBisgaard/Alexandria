@@ -53,7 +53,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataExtractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
@@ -82,7 +82,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataExtractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
         var firstRunBooks = await bookRepository.GetAll();
@@ -110,7 +110,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataExtractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
@@ -133,7 +133,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataExtractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         // Index the book.
         await indexer.Index();
@@ -166,7 +166,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataExtractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
         var books = await bookRepository.GetAll();
@@ -201,7 +201,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataExtractor();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 

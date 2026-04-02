@@ -1,4 +1,5 @@
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -8,9 +9,10 @@ namespace Alexandria.Api.Controllers;
 public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService) : ControllerBase
 {
     [HttpGet("books")]
-    public async Task<IActionResult> GetBooks()
+    public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var books = await alexandriaLibraryService.GetBooks();
+        var options = new BookSortOptions(sort ?? BookSortField.Recent, order ?? SortOrder.Desc);
+        var books = await alexandriaLibraryService.GetBooks(options);
         return Ok(books);
     }
 
@@ -37,9 +39,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("authors")]
-    public async Task<IActionResult> GetAuthors()
+    public async Task<IActionResult> GetAuthors([FromQuery] AuthorSortField? sort, [FromQuery] SortOrder? order)
     {
-        var authors = await alexandriaLibraryService.GetAuthors();
+        var options = new AuthorSortOptions(sort ?? AuthorSortField.LastName, order ?? SortOrder.Asc);
+        var authors = await alexandriaLibraryService.GetAuthors(options);
         return Ok(authors);
     }
 
@@ -55,9 +58,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("series")]
-    public async Task<IActionResult> GetSeries()
+    public async Task<IActionResult> GetSeries([FromQuery] SeriesSortField? sort, [FromQuery] SortOrder? order)
     {
-        var series = await alexandriaLibraryService.GetSeries();
+        var options = new SeriesSortOptions(sort ?? SeriesSortField.SeriesTitle, order ?? SortOrder.Asc);
+        var series = await alexandriaLibraryService.GetSeries(options);
         return Ok(series);
     }
 
@@ -73,9 +77,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("collections")]
-    public async Task<IActionResult> GetCollections()
+    public async Task<IActionResult> GetCollections([FromQuery] CollectionSortField? sort, [FromQuery] SortOrder? order)
     {
-        var collections = await alexandriaLibraryService.GetCollections();
+        var options = new CollectionSortOptions(sort ?? CollectionSortField.CollectionName, order ?? SortOrder.Asc);
+        var collections = await alexandriaLibraryService.GetCollections(options);
         return Ok(collections);
     }
 

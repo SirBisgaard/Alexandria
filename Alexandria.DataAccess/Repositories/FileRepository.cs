@@ -5,7 +5,7 @@ using Alexandria.Business.Models.Settings;
 
 namespace Alexandria.DataAccess.Repositories;
 
-public class FileRepository(AlexandriaSettings settings) : IFileRepository
+public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService coverThumbnailService) : IFileRepository
 {
     public async Task<byte[]?> ReadKepub(Book book)
     {
@@ -16,8 +16,17 @@ public class FileRepository(AlexandriaSettings settings) : IFileRepository
         return await File.ReadAllBytesAsync(book.KepubFilePath);
     }
 
-    public async Task<byte[]?> ReadCover(Book book)
+    public async Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null)
     {
+        if (width.HasValue && height.HasValue)
+        {
+            var thumbnail = await coverThumbnailService.GetOrCreateThumbnail(book.CoverFilePath, book.Uuid, width.Value, height.Value, quality ?? 80);
+            if (thumbnail is not null)
+            {
+                return thumbnail;
+            }
+        }
+
         if (book.CoverFilePath is null || !File.Exists(book.CoverFilePath))
         {
             return null;
@@ -27,6 +36,7 @@ public class FileRepository(AlexandriaSettings settings) : IFileRepository
 
     public void DeleteCover(Book book)
     {
+        coverThumbnailService.DeleteThumbnails(book.Uuid);
         if (book.CoverFilePath is not null && File.Exists(book.CoverFilePath))
         {
             File.Delete(book.CoverFilePath);
