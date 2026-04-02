@@ -113,7 +113,7 @@ public class EpubMetadataExtractor : IEpubMetadataExtractor
     {
         // ── Strategy 1: Calibre meta tags ──
         var calibreSeries = FindMetaByName(metadataEl, "calibre:series");
-        if (calibreSeries is not null)
+        if (!string.IsNullOrWhiteSpace(calibreSeries))
         {
             result.SeriesName = calibreSeries;
             var indexStr = FindMetaByName(metadataEl, "calibre:series_index");
@@ -133,7 +133,13 @@ public class EpubMetadataExtractor : IEpubMetadataExtractor
         if (collectionMeta is null)
             return;
 
-        result.SeriesName = collectionMeta.Value.Trim();
+        var collectionName = collectionMeta.Value.Trim();
+        if (string.IsNullOrWhiteSpace(collectionName))
+        {
+            return;
+        }
+
+        result.SeriesName = collectionName;
 
         var refineId = collectionMeta.Attribute("id")?.Value;
         if (refineId is null)
