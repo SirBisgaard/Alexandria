@@ -94,6 +94,11 @@
     font-weight: 600;
     color: #c0392b;
     letter-spacing: 0.5px;
+    text-decoration: none;
+}
+
+.top-bar-logo:hover {
+    color: #a93226;
 }
 
 .top-bar-clock {
