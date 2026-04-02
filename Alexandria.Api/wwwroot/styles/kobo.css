@@ -21,12 +21,13 @@
 .toolbar .dropdown-toggle {
     font-style: italic;
     font-size: 14px;
-    padding: 4px 0;
+    padding: 6px 10px;
     border: none !important;
     background: none !important;
     box-shadow: none !important;
     color: var(--bs-body-color);
     outline: none;
+    transition: background 0.15s, color 0.15s;
 }
 
 .toolbar .dropdown-toggle:focus,
@@ -36,14 +37,39 @@
     outline: none !important;
 }
 
+/* Black background on open trigger — Kobo style */
+.toolbar .dropdown-toggle.show,
+.toolbar .dropdown-toggle[aria-expanded="true"] {
+    background: #000 !important;
+    color: #fff !important;
+}
+
 .toolbar .dropdown-toggle::after {
     margin-left: 4px;
     vertical-align: middle;
 }
 
-/* Dropdown menu — sharp corners, no radius */
+/* Dropdown menu — sharp corners, pointer triangle, dividers */
 .dropdown-menu {
     border-radius: 0 !important;
+    padding: 0;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-top: 0 !important;
+}
+
+.dropdown-menu > li + li {
+    border-top: 1px solid #e0e0e0;
+}
+
+.dropdown-menu > li > .dropdown-item {
+    padding: 10px 16px;
+    font-size: 14px;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background: #f5f5f5;
 }
 
 /* Dropdown checkmark column */
@@ -52,6 +78,20 @@
     width: 18px;
     text-align: center;
     font-size: 13px;
+}
+
+/* Dark mode dropdown overrides */
+[data-bs-theme="dark"] .dropdown-menu {
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .dropdown-menu > li + li {
+    border-top-color: #444;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+    background: #333;
 }
 
 /* Dark mode — fix text that becomes invisible */
@@ -240,20 +280,20 @@
 }
 
 .home-cover-img {
-    width: 90px;
-    height: 135px;
+    width: 38%;
+    aspect-ratio: 2 / 3;
     object-fit: cover;
     border-radius: 2px;
     position: absolute;
     border: 1px solid var(--bs-border-color);
 }
 
-.home-cover-img:nth-child(1) { left: 0; top: 20px; z-index: 3; }
-.home-cover-img:nth-child(2) { left: 50px; top: 10px; z-index: 2; }
-.home-cover-img:nth-child(3) { left: 100px; top: 0; z-index: 1; }
+.home-cover-img:nth-child(1) { left: 0; top: 16px; z-index: 3; }
+.home-cover-img:nth-child(2) { left: 30%; top: 8px; z-index: 2; }
+.home-cover-img:nth-child(3) { left: 60%; top: 0; z-index: 1; }
 
 .home-cover-single {
-    width: 120px;
+    height: 100%;
     aspect-ratio: 2 / 3;
     object-fit: cover;
     border-radius: 2px;
@@ -387,7 +427,7 @@
 
 .home-card-covers {
     position: relative;
-    height: 180px;
+    height: 250px;
     margin-bottom: 8px;
 }
 
