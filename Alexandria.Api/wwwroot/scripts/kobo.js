@@ -31,7 +31,7 @@ function fallbackColor(uuid) {
 function bookCoverHtml(book, cssClass) {
     var cls = cssClass || "book-cover-img";
     var size = cls === "book-list-cover-img" ? COVER_SMALL : COVER_LARGE;
-    return '<div class="cover-frame ' + cls + '"><img src="' + coverUrl(book.uuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+    return '<div class="cover-frame ' + cls + '"><img loading="lazy" src="' + coverUrl(book.uuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
            '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).join(", ")) + '</small></div></div>';
 }
 
