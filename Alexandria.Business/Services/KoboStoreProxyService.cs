@@ -145,10 +145,19 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             }
 
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
-            var includeReadingState = readingState is not null && DateTimeOffset.Parse(readingState.LastModified) > alexandriaToken.ReadingStateLastModified;
-            var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = includeReadingState ? readingState : null };
+            var readingStateChanged = readingState is not null && DateTimeOffset.Parse(readingState.LastModified) > alexandriaToken.ReadingStateLastModified;
+            var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = readingStateChanged ? readingState : null };
             var isNew = book.CreatedAt > lastSyncTime;
             syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
+
+            // Kobo devices ignore ReadingState inside ChangedEntitlement for books they already have locally.
+            // They only apply reading state from NewEntitlement (first sync) or from a dedicated ChangedReadingState
+            // sync item. Without this, server-side reading state changes (e.g. "Mark as finished" from the web UI)
+            // are never picked up by the device.
+            if (readingStateChanged && !isNew)
+            {
+                syncResults.Add(new SyncResultItem { ChangedReadingState = new ChangedReadingState { ReadingState = readingState! } });
+            }
         }
 
         var responseHeaders = new Dictionary<string, string[]>(koboResponse.Headers);
@@ -500,7 +509,9 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             // Load existing state to handle status transitions.
             var existing = await readingStateRepository.GetByBookUuid(uuid);
 
-            // Skip update if incoming data is older than what we have (last update wins).
+            // Last-update-wins: reject the PUT if the device's state is older than what we have.
+            // This prevents the device from overwriting server-side changes (e.g. "Mark as finished" from the web UI).
+            // The device will receive the correct newer state via a ChangedReadingState item on the next sync.
             if (existing is not null && item.LastModified is not null && DateTimeOffset.Parse(item.LastModified) < DateTimeOffset.Parse(existing.LastModified))
             {
                 logger.LogInformation("ReadingState: rejecting stale PUT for '{Title}' (incoming: {Incoming}, stored: {Stored})", book.Title, item.LastModified, existing.LastModified);
