@@ -310,6 +310,7 @@ public sealed class LibrarySyncTests
         public Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null) => Task.FromResult<List<Series>>([]);
         public Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<Series?>(null);
         public Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null) => Task.FromResult<byte[]?>(null);
+        public Task UpdateReadingStatus(Guid uuid, string status) => Task.CompletedTask;
     }
 
     private class FakeFileRepository : IFileRepository

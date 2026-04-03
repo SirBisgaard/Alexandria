@@ -27,6 +27,13 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(book);
     }
 
+    [HttpPut("books/{uuid:guid}/status")]
+    public async Task<IActionResult> UpdateReadingStatus(Guid uuid, [FromBody] UpdateStatusRequest request)
+    {
+        await alexandriaLibraryService.UpdateReadingStatus(uuid, request.Status);
+        return Ok();
+    }
+
     [HttpGet("books/{uuid:guid}/cover")]
     public async Task<IActionResult> GetBookCover(Guid uuid, [FromQuery] int? width = null, [FromQuery] int? height = null)
     {
@@ -98,3 +105,5 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(result);
     }
 }
+
+public record UpdateStatusRequest(string Status);

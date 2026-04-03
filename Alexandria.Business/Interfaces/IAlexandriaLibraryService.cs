@@ -19,4 +19,5 @@ public interface IAlexandriaLibraryService
     Task UpsertCollection(BookCollection collection);
     Task DeleteCollection(Guid uuid);
     Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since);
+    Task UpdateReadingStatus(Guid uuid, string status);
 }

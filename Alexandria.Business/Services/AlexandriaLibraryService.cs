@@ -174,4 +174,40 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
     public async Task DeleteCollection(Guid uuid) => await collectionRepository.Delete(uuid);
 
     public async Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => await collectionRepository.GetModifiedSince(since);
+
+    public async Task UpdateReadingStatus(Guid uuid, string status)
+    {
+        var existing = await readingStateRepository.GetByBookUuid(uuid);
+        var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        var state = new Models.KoboStore.ReadingState
+        {
+            EntitlementId = uuid.ToString(),
+            Created = existing?.Created ?? now,
+            LastModified = now,
+            PriorityTimestamp = now,
+            StatusInfo = new Models.KoboStore.StatusInfo
+            {
+                LastModified = now,
+                Status = status,
+                TimesStartedReading = existing?.StatusInfo.TimesStartedReading ?? 0,
+                LastTimeStartedReading = existing?.StatusInfo.LastTimeStartedReading
+            },
+            Statistics = new Models.KoboStore.Statistics
+            {
+                LastModified = now,
+                SpentReadingMinutes = existing?.Statistics.SpentReadingMinutes,
+                RemainingTimeMinutes = status == "Finished" ? 0 : existing?.Statistics.RemainingTimeMinutes
+            },
+            CurrentBookmark = new Models.KoboStore.Bookmark
+            {
+                LastModified = now,
+                ProgressPercent = status == "Finished" ? 100 : status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ProgressPercent,
+                ContentSourceProgressPercent = status == "Finished" ? 100 : status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ContentSourceProgressPercent,
+                Location = status == "ReadyToRead" ? null : existing?.CurrentBookmark.Location
+            }
+        };
+
+        await readingStateRepository.Upsert(uuid, state, "{}");
+    }
 }

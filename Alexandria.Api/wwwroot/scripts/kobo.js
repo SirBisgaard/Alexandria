@@ -15,8 +15,29 @@ function formatFileSize(bytes) {
 
 function readingStatusText(progress) {
     if (!progress || progress.status === "ReadyToRead") { return "Unread"; }
+    if (progress.status === "Finished" || (progress.progressPercent != null && Math.round(progress.progressPercent) >= 100)) { return "Finished"; }
     if (progress.progressPercent != null) { return Math.round(progress.progressPercent) + "% Read"; }
     return progress.status;
+}
+
+function readingStatusRaw(progress) {
+    if (!progress || progress.status === "ReadyToRead") { return "ReadyToRead"; }
+    return progress.status;
+}
+
+function statusMenuItems(uuid, rawStatus) {
+    var items = "";
+    if (rawStatus !== "Finished") {
+        items += '<li><a class="dropdown-item" href="#" data-mark-finished="' + uuid + '">Mark as finished</a></li>';
+    }
+    if (rawStatus === "Reading" || rawStatus === "Finished") {
+        items += '<li><a class="dropdown-item" href="#" data-mark-unread="' + uuid + '">Mark as unread</a></li>';
+    }
+    return items;
+}
+
+function updateReadingStatus(uuid, status) {
+    $.ajax({ url: "/api/alexandria/books/" + uuid + "/status", method: "PUT", contentType: "application/json", data: JSON.stringify({ status: status }), success: function () { if (pageReload) { pageReload(); } if (currentModalUuid === uuid) { openBookModal(uuid); } } });
 }
 
 function fallbackColor(uuid) {
@@ -60,8 +81,10 @@ function renderBooks(books) {
     var $list = $("#book-list").empty();
     $.each(books, function (i, book) {
         var status = readingStatusText(book.readingProgress);
+        var rawStatus = readingStatusRaw(book.readingProgress);
         var authors = (book.authors || []).join(", ");
         var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
+        var extraItems = statusMenuItems(book.uuid, rawStatus);
 
         $grid.append(
             '<div class="book-card" data-book-uuid="' + book.uuid + '">' +
@@ -71,6 +94,7 @@ function renderBooks(books) {
                     '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
                     '<ul class="dropdown-menu dropdown-menu-end">' +
                         '<li><a class="dropdown-item" href="#" data-view-details="' + book.uuid + '">View Details</a></li>' +
+                        extraItems +
                     '</ul>' +
                 '</div>' +
             '</div>'
@@ -92,6 +116,7 @@ function renderBooks(books) {
                         '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
                         '<ul class="dropdown-menu dropdown-menu-end">' +
                             '<li><a class="dropdown-item" href="#" data-view-details="' + book.uuid + '">View Details</a></li>' +
+                            extraItems +
                         '</ul>' +
                     '</div>' +
                 '</div>' +
@@ -109,6 +134,7 @@ function openBookModal(uuid) {
         var authors = (book.authors || []).join(", ");
         var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
         var status = readingStatusText(book.readingProgress);
+        var rawStatus = readingStatusRaw(book.readingProgress);
 
         $("#bm-cover").attr("src", coverUrl(book.uuid, COVER_LARGE.w, COVER_LARGE.h)).show();
         $("#bm-cover-frame").show();
@@ -116,7 +142,13 @@ function openBookModal(uuid) {
         $("#bm-title").text(book.title);
         $("#bm-series").text(series).toggle(!!series);
         $("#bm-author").text(authors);
+        var modalStatusItems = statusMenuItems(book.uuid, rawStatus);
         $("#bm-status").text(status);
+        if (modalStatusItems) {
+            $("#bm-status-menu").html('<button class="bm-status-menu-btn" data-bs-toggle="dropdown">&middot;&middot;&middot;</button><ul class="dropdown-menu dropdown-menu-end">' + modalStatusItems + '</ul>').show();
+        } else {
+            $("#bm-status-menu").hide();
+        }
 
         // Synopsis
         var desc = book.description || "No description available.";
@@ -219,7 +251,7 @@ $(function () {
                         '<div class="book-modal-book-title" id="bm-title"></div>' +
                         '<div class="book-modal-series" id="bm-series"></div>' +
                         '<div class="book-modal-author" id="bm-author"></div>' +
-                        '<div class="book-modal-status" id="bm-status"></div>' +
+                        '<div class="book-modal-status-row"><div class="book-modal-status" id="bm-status"></div><div class="dropdown" id="bm-status-menu"></div></div>' +
                     '</div>' +
                 '</div>' +
                 '<ul class="nav nav-underline book-modal-tabs">' +
@@ -251,6 +283,69 @@ $(function () {
         '</div>'
     );
 
+    // ===== Inject About Modal HTML =====
+    $("body").append(
+        '<div class="book-modal-backdrop" id="about-modal-backdrop">' +
+            '<div class="book-modal" id="about-modal">' +
+                '<div class="book-modal-title-bar">About Alexandria</div>' +
+                '<button class="book-modal-close" id="about-close">&times;</button>' +
+                '<div class="about-modal-content">' +
+                    '<p>Alexandria is an offline e-book library manager designed for Kobo e-readers.</p>' +
+                    '<p>It works by acting as a transparent proxy between your Kobo device and the Kobo store, intercepting specific sync endpoints to seamlessly inject your personal library into the standard Kobo reading experience.</p>' +
+                    '<p>Your books appear alongside store purchases on your device, complete with covers, reading progress, and metadata &mdash; no sideloading or USB transfers required.</p>' +
+                    '<p>Simply point your Kobo at Alexandria, drop EPUB files into the library folder, and your books will sync to the device automatically.</p>' +
+                    '<div class="about-logo">Alexandria</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    );
+
+    $(document).on("click", "[data-about-alexandria]", function (e) {
+        e.preventDefault();
+        $("#about-modal-backdrop").addClass("open");
+    });
+
+    $("#about-close").on("click", function () {
+        $("#about-modal-backdrop").removeClass("open");
+    });
+
+    $("#about-modal-backdrop").on("click", function (e) {
+        if (e.target === this) { $("#about-modal-backdrop").removeClass("open"); }
+    });
+
+    // ===== Inject Settings Modal HTML =====
+    $("body").append(
+        '<div class="book-modal-backdrop" id="settings-modal-backdrop">' +
+            '<div class="book-modal" id="settings-modal">' +
+                '<div class="book-modal-title-bar">Settings</div>' +
+                '<button class="book-modal-close" id="settings-close">&times;</button>' +
+                '<div class="settings-modal-content">' +
+                    '<div class="list-group list-group-flush">' +
+                        '<a href="#" class="list-group-item list-group-item-action px-0">Library path</a>' +
+                        '<a href="#" class="list-group-item list-group-item-action px-0">Syncing and updates</a>' +
+                        '<a href="#" class="list-group-item list-group-item-action px-0">Proxy settings</a>' +
+                        '<a href="#" class="list-group-item list-group-item-action px-0">Sync batch size</a>' +
+                        '<a href="#" class="list-group-item list-group-item-action px-0">Traffic logging</a>' +
+                        '<a href="#" class="list-group-item list-group-item-action px-0">Device information</a>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    );
+
+    $(document).on("click", "[data-open-settings]", function (e) {
+        e.preventDefault();
+        $("#settings-modal-backdrop").addClass("open");
+    });
+
+    $("#settings-close").on("click", function () {
+        $("#settings-modal-backdrop").removeClass("open");
+    });
+
+    $("#settings-modal-backdrop").on("click", function (e) {
+        if (e.target === this) { $("#settings-modal-backdrop").removeClass("open"); }
+    });
+
     // ===== Search Modal Open/Close =====
     var searchCache = null;
     var searchTimer = null;
@@ -275,6 +370,8 @@ $(function () {
 
     $(document).on("keydown", function (e) {
         if (e.key === "Escape" && $("#search-modal-backdrop").hasClass("open")) { closeSearchModal(); }
+        if (e.key === "Escape" && $("#about-modal-backdrop").hasClass("open")) { $("#about-modal-backdrop").removeClass("open"); }
+        if (e.key === "Escape" && $("#settings-modal-backdrop").hasClass("open")) { $("#settings-modal-backdrop").removeClass("open"); }
     });
 
     // ===== Search Logic =====
@@ -397,6 +494,17 @@ $(function () {
     $(document).on("click", "[data-view-details]", function (e) {
         e.preventDefault();
         openBookModal($(this).data("view-details"));
+    });
+
+    // ===== Mark as finished / unread =====
+    $(document).on("click", "[data-mark-finished]", function (e) {
+        e.preventDefault();
+        updateReadingStatus($(this).data("mark-finished"), "Finished");
+    });
+
+    $(document).on("click", "[data-mark-unread]", function (e) {
+        e.preventDefault();
+        updateReadingStatus($(this).data("mark-unread"), "ReadyToRead");
     });
 
     // ===== Clock =====

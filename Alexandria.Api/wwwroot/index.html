@@ -71,7 +71,7 @@ $(function () {
         var readingBooks = [];
         for (var i = 0; i < books.length; i++) {
             var p = books[i].readingProgress;
-            if (p && p.progressPercent != null && p.status !== "ReadyToRead") {
+            if (p && p.progressPercent != null && p.status !== "ReadyToRead" && p.status !== "Finished") {
                 readingBooks.push(books[i]);
             }
         }

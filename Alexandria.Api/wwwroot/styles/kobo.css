@@ -736,11 +736,25 @@ a.series-list-item {
     margin-bottom: 12px;
 }
 
+.book-modal-status-row {
+    margin-bottom: 16px;
+}
+
 .book-modal-status {
     font-size: 15px;
     font-family: "Times New Roman", Times, serif;
     color: var(--bs-secondary-color);
-    margin-bottom: 16px;
+}
+
+.bm-status-menu-btn {
+    background: none;
+    border: none;
+    color: var(--bs-secondary-color);
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
 }
 
 .book-modal-tabs {
@@ -771,6 +785,28 @@ a.series-list-item {
 
 .book-modal-tab-content .detail-row {
     padding: 2px 0;
+}
+
+#about-modal, #settings-modal {
+    max-width: 450px;
+    min-height: auto;
+}
+
+.about-modal-content {
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.about-modal-content p {
+    margin-bottom: 12px;
+}
+
+.about-logo {
+    color: #c0392b;
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 24px;
 }
 
 .bm-data-info {
