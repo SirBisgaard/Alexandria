@@ -197,13 +197,13 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             {
                 LastModified = now,
                 SpentReadingMinutes = existing?.Statistics.SpentReadingMinutes,
-                RemainingTimeMinutes = status == "Finished" ? 0 : existing?.Statistics.RemainingTimeMinutes
+                RemainingTimeMinutes = existing?.Statistics.RemainingTimeMinutes
             },
             CurrentBookmark = new Models.KoboStore.Bookmark
             {
                 LastModified = now,
                 ProgressPercent = status == "Finished" ? 100 : status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ProgressPercent,
-                ContentSourceProgressPercent = status == "Finished" ? 100 : status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ContentSourceProgressPercent,
+                ContentSourceProgressPercent = status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ContentSourceProgressPercent,
                 Location = status == "ReadyToRead" ? null : existing?.CurrentBookmark.Location
             }
         };

@@ -90,7 +90,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         if (HasKoboContinuation(koboResponse))
         {
             syncSession.Clear(deviceId);
-            koboResponse.Headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = alexandriaToken.LastSync })];
+            koboResponse.Headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = alexandriaToken.LastSync, ReadingStateLastModified = alexandriaToken.ReadingStateLastModified })];
             logger.LogInformation("LibrarySync: Kobo continuation active, passing through store results");
             return koboResponse;
         }
@@ -114,7 +114,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         if (!syncSession.IsActive(deviceId))
         {
             var lastSync = alexandriaToken.LastSync;
-            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt > lastSync || b.LastModified > lastSync)).ToList();
+            var books = (await alexandriaLibraryService.GetBooks()).Where(b => !b.IsArchived && (b.CreatedAt > lastSync || b.LastModified > lastSync || (b.ReadingProgress is not null && b.ReadingProgress.LastModified > lastSync))).ToList();
             if (books.Count == 0)
             {
                 var collections = await GetCollectionSyncItems(lastSync);
@@ -122,7 +122,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 logger.LogInformation("LibrarySync: returning {Store} store items + {Collections} collections, no new/changed local books since {LastSync}", storeCount, collections.Count, lastSync);
                 var headers = new Dictionary<string, string[]>(koboResponse.Headers);
                 headers.Remove("x-kobo-sync");
-                headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow })];
+                headers["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow, ReadingStateLastModified = DateTimeOffset.UtcNow })];
                 return JsonResponse(StatusCodes.Status200OK, syncResults, headers);
             }
 
@@ -145,7 +145,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             }
 
             var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
-            var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = readingState };
+            var includeReadingState = readingState is not null && DateTimeOffset.Parse(readingState.LastModified) > alexandriaToken.ReadingStateLastModified;
+            var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = includeReadingState ? readingState : null };
             var isNew = book.CreatedAt > lastSyncTime;
             syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
         }
@@ -156,7 +157,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         {
             responseHeaders["x-kobo-sync"] = ["continue"];
             // Preserve the current lastSync during continuation — only advance on the final page.
-            responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = alexandriaToken.LastSync })];
+            responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = alexandriaToken.LastSync, ReadingStateLastModified = alexandriaToken.ReadingStateLastModified })];
             logger.LogInformation("LibrarySync: returning {Total} items ({Local} local, {Store} store), more local books pending", syncResults.Count, batchUuids.Count, storeCount);
         }
         else
@@ -164,7 +165,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             var collections = await GetCollectionSyncItems(lastSyncTime);
             syncResults.AddRange(collections);
             responseHeaders.Remove("x-kobo-sync");
-            responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow })];
+            responseHeaders["x-kobo-synctoken"] = [syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = koboResponseToken, LastSync = DateTimeOffset.UtcNow, ReadingStateLastModified = DateTimeOffset.UtcNow })];
             syncSession.Clear(deviceId);
             logger.LogInformation("LibrarySync: returning final {Total} items ({Local} local, {Store} store, {Collections} collections)", syncResults.Count, batchUuids.Count, storeCount, collections.Count);
         }
@@ -492,10 +493,20 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var putRequest = JsonSerializer.Deserialize<ReadingStatePutRequest>(rawBody);
         var item = putRequest?.ReadingStates?.FirstOrDefault();
 
+        var putResponse = new { RequestResult = "Success", UpdateResults = new[] { new { EntitlementId = uuidStr, CurrentBookmarkResult = new { Result = "Success" }, StatisticsResult = new { Result = "Success" }, StatusInfoResult = new { Result = "Success" }, LastModified = now, PriorityTimestamp = now } } };
+
         if (item is not null)
         {
             // Load existing state to handle status transitions.
             var existing = await readingStateRepository.GetByBookUuid(uuid);
+
+            // Skip update if incoming data is older than what we have (last update wins).
+            if (existing is not null && item.LastModified is not null && DateTimeOffset.Parse(item.LastModified) < DateTimeOffset.Parse(existing.LastModified))
+            {
+                logger.LogInformation("ReadingState: rejecting stale PUT for '{Title}' (incoming: {Incoming}, stored: {Stored})", book.Title, item.LastModified, existing.LastModified);
+                return JsonResponse(StatusCodes.Status200OK, putResponse);
+            }
+
             var timesStarted = existing?.StatusInfo.TimesStartedReading ?? 0;
             string? lastTimeStarted = existing?.StatusInfo.LastTimeStartedReading;
             var newStatus = item.StatusInfo?.Status ?? existing?.StatusInfo.Status ?? "ReadyToRead";
@@ -511,24 +522,24 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             {
                 EntitlementId = uuidStr,
                 Created = existing?.Created ?? book.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                LastModified = now,
+                LastModified = item.LastModified ?? now,
                 PriorityTimestamp = now,
                 StatusInfo = new StatusInfo
                 {
-                    LastModified = now,
+                    LastModified = item.StatusInfo?.LastModified ?? now,
                     Status = newStatus,
                     TimesStartedReading = timesStarted,
                     LastTimeStartedReading = lastTimeStarted
                 },
                 Statistics = new Statistics
                 {
-                    LastModified = now,
+                    LastModified = item.Statistics?.LastModified ?? now,
                     SpentReadingMinutes = item.Statistics?.SpentReadingMinutes ?? existing?.Statistics.SpentReadingMinutes,
                     RemainingTimeMinutes = item.Statistics?.RemainingTimeMinutes ?? existing?.Statistics.RemainingTimeMinutes
                 },
                 CurrentBookmark = new Bookmark
                 {
-                    LastModified = now,
+                    LastModified = item.CurrentBookmark?.LastModified ?? now,
                     ProgressPercent = item.CurrentBookmark?.ProgressPercent ?? existing?.CurrentBookmark.ProgressPercent,
                     ContentSourceProgressPercent = item.CurrentBookmark?.ContentSourceProgressPercent ?? existing?.CurrentBookmark.ContentSourceProgressPercent,
                     Location = item.CurrentBookmark?.Location ?? existing?.CurrentBookmark.Location
@@ -537,23 +548,6 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
             await readingStateRepository.Upsert(uuid, state, rawBody);
         }
-
-        var putResponse = new
-        {
-            RequestResult = "Success",
-            UpdateResults = new[]
-            {
-                new
-                {
-                    EntitlementId = uuidStr,
-                    CurrentBookmarkResult = new { Result = "Success" },
-                    StatisticsResult = new { Result = "Success" },
-                    StatusInfoResult = new { Result = "Success" },
-                    LastModified = now,
-                    PriorityTimestamp = now
-                }
-            }
-        };
 
         return JsonResponse(StatusCodes.Status200OK, putResponse);
     }
