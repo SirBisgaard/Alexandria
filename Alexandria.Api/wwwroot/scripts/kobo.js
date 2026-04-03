@@ -30,17 +30,11 @@ function bookCoverHtml(book, cssClass) {
 }
 
 function homeStackCoverHtml(book) {
-    return '<div class="home-cover-slot cover-frame">' +
-               '<img src="' + coverUrl(book.uuid) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-               '<div class="home-cover-fallback" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div>' +
-           '</div>';
+    return '<div class="home-cover-slot">' + bookCoverHtml(book) + '</div>';
 }
 
 function homeSingleCoverHtml(book) {
-    return '<div class="home-cover-single-slot cover-frame">' +
-               '<img src="' + coverUrl(book.uuid) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-               '<div class="home-cover-fallback" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div>' +
-           '</div>';
+    return '<div class="home-cover-single-slot">' + bookCoverHtml(book) + '</div>';
 }
 
 function escapeHtml(text) {
@@ -72,7 +66,7 @@ function renderBooks(books) {
 
         $list.append(
             '<div class="book-list-item" data-book-uuid="' + book.uuid + '">' +
-                '<div class="cover-frame book-list-cover-img"><img src="' + coverUrl(book.uuid) + '" alt="" onerror="this.style.display=\'none\'"></div>' +
+                bookCoverHtml(book, "book-list-cover-img") +
                 '<div class="book-list-info">' +
                     '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
                     '<div class="book-list-series">' + escapeHtml(series) + '</div>' +
@@ -100,9 +94,9 @@ function openBookModal(uuid) {
         var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
         var status = readingStatusText(book.readingProgress);
 
-        $("#bm-cover").attr("src", coverUrl(book.uuid));
+        $("#bm-cover").attr("src", coverUrl(book.uuid)).show();
         $("#bm-cover-frame").show();
-        $("#bm-cover-fallback").hide().css("background", fallbackColor(book.uuid)).text(book.title);
+        $("#bm-cover-fallback").hide().css("background", fallbackColor(book.uuid)).html(escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small>');
         $("#bm-title").text(book.title);
         $("#bm-series").text(series).toggle(!!series);
         $("#bm-author").text(authors);
@@ -198,8 +192,8 @@ $(function () {
                 '<div class="book-modal-title-bar">My Books</div>' +
                 '<button class="book-modal-close" id="bm-close">&times;</button>' +
                 '<div class="book-modal-info">' +
-                    '<div class="cover-frame book-modal-cover" id="bm-cover-frame"><img id="bm-cover" src="" alt="" onerror="this.parentElement.style.display=\'none\';this.parentElement.nextElementSibling.style.display=\'flex\';"></div>' +
-                    '<div id="bm-cover-fallback" class="book-modal-cover-fallback" style="display:none;"></div>' +
+                    '<div class="cover-frame book-modal-cover" id="bm-cover-frame"><img id="bm-cover" src="" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+                    '<div id="bm-cover-fallback" class="book-cover" style="display:none;"></div></div>' +
                     '<div class="book-modal-meta">' +
                         '<div class="book-modal-book-title" id="bm-title"></div>' +
                         '<div class="book-modal-series" id="bm-series"></div>' +
