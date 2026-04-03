@@ -731,6 +731,27 @@ a.series-list-item {
     padding: 2px 0;
 }
 
+.bm-data-info {
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+    margin-bottom: 12px;
+}
+
+#bm-data pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+#bm-data code {
+    font-family: "Courier New", Courier, monospace;
+}
+
 /* Book card/list clickable */
 .book-card {
     cursor: pointer;

@@ -33,7 +33,9 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
     public async Task<Book?> GetBookByUuid(Guid uuid)
     {
-        return await bookRepository.FindByUuid(uuid);
+        var book = await bookRepository.FindByUuid(uuid);
+        book?.ReadingProgress = await readingStateRepository.GetReadingProgress(book.Uuid);
+        return book;
     }
 
     public async Task ArchiveBook(Guid uuid)

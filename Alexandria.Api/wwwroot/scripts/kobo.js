@@ -119,11 +119,16 @@ function openBookModal(uuid) {
         details += "<div class='detail-row'>File Format: KEPUB</div>";
         $("#bm-details").html(details || "No details available.");
 
+        // Data
+        $("#bm-data-code").text(JSON.stringify(book, null, 2));
+
         // Show synopsis tab by default
         $("#bm-tab-synopsis").addClass("active");
         $("#bm-tab-details").removeClass("active");
+        $("#bm-tab-data").removeClass("active");
         $("#bm-synopsis").show();
         $("#bm-details").hide();
+        $("#bm-data").hide();
 
         $("#book-modal-backdrop").addClass("open");
     });
@@ -204,10 +209,12 @@ $(function () {
                 '<ul class="nav nav-underline book-modal-tabs">' +
                     '<li class="nav-item"><a class="nav-link active" id="bm-tab-synopsis" href="#">Synopsis</a></li>' +
                     '<li class="nav-item"><a class="nav-link" id="bm-tab-details" href="#">Details</a></li>' +
+                    '<li class="nav-item ms-auto"><a class="nav-link" id="bm-tab-data" href="#">Data</a></li>' +
                 '</ul>' +
                 '<div class="book-modal-tab-content">' +
                     '<div id="bm-synopsis"></div>' +
                     '<div id="bm-details" style="display:none;"></div>' +
+                    '<div id="bm-data" style="display:none;"><p class="bm-data-info">Raw book metadata as returned by the Alexandria API.</p><pre><code id="bm-data-code"></code></pre></div>' +
                 '</div>' +
             '</div>' +
         '</div>'
@@ -223,17 +230,25 @@ $(function () {
     $("#bm-tab-synopsis").on("click", function (e) {
         e.preventDefault();
         $(this).addClass("active");
-        $("#bm-tab-details").removeClass("active");
+        $("#bm-tab-details, #bm-tab-data").removeClass("active");
         $("#bm-synopsis").show();
-        $("#bm-details").hide();
+        $("#bm-details, #bm-data").hide();
     });
 
     $("#bm-tab-details").on("click", function (e) {
         e.preventDefault();
         $(this).addClass("active");
-        $("#bm-tab-synopsis").removeClass("active");
+        $("#bm-tab-synopsis, #bm-tab-data").removeClass("active");
         $("#bm-details").show();
-        $("#bm-synopsis").hide();
+        $("#bm-synopsis, #bm-data").hide();
+    });
+
+    $("#bm-tab-data").on("click", function (e) {
+        e.preventDefault();
+        $(this).addClass("active");
+        $("#bm-tab-synopsis, #bm-tab-details").removeClass("active");
+        $("#bm-data").show();
+        $("#bm-synopsis, #bm-details").hide();
     });
 
     // ===== Book Card / List Item Click → Open Modal =====
