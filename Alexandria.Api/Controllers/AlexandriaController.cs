@@ -28,9 +28,9 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     }
 
     [HttpGet("books/{uuid:guid}/cover")]
-    public async Task<IActionResult> GetBookCover(Guid uuid)
+    public async Task<IActionResult> GetBookCover(Guid uuid, [FromQuery] int? width = null, [FromQuery] int? height = null)
     {
-        var cover = await alexandriaLibraryService.GetBookCover(uuid);
+        var cover = await alexandriaLibraryService.GetBookCover(uuid, width, height);
         if (cover is null)
         {
             return NotFound();

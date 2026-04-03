@@ -1,6 +1,11 @@
 // ===== API Helpers =====
-function coverUrl(uuid) {
-    return "/api/alexandria/books/" + uuid + "/cover";
+var COVER_LARGE = { w: 400, h: 600 };
+var COVER_SMALL = { w: 120, h: 180 };
+
+function coverUrl(uuid, width, height) {
+    var url = "/api/alexandria/books/" + uuid + "/cover";
+    if (width && height) { url += "?width=" + width + "&height=" + height; }
+    return url;
 }
 
 function formatFileSize(bytes) {
@@ -25,7 +30,8 @@ function fallbackColor(uuid) {
 
 function bookCoverHtml(book, cssClass) {
     var cls = cssClass || "book-cover-img";
-    return '<div class="cover-frame ' + cls + '"><img src="' + coverUrl(book.uuid) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+    var size = cls === "book-list-cover-img" ? COVER_SMALL : COVER_LARGE;
+    return '<div class="cover-frame ' + cls + '"><img src="' + coverUrl(book.uuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
            '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).join(", ")) + '</small></div></div>';
 }
 
@@ -89,13 +95,16 @@ function renderBooks(books) {
 }
 
 // ===== Book Detail Modal =====
+var currentModalUuid = null;
+
 function openBookModal(uuid) {
     $.get("/api/alexandria/books/" + uuid, function (book) {
+        currentModalUuid = book.uuid;
         var authors = (book.authors || []).join(", ");
         var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
         var status = readingStatusText(book.readingProgress);
 
-        $("#bm-cover").attr("src", coverUrl(book.uuid)).show();
+        $("#bm-cover").attr("src", coverUrl(book.uuid, COVER_LARGE.w, COVER_LARGE.h)).show();
         $("#bm-cover-frame").show();
         $("#bm-cover-fallback").hide().css("background", fallbackColor(book.uuid)).html(escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small>');
         $("#bm-title").text(book.title);
@@ -225,6 +234,13 @@ $(function () {
     $("#bm-close").on("click", closeBookModal);
     $("#book-modal-backdrop").on("click", function (e) {
         if (e.target === this) { closeBookModal(); }
+    });
+
+    // ===== Modal Cover Lightbox =====
+    $("#book-modal-backdrop").on("click", "#bm-cover-frame", function (e) {
+        if (!currentModalUuid) { return; }
+        var lightbox = GLightbox({ elements: [{ href: coverUrl(currentModalUuid), type: "image" }], closeOnOutsideClick: true });
+        lightbox.open();
     });
 
     // ===== Modal Tabs =====

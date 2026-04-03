@@ -108,14 +108,14 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return series;
     }
 
-    public async Task<byte[]?> GetBookCover(Guid uuid)
+    public async Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null)
     {
         var book = await bookRepository.FindByUuid(uuid);
         if (book is null)
         {
             return null;
         }
-        return await fileRepository.ReadCover(book);
+        return await fileRepository.ReadCover(book, width, height);
     }
 
     public async Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null)

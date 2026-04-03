@@ -10,7 +10,7 @@ public interface IAlexandriaLibraryService
     Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null);
     Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null);
     Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null);
-    Task<byte[]?> GetBookCover(Guid uuid);
+    Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null);
     Task ArchiveBook(Guid uuid);
     Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null);
     Task<BookCollection?> GetCollectionByUuid(Guid uuid);

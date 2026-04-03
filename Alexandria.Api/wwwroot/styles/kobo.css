@@ -1,3 +1,7 @@
+html {
+    scrollbar-gutter: stable;
+}
+
 /* ===== Bootstrap Overrides & Custom Theming ===== */
 
 /* Active tab accent color — override Bootstrap's blue */
@@ -366,7 +370,7 @@
 
 .book-status {
     font-size: 16px;
-    color: #000;
+    color: var(--bs-body-color);
     margin-top: 6px;
     font-family: "Times New Roman", Times, serif;
     letter-spacing: 0.5px;
@@ -692,6 +696,7 @@ a.series-list-item {
 .book-modal-title-bar {
     text-align: center;
     font-size: 15px;
+    font-family: "Times New Roman", Times, serif;
     color: var(--bs-secondary-color);
     padding-bottom: 16px;
 }
@@ -705,6 +710,7 @@ a.series-list-item {
 .book-modal-cover {
     width: 160px;
     min-width: 160px;
+    cursor: pointer;
 }
 
 .book-modal-meta {
@@ -714,6 +720,7 @@ a.series-list-item {
 .book-modal-book-title {
     font-size: 22px;
     font-weight: 600;
+    font-family: "Times New Roman", Times, serif;
     margin-bottom: 4px;
 }
 
@@ -730,7 +737,8 @@ a.series-list-item {
 }
 
 .book-modal-status {
-    font-size: 13px;
+    font-size: 15px;
+    font-family: "Times New Roman", Times, serif;
     color: var(--bs-secondary-color);
     margin-bottom: 16px;
 }
@@ -817,4 +825,21 @@ a.series-list-item {
     .book-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* ===== GLightbox Kobo Overrides ===== */
+.glightbox-clean .goverlay {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.glightbox-clean .gclose,
+.glightbox-clean .gnext,
+.glightbox-clean .gprev {
+    background: none;
+    border: none;
+}
+
+.glightbox-clean .gslide-image img {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 2px;
 }

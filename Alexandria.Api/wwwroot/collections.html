@@ -6,6 +6,7 @@
     <title>Alexandria - Collections</title>
     <link rel="stylesheet" href="styles/bootstrap.min.css">
     <link rel="stylesheet" href="styles/kobo.css">
+    <link rel="stylesheet" href="styles/glightbox.min.css">
 </head>
 <body>
 <!-- Top Bar -->
@@ -82,6 +83,7 @@
 
 <script src="scripts/jquery.js"></script>
 <script src="scripts/bootstrap.bundle.min.js"></script>
+<script src="scripts/glightbox.min.js"></script>
 <script src="scripts/kobo.js"></script>
 <script>
 $(function () {
@@ -96,7 +98,7 @@ $(function () {
                 var count = (c.bookUuids || []).length;
                 $list.append(
                     '<a href="collection-detail.html?uuid=' + c.uuid + '" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">' +
-                        '<span class="fw-semibold">' + escapeHtml(c.name) + '</span>' +
+                        '<span class="fw-semibold text-body">' + escapeHtml(c.name) + '</span>' +
                         '<span class="text-body-secondary">' + count + (count === 1 ? ' book' : ' books') + '</span>' +
                     '</a>'
                 );
