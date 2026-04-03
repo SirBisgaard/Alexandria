@@ -780,8 +780,8 @@ a.series-list-item {
 }
 
 #bm-data pre {
-    background: #1e1e1e;
-    color: #d4d4d4;
+    background: #000000;
+    color: #C4C4C4;
     border-radius: 6px;
     padding: 16px;
     overflow-x: auto;
@@ -793,6 +793,12 @@ a.series-list-item {
 #bm-data code {
     font-family: "Courier New", Courier, monospace;
 }
+
+#bm-data .json-key { color: #4EF3F3; }
+#bm-data .json-string { color: #4EDC4E; }
+#bm-data .json-number { color: #F3F34E; }
+#bm-data .json-bool { color: #F34EF3; }
+#bm-data .json-null { color: #4E4E4E; }
 
 /* Book card/list clickable */
 .book-card {

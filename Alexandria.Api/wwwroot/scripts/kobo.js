@@ -48,6 +48,12 @@ function escapeHtml(text) {
     return $("<span>").text(text).html();
 }
 
+function highlightJson(obj) {
+    var raw = JSON.stringify(obj, null, 2);
+    var escaped = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return escaped.replace(/("(?:\\.|[^"\\])*")\s*:|"(?:\\.|[^"\\])*"|\b(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b|\b(true|false)\b|\bnull\b/g, function (match, key, num, bool) { if (key) { return "<span class='json-key'>" + key + "</span>:"; } if (match[0] === '"') { return "<span class='json-string'>" + match + "</span>"; } if (num) { return "<span class='json-number'>" + match + "</span>"; } if (bool) { return "<span class='json-bool'>" + match + "</span>"; } return "<span class='json-null'>" + match + "</span>"; });
+}
+
 // ===== Shared renderBooks =====
 function renderBooks(books) {
     var $grid = $("#book-grid").empty();
@@ -125,7 +131,7 @@ function openBookModal(uuid) {
         $("#bm-details").html(details || "No details available.");
 
         // Data
-        $("#bm-data-code").text(JSON.stringify(book, null, 2));
+        $("#bm-data-code").html(highlightJson(book));
 
         // Show synopsis tab by default
         $("#bm-tab-synopsis").addClass("active");

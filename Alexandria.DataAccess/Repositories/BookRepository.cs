@@ -97,6 +97,16 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
+        await using var deleteCollectionBooks = connection.CreateCommand();
+        deleteCollectionBooks.CommandText = "DELETE FROM CollectionBooks WHERE BookUuid = @uuid";
+        deleteCollectionBooks.Parameters.AddWithValue("@uuid", uuid.ToString());
+        await deleteCollectionBooks.ExecuteNonQueryAsync();
+
+        await using var deleteReadingStates = connection.CreateCommand();
+        deleteReadingStates.CommandText = "DELETE FROM ReadingStates WHERE BookUuid = @uuid";
+        deleteReadingStates.Parameters.AddWithValue("@uuid", uuid.ToString());
+        await deleteReadingStates.ExecuteNonQueryAsync();
+
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "DELETE FROM Books WHERE Uuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
