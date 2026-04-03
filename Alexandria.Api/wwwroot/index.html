@@ -65,28 +65,33 @@ $(function () {
         var seriesList = seriesResult[0];
         var $grid = $("#home-grid");
 
-        // Currently reading
-        var reading = null;
+        // Currently reading — up to 5 books sorted by last read
+        var readingBooks = [];
         for (var i = 0; i < books.length; i++) {
             var p = books[i].readingProgress;
             if (p && p.progressPercent != null && p.status !== "ReadyToRead") {
-                reading = books[i];
-                break;
+                readingBooks.push(books[i]);
             }
         }
-        if (reading) {
-            var pct = Math.round(reading.readingProgress.progressPercent);
-            var remaining = reading.readingProgress.remainingTimeMinutes;
-            var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
-            $grid.append(
-                '<div class="home-card" style="cursor:pointer" onclick="openBookModal(\'' + reading.uuid + '\')">' +
-                    '<div class="home-card-covers">' +
-                        homeSingleCoverHtml(reading) +
-                    '</div>' +
+        readingBooks.sort(function (a, b) {
+            return new Date(b.readingProgress.lastModified) - new Date(a.readingProgress.lastModified);
+        });
+        readingBooks = readingBooks.slice(0, 5);
+        if (readingBooks.length > 0) {
+            var spanClass = readingBooks.length >= 3 ? ' home-reading-span' : '';
+            var readingHtml = '<div class="home-reading' + spanClass + '">';
+            $.each(readingBooks, function (i, book) {
+                var pct = Math.round(book.readingProgress.progressPercent);
+                var remaining = book.readingProgress.remainingTimeMinutes;
+                var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
+                readingHtml += '<div class="home-reading-item" onclick="openBookModal(\'' + book.uuid + '\')">' +
+                    '<div class="home-card-covers">' + homeSingleCoverHtml(book) + '</div>' +
                     '<div class="home-card-title">' + pct + '% Read</div>' +
                     '<div class="home-card-sub">' + escapeHtml(subText) + '</div>' +
-                '</div>'
-            );
+                '</div>';
+            });
+            readingHtml += '</div>';
+            $grid.append(readingHtml);
         }
 
         // Author spotlight — author with most unread books
