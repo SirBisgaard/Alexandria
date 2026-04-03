@@ -47,6 +47,7 @@
                 <li><a class="dropdown-item" href="#" data-filter="all" data-value="All"><span class="check">&#10003;</span> All</a></li>
                 <li><a class="dropdown-item" href="#" data-filter="unread" data-value="Unread"><span class="check"></span> Unread</a></li>
                 <li><a class="dropdown-item" href="#" data-filter="reading" data-value="Reading"><span class="check"></span> Reading</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="finished" data-value="Finished"><span class="check"></span> Finished</a></li>
             </ul>
         </div>
         <div class="dropdown" id="books-sort-dropdown" data-page-key="books">
@@ -115,7 +116,9 @@ $(function () {
             if (filter === "unread") {
                 books = books.filter(function (b) { return !b.readingProgress || b.readingProgress.status === "ReadyToRead"; });
             } else if (filter === "reading") {
-                books = books.filter(function (b) { return b.readingProgress && b.readingProgress.status !== "ReadyToRead"; });
+                books = books.filter(function (b) { return b.readingProgress && b.readingProgress.status === "Reading"; });
+            } else if (filter === "finished") {
+                books = books.filter(function (b) { return b.readingProgress && b.readingProgress.status === "Finished"; });
             }
             renderBooks(books);
         });
