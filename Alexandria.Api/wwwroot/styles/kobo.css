@@ -25,7 +25,8 @@
 /* Dropdown toggle — strip Bootstrap's default box styling */
 .toolbar .dropdown-toggle {
     font-style: italic;
-    font-size: 14px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 16px;
     padding: 6px 10px;
     border: none !important;
     background: none !important;
@@ -70,11 +71,22 @@
 .dropdown-menu > li > .dropdown-item {
     padding: 10px 16px;
     font-size: 14px;
+    font-family: "Times New Roman", Times, serif;
 }
 
 .dropdown-item:hover,
 .dropdown-item:focus {
     background: #f5f5f5;
+}
+
+.dropdown-item[data-sort] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sort-arrow {
+    margin-left: auto;
 }
 
 /* Dropdown checkmark column */
@@ -219,11 +231,34 @@
 .bottom-nav a.active {
     color: #c0392b;
     border-top-color: #c0392b;
+    font-weight: 700;
 }
 
 .bottom-nav a svg {
     width: 22px;
     height: 22px;
+}
+
+/* Author & Collection list items */
+#author-list .list-group-item,
+#collection-list .list-group-item {
+    font-family: "Times New Roman", Times, serif;
+}
+
+/* View toggle button — no circle, visible border only when open */
+.toolbar .btn.rounded-circle {
+    border: none;
+    background: none;
+    box-shadow: none;
+    outline: none;
+    color: var(--bs-body-color);
+    font-size: 18px;
+}
+
+.toolbar .btn.rounded-circle.show,
+.toolbar .btn.rounded-circle[aria-expanded="true"] {
+    background: #000;
+    color: #fff;
 }
 
 /* ===== Toolbar ===== */
@@ -330,9 +365,11 @@
 }
 
 .book-status {
-    font-size: 12px;
-    color: var(--bs-secondary-color);
+    font-size: 16px;
+    color: #000;
     margin-top: 6px;
+    font-family: "Times New Roman", Times, serif;
+    letter-spacing: 0.5px;
 }
 
 .book-menu {
@@ -373,24 +410,26 @@
 }
 
 .book-list-title {
-    font-size: 15px;
+    font-size: 19px;
     font-weight: 600;
+    font-family: "Times New Roman", Times, serif;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .book-list-series {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--bs-secondary-color);
     text-transform: uppercase;
     margin-top: 2px;
 }
 
 .book-list-author {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--bs-secondary-color);
     margin-top: 2px;
+    font-family: "Times New Roman", Times, serif;
 }
 
 .book-list-right {
@@ -400,12 +439,20 @@
 }
 
 .book-list-read-status {
-    font-size: 13px;
+    font-size: 17px;
     color: var(--bs-secondary-color);
+    font-family: "Times New Roman", Times, serif;
+}
+
+.book-list-time-remaining {
+    font-size: 15px;
+    color: var(--bs-tertiary-color);
+    margin-top: 2px;
+    text-transform: uppercase;
 }
 
 .book-list-format {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--bs-tertiary-color);
     margin-top: 2px;
 }
@@ -455,6 +502,7 @@ a.series-list-item {
 .series-list-title {
     font-size: 16px;
     font-weight: 600;
+    font-family: "Times New Roman", Times, serif;
 }
 
 .series-list-author {
@@ -467,6 +515,7 @@ a.series-list-item {
     font-size: 13px;
     color: var(--bs-tertiary-color);
     margin-top: 4px;
+    font-family: "Times New Roman", Times, serif;
 }
 
 /* ===== Home Page ===== */
@@ -542,6 +591,7 @@ a.series-list-item {
 .home-card-title {
     font-size: 16px;
     font-weight: 600;
+    font-family: "Times New Roman", Times, serif;
 }
 
 .home-card-sub {

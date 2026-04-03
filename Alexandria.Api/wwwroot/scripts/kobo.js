@@ -74,6 +74,7 @@ function renderBooks(books) {
                 '</div>' +
                 '<div class="book-list-right">' +
                     '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
+                    (book.readingProgress && book.readingProgress.remainingTimeMinutes ? '<div class="book-list-time-remaining">' + Math.round(book.readingProgress.remainingTimeMinutes / 60) + ' hours to go</div>' : '') +
                     '<div class="book-list-format">KEPUB - ' + formatFileSize(book.kepubFileSize) + '</div>' +
                     '<div class="dropdown book-menu-dropdown">' +
                         '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
@@ -162,11 +163,13 @@ function restoreSortDropdown($dropdown, sort, order) {
     var $toggle = $dropdown.find(".dropdown-toggle");
     var $items = $dropdown.find(".dropdown-item[data-sort]");
     $items.find(".check").text("");
+    $items.find(".sort-arrow").text("");
     var $active = $items.filter("[data-sort='" + sort + "']");
     if ($active.length) {
         $active.find(".check").text("\u2713");
+        $active.find(".sort-arrow").text(sortArrow(order));
         var label = $toggle.data("label") || "";
-        $toggle.text(label + $active.data("value") + sortArrow(order));
+        $toggle.text(label + $active.data("value"));
     }
 }
 
@@ -185,6 +188,9 @@ function restoreFilterDropdown($dropdown, filter) {
 var pageReload = null;
 
 $(function () {
+    // ===== Inject sort arrow spans into sort dropdown items =====
+    $(".dropdown-item[data-sort]").append(' <span class="sort-arrow"></span>');
+
     // ===== Inject Modal HTML =====
     $("body").append(
         '<div class="book-modal-backdrop" id="book-modal-backdrop">' +
@@ -316,9 +322,11 @@ $(function () {
         saveSortPrefs(pageKey, newSort, newOrder);
 
         $dropdown.find(".check").text("");
+        $dropdown.find(".sort-arrow").text("");
         $item.find(".check").text("\u2713");
+        $item.find(".sort-arrow").text(sortArrow(newOrder));
         var label = $toggle.data("label") || "";
-        $toggle.text(label + $item.data("value") + sortArrow(newOrder));
+        $toggle.text(label + $item.data("value"));
 
         if (pageReload) { pageReload(); }
     });
@@ -342,6 +350,14 @@ $(function () {
     });
 
     // ===== View Toggle (Grid / List) =====
+    var savedView = localStorage.getItem("view") || "grid";
+    var $gridInit = $(".view-grid-container");
+    var $listInit = $(".view-list-container");
+    if ($gridInit.length && $listInit.length && savedView === "list") {
+        $gridInit.addClass("d-none");
+        $listInit.removeClass("d-none");
+    }
+
     $(document).on("click", "[data-view-toggle]", function (e) {
         e.preventDefault();
         var view = $(this).data("view-toggle");
@@ -349,6 +365,7 @@ $(function () {
         var $list = $(".view-list-container");
 
         if ($grid.length && $list.length) {
+            localStorage.setItem("view", view);
             if (view === "grid") {
                 $grid.removeClass("d-none");
                 $list.addClass("d-none");
