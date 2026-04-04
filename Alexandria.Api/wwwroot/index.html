@@ -131,21 +131,23 @@ $(function () {
         }
 
         // My Books
-        var firstThree = books.slice(0, 3);
-        var myBooksStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
-        $.each(firstThree, function (i, b) {
-            myBooksStack += homeStackCoverHtml(b);
-        });
-        myBooksStack += '</div></div>';
-        $grid.append(
-            '<div class="col-12 col-md-6"><a href="books.html" class="home-card">' + myBooksStack +
-                '<div class="home-card-title">My Books</div>' +
-                '<div class="home-card-sub">' + books.length + ' books</div>' +
-            '</a></div>'
-        );
+        if (books.length > 0) {
+            var firstThree = books.slice(0, 3);
+            var myBooksStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+            $.each(firstThree, function (i, b) {
+                myBooksStack += homeStackCoverHtml(b);
+            });
+            myBooksStack += '</div></div>';
+            $grid.append(
+                '<div class="col-12 col-md-6"><a href="books.html" class="home-card">' + myBooksStack +
+                    '<div class="home-card-title">My Books</div>' +
+                    '<div class="home-card-sub">' + books.length + ' books</div>' +
+                '</a></div>'
+            );
+        }
 
         // Latest series
-        if (seriesList.length > 0) {
+        if (seriesList.length > 0 && (seriesList[0].books || []).length > 0) {
             var latestSeries = seriesList[0];
             var sBooks = (latestSeries.books || []).slice(0, 3);
             var sStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
@@ -163,7 +165,7 @@ $(function () {
         }
 
         // First collection
-        if (collections.length > 0) {
+        if (collections.length > 0 && (collections[0].bookUuids || []).length > 0) {
             var col = collections[0];
             var colUuids = col.bookUuids || [];
             var colCount = colUuids.length;
