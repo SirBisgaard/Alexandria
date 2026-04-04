@@ -35,6 +35,18 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok();
     }
 
+    [HttpPut("books/{uuid:guid}/archive")]
+    public async Task<IActionResult> UpdateArchiveStatus(Guid uuid, [FromBody] UpdateArchiveRequest request)
+    {
+        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        if (book is null)
+        {
+            return NotFound();
+        }
+        await alexandriaLibraryService.SetBookArchiveStatus(uuid, request.IsArchived);
+        return Ok();
+    }
+
     [HttpGet("books/{uuid:guid}/cover")]
     public async Task<IActionResult> GetBookCover(Guid uuid, [FromQuery] int? width = null, [FromQuery] int? height = null)
     {

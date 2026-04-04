@@ -11,7 +11,7 @@ public interface IAlexandriaLibraryService
     Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null);
     Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null);
     Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null);
-    Task ArchiveBook(Guid uuid);
+    Task SetBookArchiveStatus(Guid uuid, bool isArchived);
     Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null);
     Task<BookCollection?> GetCollectionByUuid(Guid uuid);
     Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null);

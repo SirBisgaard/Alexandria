@@ -297,7 +297,7 @@ public sealed class LibrarySyncTests
     { 
         public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books);
         public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.Uuid == uuid));
-        public Task ArchiveBook(Guid uuid) => Task.CompletedTask;
+        public Task SetBookArchiveStatus(Guid uuid, bool isArchived) => Task.CompletedTask;
         public Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null) => Task.FromResult<List<BookCollection>>([]);
         public Task<BookCollection?> GetCollectionByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
         public Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<CollectionWithBooks?>(null);

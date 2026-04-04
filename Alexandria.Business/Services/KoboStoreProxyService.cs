@@ -423,7 +423,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
 
         logger.LogInformation("DeleteBook: archiving '{Title}' ({Uuid})", book.Title, uuid);
-        await alexandriaLibraryService.ArchiveBook(uuid);
+        await alexandriaLibraryService.SetBookArchiveStatus(uuid, true);
         
         return new KoboProxyResponse
         {

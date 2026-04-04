@@ -1069,6 +1069,31 @@ a.series-list-item {
     color: var(--bs-secondary-color);
 }
 
+/* ===== Archived Book Styles ===== */
+
+.book-card-archived .cover-frame::after,
+.book-list-item-archived .cover-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(128, 128, 128, 0.55);
+    z-index: 1;
+    border-radius: 2px;
+}
+
+.book-archived-label {
+    float: right;
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+    font-style: italic;
+}
+
+.book-list-archived-label {
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+    font-style: italic;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
     .book-grid {

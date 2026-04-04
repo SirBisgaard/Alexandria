@@ -24,14 +24,14 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return book;
     }
 
-    public async Task ArchiveBook(Guid uuid)
+    public async Task SetBookArchiveStatus(Guid uuid, bool isArchived)
     {
         var book = await bookRepository.FindByUuid(uuid);
         if (book is null)
         {
             return;
         }
-        book.IsArchived = true;
+        book.IsArchived = isArchived;
         await bookRepository.Update(book);
     }
 

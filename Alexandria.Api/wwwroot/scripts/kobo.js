@@ -51,7 +51,7 @@ function readingStatusRaw(progress) {
     return progress.status;
 }
 
-function statusMenuItems(uuid, rawStatus) {
+function statusMenuItems(uuid, rawStatus, isArchived) {
     var items = "";
     if (rawStatus !== "Finished") {
         items += '<li><a class="dropdown-item" href="#" data-mark-finished="' + uuid + '">Mark as finished</a></li>';
@@ -60,11 +60,20 @@ function statusMenuItems(uuid, rawStatus) {
         items += '<li><a class="dropdown-item" href="#" data-mark-unread="' + uuid + '">Mark as unread</a></li>';
     }
     items += '<li><a class="dropdown-item" href="#" data-edit-book="' + uuid + '">Edit Book</a></li>';
+    if (isArchived) {
+        items += '<li><a class="dropdown-item" href="#" data-unarchive="' + uuid + '">Unarchive</a></li>';
+    } else {
+        items += '<li><a class="dropdown-item" href="#" data-archive="' + uuid + '">Archive</a></li>';
+    }
     return items;
 }
 
 function updateReadingStatus(uuid, status) {
     $.ajax({ url: "/api/alexandria/books/" + uuid + "/status", method: "PUT", contentType: "application/json", data: JSON.stringify({ status: status }), success: function () { if (pageReload) { pageReload(); } if (currentModalUuid === uuid) { openBookModal(uuid); } } });
+}
+
+function updateArchiveStatus(uuid, isArchived) {
+    $.ajax({ url: "/api/alexandria/books/" + uuid + "/archive", method: "PUT", contentType: "application/json", data: JSON.stringify({ isArchived: isArchived }), success: function () { if (pageReload) { pageReload(); } if (currentModalUuid === uuid) { openBookModal(uuid); } } });
 }
 
 function fallbackColor(uuid) {
@@ -113,12 +122,16 @@ function renderBooks(books) {
         var rawStatus = readingStatusRaw(book.readingProgress);
         var authors = (book.authors || []).join(", ");
         var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
-        var extraItems = statusMenuItems(book.uuid, rawStatus);
+        var extraItems = statusMenuItems(book.uuid, rawStatus, book.isArchived);
+        var archivedClass = book.isArchived ? ' book-card-archived' : '';
+        var archivedLabel = book.isArchived ? '<span class="book-archived-label">Archived</span>' : '';
+        var archivedListClass = book.isArchived ? ' book-list-item-archived' : '';
+        var archivedListLabel = book.isArchived ? '<div class="book-list-archived-label">Archived</div>' : '';
 
         $grid.append(
-            '<div class="book-card" data-book-uuid="' + book.uuid + '">' +
+            '<div class="book-card' + archivedClass + '" data-book-uuid="' + book.uuid + '">' +
                 bookCoverHtml(book, "book-cover-img") +
-                '<div class="book-status">' + escapeHtml(status) + '</div>' +
+                '<div class="book-status">' + escapeHtml(status) + archivedLabel + '</div>' +
                 '<div class="dropdown book-menu-dropdown">' +
                     '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
                     '<ul class="dropdown-menu dropdown-menu-end">' +
@@ -130,7 +143,7 @@ function renderBooks(books) {
         );
 
         $list.append(
-            '<div class="book-list-item" data-book-uuid="' + book.uuid + '">' +
+            '<div class="book-list-item' + archivedListClass + '" data-book-uuid="' + book.uuid + '">' +
                 bookCoverHtml(book, "book-list-cover-img") +
                 '<div class="book-list-info">' +
                     '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
@@ -139,6 +152,7 @@ function renderBooks(books) {
                 '</div>' +
                 '<div class="book-list-right">' +
                     '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
+                    archivedListLabel +
                     (book.readingProgress && book.readingProgress.remainingTimeMinutes ? '<div class="book-list-time-remaining">' + Math.round(book.readingProgress.remainingTimeMinutes / 60) + ' hours to go</div>' : '') +
                     '<div class="book-list-format">KEPUB - ' + formatFileSize(book.kepubFileSize) + '</div>' +
                     '<div class="dropdown book-menu-dropdown">' +
@@ -177,8 +191,8 @@ function openBookModal(uuid) {
         $("#bm-title").text(book.title);
         $("#bm-series").text(series).toggle(!!series);
         $("#bm-author").text(authors);
-        var modalStatusItems = statusMenuItems(book.uuid, rawStatus);
-        $("#bm-status").text(status);
+        var modalStatusItems = statusMenuItems(book.uuid, rawStatus, book.isArchived);
+        $("#bm-status").text(status + (book.isArchived ? " \u00B7 Archived" : ""));
         if (modalStatusItems) {
             $("#bm-status-menu").html('<button class="bm-status-menu-btn" data-bs-toggle="dropdown">&middot;&middot;&middot;</button><ul class="dropdown-menu dropdown-menu-end">' + modalStatusItems + '</ul>').show();
         } else {
@@ -575,8 +589,10 @@ $(function () {
             var status = readingStatusText(book.readingProgress);
             var authors = (book.authors || []).join(", ");
             var series = book.seriesName ? (book.seriesName.toUpperCase() + (book.seriesIndex ? " - " + book.seriesIndex : "")) : "";
+            var archivedSearchClass = book.isArchived ? ' book-list-item-archived' : '';
+            var archivedSearchLabel = book.isArchived ? '<div class="book-list-archived-label">Archived</div>' : '';
             $results.append(
-                '<div class="book-list-item" data-search-uuid="' + book.uuid + '">' +
+                '<div class="book-list-item' + archivedSearchClass + '" data-search-uuid="' + book.uuid + '">' +
                     bookCoverHtml(book, "book-list-cover-img") +
                     '<div class="book-list-info">' +
                         '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
@@ -585,6 +601,7 @@ $(function () {
                     '</div>' +
                     '<div class="book-list-right">' +
                         '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
+                        archivedSearchLabel +
                     '</div>' +
                 '</div>'
             );
@@ -677,6 +694,17 @@ $(function () {
     $(document).on("click", "[data-mark-unread]", function (e) {
         e.preventDefault();
         updateReadingStatus($(this).data("mark-unread"), "ReadyToRead");
+    });
+
+    // ===== Archive / Unarchive =====
+    $(document).on("click", "[data-archive]", function (e) {
+        e.preventDefault();
+        updateArchiveStatus($(this).data("archive"), true);
+    });
+
+    $(document).on("click", "[data-unarchive]", function (e) {
+        e.preventDefault();
+        updateArchiveStatus($(this).data("unarchive"), false);
     });
 
     // ===== Edit Book =====
