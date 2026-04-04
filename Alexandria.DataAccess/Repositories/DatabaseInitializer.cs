@@ -28,7 +28,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         {
             (1, MigrateV1_InitialSchema),
             (2, MigrateV2_ReadingStates),
-            (3, MigrateV3_Collections)
+            (3, MigrateV3_Collections),
+            (4, MigrateV4_Settings)
         };
 
         foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -164,5 +165,25 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             )
             """;
         await joinCmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task MigrateV4_Settings(SqliteConnection connection)
+    {
+        await using var createCmd = connection.CreateCommand();
+        createCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS Settings (
+                Id INTEGER PRIMARY KEY CHECK (Id = 1),
+                UuidSeed TEXT NOT NULL,
+                LastIndexedTimestamp TEXT
+            )
+            """;
+        await createCmd.ExecuteNonQueryAsync();
+
+        await using var seedCmd = connection.CreateCommand();
+        seedCmd.CommandText = """
+            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp)
+            VALUES (1, 'cd4631e2-04f2-4cc2-b938-b34c1e3c85a0', NULL)
+            """;
+        await seedCmd.ExecuteNonQueryAsync();
     }
 }

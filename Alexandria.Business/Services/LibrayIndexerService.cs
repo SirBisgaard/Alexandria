@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Services;
 
-public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, IKepubifyConverter kepubifyConverter, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
+public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, IKepubifyConverter kepubifyConverter, IAlexandriaSettingsService settingsService, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
@@ -71,6 +71,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
             }
 
             var totalBooks = (await bookRepository.GetAll()).Count;
+            await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
             logger.LogInformation("Library indexing complete. Total books: {Count}", totalBooks);
             return totalBooks;
         }

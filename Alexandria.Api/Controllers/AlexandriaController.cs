@@ -8,7 +8,7 @@ namespace Alexandria.Api.Controllers;
 
 [ApiController]
 [Route("/api/alexandria")]
-public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService) : ControllerBase
+public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService) : ControllerBase
 {
     [HttpGet("books")]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
@@ -164,6 +164,13 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(result);
     }
 
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetSettings()
+    {
+        var settings = await settingsService.Get();
+        return Ok(settings);
+    }
+
     [HttpPost("sync")]
     public async Task Sync()
     {
@@ -182,7 +189,9 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
 
         var bookCount = await alexandriaLibraryService.Sync(progress);
 
-        var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount), jsonOptions);
+        var settings = await settingsService.Get();
+        var lastIndexed = settings.LastIndexedTimestamp?.ToString("O");
+        var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);
         await Response.WriteAsync($"data: {doneJson}\n\n");
         await Response.Body.FlushAsync();
     }

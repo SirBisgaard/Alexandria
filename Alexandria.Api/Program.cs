@@ -1,3 +1,4 @@
+using Alexandria.Business.Extensions;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Middleware;
 using Alexandria.Business.Models.Settings;
@@ -29,6 +30,7 @@ builder.Services.AddTransient<IFileRepository, FileRepository>();
 builder.Services.AddTransient<IReadingStateRepository, ReadingStateRepository>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddTransient<IBookCollectionRepository, BookCollectionRepository>();
+builder.Services.AddTransient<ISettingsRepository, SettingsRepository>();
 builder.Services.AddTransient<IEpubMetadataHandler, EpubMetadataHandler>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();
@@ -39,6 +41,7 @@ builder.Services.AddTransient<ISyncTokenService, SyncTokenService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
+builder.Services.AddTransient<IAlexandriaSettingsService, AlexandriaSettingsService>();
 
 builder.Services.AddControllers();
 
@@ -50,6 +53,11 @@ app.UseMiddleware<KoboProxyLoggingMiddleware>();
 // Initialize database schema before indexing.
 var dbInitializer = app.Services.GetRequiredService<IDatabaseInitializer>();
 await dbInitializer.Initialize();
+
+// Load UUID seed from settings.
+var settingsRepo = app.Services.GetRequiredService<ISettingsRepository>();
+var appSettings = await settingsRepo.Get();
+GuidExtensions.SetNamespace(appSettings.UuidSeed);
 
 // Index library at boot.
 var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();

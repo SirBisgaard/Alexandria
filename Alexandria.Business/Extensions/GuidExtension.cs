@@ -5,7 +5,9 @@ namespace Alexandria.Business.Extensions;
 
 public static class GuidExtensions
 {
-    private static readonly Guid Namespace = Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0");
+    private static Guid seed;
+
+    public static void SetNamespace(Guid ns) => seed = ns;
 
     extension(Guid)
     {
@@ -20,7 +22,7 @@ public static class GuidExtensions
         /// <returns>A deterministic UUID v5 with version nibble 0101 and variant bits 10.</returns>
         public static Guid GenerateUuidV5(string name)
         {
-            var namespaceBytes = Namespace.ToByteArray();
+            var namespaceBytes = seed.ToByteArray();
             Guid.SwapGuidByteOrder(namespaceBytes);
             var nameBytes = Encoding.UTF8.GetBytes(name);
             var hash = SHA1.HashData([.. namespaceBytes, .. nameBytes]);

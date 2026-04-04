@@ -1,3 +1,4 @@
+using Alexandria.Business.Extensions;
 using Alexandria.Business.Models.Settings;
 using Alexandria.Business.Services;
 using Alexandria.DataAccess.Repositories;
@@ -26,6 +27,7 @@ public sealed class LibraryIndexerServiceTests
         Directory.CreateDirectory(testDir);
         Directory.CreateDirectory(coversDir);
         Directory.CreateDirectory(kepubsDir);
+        GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
     }
 
     [TestCleanup]
@@ -53,7 +55,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
@@ -82,7 +84,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
         var firstRunBooks = await bookRepository.GetAll();
@@ -110,7 +112,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
@@ -133,7 +135,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
 
         // Index the book.
         await indexer.Index();
@@ -166,7 +168,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
         var books = await bookRepository.GetAll();
@@ -201,7 +203,7 @@ public sealed class LibraryIndexerServiceTests
         var bookRepository = await CreateRepository(settings);
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
+        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 

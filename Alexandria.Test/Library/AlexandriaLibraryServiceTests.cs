@@ -1,3 +1,4 @@
+using Alexandria.Business.Extensions;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
 using Alexandria.Business.Models.KoboStore;
@@ -32,6 +33,7 @@ public sealed class AlexandriaLibraryServiceTests
         Directory.CreateDirectory(booksDir);
         Directory.CreateDirectory(coversDir);
         Directory.CreateDirectory(kepubsDir);
+        GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
 
         File.Copy(Path.Combine(ContentBooksDir, "Vasily Grossman - Life and Fate.epub"), Path.Combine(booksDir, "Vasily Grossman - Life and Fate.epub"));
     }
@@ -57,7 +59,7 @@ public sealed class AlexandriaLibraryServiceTests
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubMetadataHandler = new EpubMetadataHandler();
         var kepubifyConverter = new KepubifyConverter();
-        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, NullLogger<LibraryIndexerService>.Instance);
+        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
         var collectionRepository = new FakeBookCollectionRepository();
         var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, fileRepository, epubMetadataHandler, indexerService);
