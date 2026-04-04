@@ -8,6 +8,32 @@ function coverUrl(uuid, width, height) {
     return url;
 }
 
+var LANGUAGES = {
+    "af": "Afrikaans", "ar": "Arabic", "bg": "Bulgarian", "bn": "Bengali", "ca": "Catalan",
+    "cs": "Czech", "cy": "Welsh", "da": "Danish", "de": "German", "el": "Greek",
+    "en": "English", "es": "Spanish", "et": "Estonian", "fa": "Persian", "fi": "Finnish",
+    "fr": "French", "ga": "Irish", "gl": "Galician", "he": "Hebrew", "hi": "Hindi",
+    "hr": "Croatian", "hu": "Hungarian", "id": "Indonesian", "is": "Icelandic", "it": "Italian",
+    "ja": "Japanese", "ka": "Georgian", "ko": "Korean", "lt": "Lithuanian", "lv": "Latvian",
+    "mk": "Macedonian", "ms": "Malay", "nl": "Dutch", "no": "Norwegian", "pl": "Polish",
+    "pt": "Portuguese", "ro": "Romanian", "ru": "Russian", "sk": "Slovak", "sl": "Slovenian",
+    "sq": "Albanian", "sr": "Serbian", "sv": "Swedish", "th": "Thai", "tr": "Turkish",
+    "uk": "Ukrainian", "vi": "Vietnamese", "zh": "Chinese"
+};
+
+function languageName(code) {
+    if (!code) { return ""; }
+    return LANGUAGES[code.toLowerCase()] || code;
+}
+
+function languageOptions(selected) {
+    var html = "";
+    for (var code in LANGUAGES) {
+        html += '<option value="' + code + '"' + (selected && selected.toLowerCase() === code ? ' selected' : '') + '>' + LANGUAGES[code] + '</option>';
+    }
+    return html;
+}
+
 function formatFileSize(bytes) {
     if (!bytes) { return ""; }
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
@@ -33,6 +59,7 @@ function statusMenuItems(uuid, rawStatus) {
     if (rawStatus === "Reading" || rawStatus === "Finished") {
         items += '<li><a class="dropdown-item" href="#" data-mark-unread="' + uuid + '">Mark as unread</a></li>';
     }
+    items += '<li><a class="dropdown-item" href="#" data-edit-book="' + uuid + '">Edit Book</a></li>';
     return items;
 }
 
@@ -157,9 +184,9 @@ function openBookModal(uuid) {
         // Details
         var details = "";
         if (book.publisher) { details += "<div class='detail-row'>Publisher: " + escapeHtml(book.publisher) + (book.publicationDate ? " (" + escapeHtml(book.publicationDate) + ")" : "") + "</div>"; }
-        if (book.language) { details += "<div class='detail-row'>Language: " + escapeHtml(book.language) + "</div>"; }
+        if (book.language) { details += "<div class='detail-row'>Language: " + escapeHtml(languageName(book.language)) + "</div>"; }
         if (book.kepubFileSize) { details += "<div class='detail-row'>File Size: " + formatFileSize(book.kepubFileSize) + "</div>"; }
-        details += "<div class='detail-row'>File Format: KEPUB</div>";
+        details += "<div class='detail-row'>File Format: KOBO EPUB</div>";
         $("#bm-details").html(details || "No details available.");
 
         // Data
@@ -178,7 +205,142 @@ function openBookModal(uuid) {
 }
 
 function closeBookModal() {
+    if (originalModalHtml) {
+        $("#book-modal").html(originalModalHtml);
+        originalModalHtml = null;
+    }
     $("#book-modal-backdrop").removeClass("open");
+}
+
+var originalModalHtml = null;
+function openEditModal(uuid) {
+    $.get("/api/alexandria/books/" + uuid, function (book) {
+        currentModalUuid = book.uuid;
+        originalModalHtml = $("#book-modal").html();
+
+        var authors = (book.authors || []).join(", ");
+        var coverSrc = coverUrl(book.uuid, COVER_LARGE.w, COVER_LARGE.h);
+
+        $("#book-modal").html(
+            '<div class="book-modal-title-bar">Edit Book</div>' +
+            '<button class="book-modal-close" id="bm-edit-close">&times;</button>' +
+            '<div class="bm-edit-form">' +
+                '<div class="bm-edit-cover-col">' +
+                    '<div class="cover-frame book-modal-cover" style="cursor:pointer;"><img id="bm-edit-cover-img" src="' + coverSrc + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+                    '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div></div>' +
+                    '<label class="bm-edit-btn bm-edit-cover-upload">' +
+                        '<input type="file" id="bm-edit-cover-file" accept="image/*" style="display:none;">' +
+                        '<span>Upload Cover</span>' +
+                    '</label>' +
+                '</div>' +
+                '<div class="bm-edit-fields">' +
+                    '<div class="bm-edit-field">' +
+                        '<div class="bm-edit-label">Title</div>' +
+                        '<input type="text" class="bm-edit-input" id="bm-edit-title" value="' + escapeHtml(book.title) + '">' +
+                    '</div>' +
+                    '<div class="bm-edit-field">' +
+                        '<div class="bm-edit-label">Author(s) <span class="bm-edit-hint">Separate multiple authors with commas</span></div>' +
+                        '<input type="text" class="bm-edit-input" id="bm-edit-authors" value="' + escapeHtml(authors) + '">' +
+                    '</div>' +
+                    '<div class="bm-edit-row">' +
+                        '<div class="bm-edit-field" style="flex:1;">' +
+                            '<div class="bm-edit-label">Language</div>' +
+                            '<select class="bm-edit-input" id="bm-edit-language">' + languageOptions(book.language) + '</select>' +
+                        '</div>' +
+                        '<div class="bm-edit-field" style="flex:1;">' +
+                            '<div class="bm-edit-label">Publisher</div>' +
+                            '<input type="text" class="bm-edit-input" id="bm-edit-publisher" value="' + escapeHtml(book.publisher || "") + '">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="bm-edit-row">' +
+                        '<div class="bm-edit-field" style="flex:1;">' +
+                            '<div class="bm-edit-label">Series Name</div>' +
+                            '<input type="text" class="bm-edit-input" id="bm-edit-series-name" value="' + escapeHtml(book.seriesName || "") + '">' +
+                        '</div>' +
+                        '<div class="bm-edit-field" style="width:100px;">' +
+                            '<div class="bm-edit-label">Series Index</div>' +
+                            '<input type="number" class="bm-edit-input" id="bm-edit-series-index" value="' + (book.seriesIndex != null ? book.seriesIndex : "") + '">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="bm-edit-field">' +
+                        '<div class="bm-edit-label">Publication Date</div>' +
+                        '<input type="text" class="bm-edit-input" id="bm-edit-pub-date" value="' + escapeHtml(book.publicationDate || "") + '">' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="bm-edit-field" style="margin-top:16px;">' +
+                '<div class="bm-edit-label">Description</div>' +
+                '<textarea class="bm-edit-textarea" id="bm-edit-description">' + escapeHtml(book.description || "") + '</textarea>' +
+            '</div>' +
+            '<div class="bm-edit-footer">' +
+                '<div class="bm-edit-warning">Changing title or authors will change the book\'s unique ID. Sync reading status before editing if the book is already on your device. Removing a series from a book will not remove it from the Kobo device — this requires a factory reset or a reindex with a new ID seed.</div>' +
+                '<div class="bm-edit-buttons"><button class="bm-edit-btn" id="bm-edit-cancel">Cancel</button>' +
+                '<button class="bm-edit-btn bm-edit-btn-primary" id="bm-edit-save">Save</button></div>' +
+            '</div>'
+        );
+
+        $("#book-modal-backdrop").addClass("open");
+    });
+}
+
+function showEditLoading(target) {
+    var $el = $(target);
+    $el.data("original-text", $el.text()).text("Loading...").prop("disabled", true);
+    $(".bm-edit-btn").prop("disabled", true).addClass("bm-edit-btn-disabled");
+    $(".bm-edit-input, .bm-edit-textarea").prop("disabled", true).addClass("bm-edit-input-disabled");
+}
+
+function hideEditLoading(target) {
+    var $el = $(target);
+    $el.text($el.data("original-text") || "").prop("disabled", false);
+    $(".bm-edit-btn").prop("disabled", false).removeClass("bm-edit-btn-disabled");
+    $(".bm-edit-input, .bm-edit-textarea").prop("disabled", false).removeClass("bm-edit-input-disabled");
+}
+
+function saveBookMetadata(uuid) {
+    var seriesIdx = $("#bm-edit-series-index").val();
+    var book = {
+        title: $("#bm-edit-title").val(),
+        authors: $("#bm-edit-authors").val().split(",").map(function (a) { return a.trim(); }).filter(function (a) { return a; }),
+        language: $("#bm-edit-language").val(),
+        publisher: $("#bm-edit-publisher").val() || null,
+        seriesName: $("#bm-edit-series-name").val() || null,
+        seriesIndex: seriesIdx !== "" ? parseInt(seriesIdx, 10) : null,
+        publicationDate: $("#bm-edit-pub-date").val() || null,
+        description: $("#bm-edit-description").val() || null
+    };
+
+    showEditLoading("#bm-edit-save");
+    $.ajax({
+        url: "/api/alexandria/books/" + uuid + "/metadata",
+        method: "PUT",
+        contentType: "application/json",
+        data: JSON.stringify(book),
+        success: function () {
+            originalModalHtml = null;
+            if (pageReload) { pageReload(); }
+            openBookModal(uuid);
+        },
+        complete: function () { hideEditLoading("#bm-edit-save"); }
+    });
+}
+
+function uploadBookCover(uuid, file) {
+    var formData = new FormData();
+    formData.append("cover", file);
+    showEditLoading(".bm-edit-cover-upload span");
+    $.ajax({
+        url: "/api/alexandria/books/" + uuid + "/cover",
+        method: "PUT",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function () {
+            $("#bm-edit-cover-img").attr("src", coverUrl(uuid, COVER_LARGE.w, COVER_LARGE.h) + "&t=" + Date.now()).show().next().hide();
+            if (pageReload) { pageReload(); }
+        },
+        complete: function () { hideEditLoading(".bm-edit-cover-upload span"); }
+    });
 }
 
 // ===== Sort/Filter Persistence =====
@@ -442,20 +604,21 @@ $(function () {
     });
 
     // ===== Modal Close =====
-    $("#bm-close").on("click", closeBookModal);
+    $(document).on("click", "#bm-close", function () { closeBookModal(); });
     $("#book-modal-backdrop").on("click", function (e) {
         if (e.target === this) { closeBookModal(); }
     });
 
     // ===== Modal Cover Lightbox =====
-    $("#book-modal-backdrop").on("click", "#bm-cover-frame", function (e) {
+    $(document).on("click", "#bm-cover-frame, #bm-edit-cover-img", function (e) {
         if (!currentModalUuid) { return; }
-        var lightbox = GLightbox({ elements: [{ href: coverUrl(currentModalUuid), type: "image" }], closeOnOutsideClick: true });
+        var src = coverUrl(currentModalUuid);
+        var lightbox = GLightbox({ elements: [{ href: src, type: "image" }], closeOnOutsideClick: true });
         lightbox.open();
     });
 
     // ===== Modal Tabs =====
-    $("#bm-tab-synopsis").on("click", function (e) {
+    $(document).on("click", "#bm-tab-synopsis", function (e) {
         e.preventDefault();
         $(this).addClass("active");
         $("#bm-tab-details, #bm-tab-data").removeClass("active");
@@ -463,7 +626,7 @@ $(function () {
         $("#bm-details, #bm-data").hide();
     });
 
-    $("#bm-tab-details").on("click", function (e) {
+    $(document).on("click", "#bm-tab-details", function (e) {
         e.preventDefault();
         $(this).addClass("active");
         $("#bm-tab-synopsis, #bm-tab-data").removeClass("active");
@@ -471,7 +634,7 @@ $(function () {
         $("#bm-synopsis, #bm-data").hide();
     });
 
-    $("#bm-tab-data").on("click", function (e) {
+    $(document).on("click", "#bm-tab-data", function (e) {
         e.preventDefault();
         $(this).addClass("active");
         $("#bm-tab-synopsis, #bm-tab-details").removeClass("active");
@@ -505,6 +668,38 @@ $(function () {
     $(document).on("click", "[data-mark-unread]", function (e) {
         e.preventDefault();
         updateReadingStatus($(this).data("mark-unread"), "ReadyToRead");
+    });
+
+    // ===== Edit Book =====
+    $(document).on("click", "[data-edit-book]", function (e) {
+        e.preventDefault();
+        openEditModal($(this).data("edit-book"));
+    });
+
+    $(document).on("click", "#bm-edit-save", function () {
+        if (currentModalUuid) { saveBookMetadata(currentModalUuid); }
+    });
+
+    $(document).on("click", "#bm-edit-close", function () {
+        closeBookModal();
+    });
+
+    $(document).on("click", "#bm-edit-cancel", function () {
+        if (currentModalUuid && originalModalHtml) {
+            $("#book-modal").html(originalModalHtml);
+            originalModalHtml = null;
+            openBookModal(currentModalUuid);
+        } else {
+            closeBookModal();
+        }
+    });
+
+    $(document).on("change", "#bm-edit-cover-file", function () {
+        var file = this.files[0];
+        if (file && currentModalUuid) {
+            $("#bm-edit-cover-img").attr("src", URL.createObjectURL(file)).show().next().hide();
+            uploadBookCover(currentModalUuid, file);
+        }
     });
 
     // ===== Clock =====

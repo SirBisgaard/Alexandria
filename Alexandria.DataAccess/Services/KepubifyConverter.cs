@@ -23,7 +23,7 @@ public class KepubifyConverter : IKepubifyConverter
         if (!File.Exists(kepubifyPath))
             throw new FileNotFoundException("Kepubify binary not found.", kepubifyPath);
 
-        var process = new Process
+        using var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {

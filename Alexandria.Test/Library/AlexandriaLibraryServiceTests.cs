@@ -1,0 +1,202 @@
+using Alexandria.Business.Interfaces;
+using Alexandria.Business.Models;
+using Alexandria.Business.Models.KoboStore;
+using Alexandria.Business.Models.Settings;
+using Alexandria.Business.Services;
+using Alexandria.DataAccess.Repositories;
+using Alexandria.DataAccess.Services;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Alexandria.Tests.Library;
+
+[TestClass]
+public sealed class AlexandriaLibraryServiceTests
+{
+    private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
+    private static readonly Guid LifeAndFateUuid = Guid.Parse("1f4245ed-f39f-59cb-8150-3af095b6d470");
+
+    private string testDir = null!;
+    private string booksDir = null!;
+    private string coversDir = null!;
+    private string kepubsDir = null!;
+    private string dbPath = null!;
+
+    [TestInitialize]
+    public void Setup()
+    {
+        testDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
+        booksDir = Path.Combine(testDir, "books");
+        coversDir = Path.Combine(testDir, "covers");
+        kepubsDir = Path.Combine(testDir, "kepubs");
+        dbPath = Path.Combine(testDir, "alexandria.db");
+        Directory.CreateDirectory(booksDir);
+        Directory.CreateDirectory(coversDir);
+        Directory.CreateDirectory(kepubsDir);
+
+        File.Copy(Path.Combine(ContentBooksDir, "Vasily Grossman - Life and Fate.epub"), Path.Combine(booksDir, "Vasily Grossman - Life and Fate.epub"));
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        if (Directory.Exists(testDir))
+        {
+            Directory.Delete(testDir, recursive: true);
+        }
+    }
+
+    private AlexandriaSettings CreateSettings() => new() { Database = dbPath, BooksFolder = booksDir, CoversFolder = coversDir, KepubsFolder = kepubsDir };
+
+    private async Task<(AlexandriaLibraryService service, BookRepository bookRepository)> CreateService()
+    {
+        var settings = CreateSettings();
+        var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
+        await initializer.Initialize();
+        var bookRepository = new BookRepository(settings);
+        var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
+        var fileRepository = new FileRepository(settings, coverThumbnailService);
+        var epubMetadataHandler = new EpubMetadataHandler();
+        var kepubifyConverter = new KepubifyConverter();
+        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, NullLogger<LibraryIndexerService>.Instance);
+        var readingStateRepository = new FakeReadingStateRepository();
+        var collectionRepository = new FakeBookCollectionRepository();
+        var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, fileRepository, epubMetadataHandler, indexerService);
+
+        await indexerService.Index();
+        return (service, bookRepository);
+    }
+
+    [TestMethod]
+    public async Task UpdateBookMetadata_LifeAndFate_UpdatesTitleAndPreservesUuid()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original, "Life and Fate should be indexed with the expected UUID.");
+        Assert.AreEqual("Life and Fate", original.Title);
+
+        var updateBook = new Book { Title = "Life and Fate (Updated)", Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, SeriesName = original.SeriesName, SeriesIndex = original.SeriesIndex, PublicationDate = original.PublicationDate, Description = original.Description };
+
+        var result = await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(LifeAndFateUuid, result.Uuid, "UUID should be preserved after metadata edit.");
+        Assert.AreEqual("Life and Fate (Updated)", result.Title);
+        Assert.HasCount(original.Authors.Count, result.Authors);
+    }
+
+    [TestMethod]
+    public async Task UpdateBookMetadata_LifeAndFate_UpdatesAllFields()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original);
+
+        var updateBook = new Book { Title = "New Title", Authors = ["Author A", "Author B"], Language = "da", Publisher = "Test Publisher", SeriesName = "Test Series", SeriesIndex = 5, PublicationDate = "2025-01-01", Description = "A new description" };
+
+        var result = await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(LifeAndFateUuid, result.Uuid);
+        Assert.AreEqual("New Title", result.Title);
+        Assert.HasCount(2, result.Authors);
+        Assert.AreEqual("Author A", result.Authors[0]);
+        Assert.AreEqual("Author B", result.Authors[1]);
+        Assert.AreEqual("da", result.Language);
+        Assert.AreEqual("Test Publisher", result.Publisher);
+        Assert.AreEqual("Test Series", result.SeriesName);
+        Assert.AreEqual(5, result.SeriesIndex);
+        Assert.AreEqual("2025-01-01", result.PublicationDate);
+        Assert.AreEqual("A new description", result.Description);
+    }
+
+    [TestMethod]
+    public async Task UpdateBookMetadata_LifeAndFate_MetadataPersistsInEpub()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original);
+
+        var updateBook = new Book { Title = "Roundtrip Title", Authors = ["Roundtrip Author"], Language = "fr", Publisher = original.Publisher, SeriesName = original.SeriesName, SeriesIndex = original.SeriesIndex, PublicationDate = original.PublicationDate, Description = original.Description };
+
+        await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+
+        // Verify the EPUB file itself was modified by re-extracting metadata directly.
+        var handler = new EpubMetadataHandler();
+        var freshMetadata = handler.ExtractMetadata(original.SourcePath);
+        Assert.AreEqual("Roundtrip Title", freshMetadata.Title);
+        Assert.HasCount(1, freshMetadata.Authors);
+        Assert.AreEqual("Roundtrip Author", freshMetadata.Authors[0]);
+        Assert.AreEqual("fr", freshMetadata.Language);
+    }
+
+    [TestMethod]
+    public async Task UpdateBookMetadata_LifeAndFate_NoFileLocksAfterUpdate()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original);
+
+        var updateBook = new Book { Title = "Lock Test", Authors = original.Authors, Language = original.Language };
+
+        await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+
+        // The EPUB, KEPUB, and cover files should all be writable after the operation completes.
+        Assert.IsTrue(CanWriteFile(original.SourcePath), "EPUB file should not be locked after metadata update.");
+
+        var updated = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(updated);
+
+        if (updated.KepubFilePath is not null)
+        {
+            Assert.IsTrue(CanWriteFile(updated.KepubFilePath), "KEPUB file should not be locked after metadata update.");
+        }
+
+        if (updated.CoverFilePath is not null)
+        {
+            Assert.IsTrue(CanWriteFile(updated.CoverFilePath), "Cover file should not be locked after metadata update.");
+        }
+    }
+
+    private static bool CanWriteFile(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    [TestMethod]
+    public async Task UpdateBookMetadata_NonExistentUuid_ReturnsNull()
+    {
+        var (service, _) = await CreateService();
+
+        var result = await service.UpdateBookMetadata(Guid.NewGuid(), new Book { Title = "x", Authors = ["a"], Language = "en" });
+
+        Assert.IsNull(result);
+    }
+
+    private class FakeReadingStateRepository : IReadingStateRepository
+    {
+        public Task<ReadingState?> GetByBookUuid(Guid bookUuid) => Task.FromResult<ReadingState?>(null);
+        public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult<ReadingProgress?>(null);
+        public Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody) => Task.CompletedTask;
+    }
+
+    private class FakeBookCollectionRepository : IBookCollectionRepository
+    {
+        public Task<List<BookCollection>> GetAll() => Task.FromResult<List<BookCollection>>([]);
+        public Task<BookCollection?> FindByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
+        public Task Upsert(BookCollection collection) => Task.CompletedTask;
+        public Task Delete(Guid uuid) => Task.CompletedTask;
+        public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
+    }
+}

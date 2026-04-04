@@ -279,6 +279,47 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
+    public void EmbedCover_CreatesCoverXhtmlAsFirstSpineItem()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Vasily Grossman - Life and Fate.epub");
+
+        handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
+
+        // Verify the EPUB now has a cover XHTML page as the first spine item.
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+        var opfEntry = zip.Entries.First(e => e.FullName.EndsWith(".opf"));
+        using var opfStream = opfEntry.Open();
+        var opfDoc = System.Xml.Linq.XDocument.Load(opfStream);
+        var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
+
+        // First spine itemref should point to a cover page.
+        var spine = opfDoc.Descendants(opfNs + "spine").First();
+        var firstItemRef = spine.Elements(opfNs + "itemref").First();
+        var firstIdRef = firstItemRef.Attribute("idref")?.Value;
+        Assert.IsNotNull(firstIdRef);
+
+        // The referenced manifest item should have a href containing "cover".
+        var manifest = opfDoc.Descendants(opfNs + "manifest").First();
+        var coverPageItem = manifest.Elements(opfNs + "item").First(i => i.Attribute("id")?.Value == firstIdRef);
+        var coverPageHref = coverPageItem.Attribute("href")?.Value;
+        Assert.IsNotNull(coverPageHref);
+        Assert.IsTrue(coverPageHref.Contains("cover", StringComparison.OrdinalIgnoreCase), $"Cover page href '{coverPageHref}' should contain 'cover'.");
+
+        // The cover XHTML should exist in the ZIP and reference an image.
+        var opfDir = System.IO.Path.GetDirectoryName(opfEntry.FullName)?.Replace('\\', '/') ?? "";
+        var coverPagePath = string.IsNullOrEmpty(opfDir) ? coverPageHref : $"{opfDir}/{coverPageHref}";
+        var coverPageEntry = zip.GetEntry(coverPagePath.Replace('\\', '/'));
+        Assert.IsNotNull(coverPageEntry, "cover.xhtml should exist in the EPUB.");
+
+        using var pageStream = coverPageEntry.Open();
+        using var reader = new StreamReader(pageStream);
+        var html = reader.ReadToEnd();
+        Assert.IsTrue(html.Contains("<img"), "Cover page should contain an img tag.");
+    }
+
+    [TestMethod]
     public void EmbedCover_NonExistentFile_ThrowsFileNotFoundException()
     {
         var handler = new EpubMetadataHandler();

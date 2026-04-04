@@ -20,7 +20,8 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         if (!File.Exists(epubPath))
             throw new FileNotFoundException("EPUB file not found.", epubPath);
 
-        using var zip = ZipFile.OpenRead(epubPath);
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
 
         var opfPath = GetOpfPath(zip);
         var opfEntry = zip.GetEntry(opfPath)
@@ -45,7 +46,8 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         if (!File.Exists(epubPath))
             throw new FileNotFoundException("EPUB file not found.", epubPath);
 
-        using var zip = ZipFile.OpenRead(epubPath);
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
 
         var opfPath = GetOpfPath(zip);
         var opfEntry = zip.GetEntry(opfPath)
@@ -66,7 +68,8 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             throw new FileNotFoundException("EPUB file not found.", epubPath);
         }
 
-        using var zip = ZipFile.Open(epubPath, ZipArchiveMode.Update);
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Update);
 
         var opfPath = GetOpfPath(zip);
         var opfEntry = zip.GetEntry(opfPath)
@@ -120,7 +123,8 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             _ => ".jpg"
         };
 
-        using var zip = ZipFile.Open(epubPath, ZipArchiveMode.Update);
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Update);
 
         var opfPath = GetOpfPath(zip);
         var opfEntry = zip.GetEntry(opfPath)
@@ -183,7 +187,73 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             SetMetaByName(metadataEl, "cover", "cover-image");
         }
 
+        // Ensure a cover XHTML page exists and is first in the spine.
+        // Kepubify checks if the first spine item's filename contains "cover" or "title".
+        // Without this, kepubify inserts a "Page intentionally left blank" dummy page.
+        EnsureCoverPage(zip, opfDoc, manifest, opfDirectory, coverHref);
+
         ReplaceOpfEntry(zip, opfPath, opfDoc);
+    }
+
+    private static void EnsureCoverPage(ZipArchive zip, XDocument opfDoc, XElement manifest, string opfDirectory, string coverImageHref)
+    {
+        var items = manifest.Elements(Opf + "item").ToList();
+
+        // Find existing cover page: look for id="cover-page" or an XHTML item whose href contains "cover".
+        var coverPageItem = items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, "cover-page", StringComparison.OrdinalIgnoreCase))
+            ?? items.FirstOrDefault(i =>
+                (i.Attribute("media-type")?.Value ?? "").StartsWith("application/xhtml", StringComparison.OrdinalIgnoreCase) &&
+                (i.Attribute("href")?.Value ?? "").Contains("cover", StringComparison.OrdinalIgnoreCase));
+
+        string coverPageId;
+        string coverPageHref;
+
+        if (coverPageItem is not null)
+        {
+            coverPageId = coverPageItem.Attribute("id")?.Value ?? "cover-page";
+            coverPageHref = coverPageItem.Attribute("href")?.Value ?? "cover.xhtml";
+
+            // Delete old cover page from ZIP and recreate with updated image reference.
+            var oldPagePath = string.IsNullOrEmpty(opfDirectory) ? coverPageHref : $"{opfDirectory}/{coverPageHref}";
+            zip.GetEntry(oldPagePath.Replace('\\', '/'))?.Delete();
+        }
+        else
+        {
+            coverPageId = "cover-page";
+            coverPageHref = "cover.xhtml";
+            manifest.Add(new XElement(Opf + "item", new XAttribute("id", coverPageId), new XAttribute("href", coverPageHref), new XAttribute("media-type", "application/xhtml+xml")));
+        }
+
+        // Write the cover XHTML page.
+        var coverXhtml = $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n<head><title>Cover</title>\n<style>body{{margin:0;padding:0;text-align:center;}}img{{max-width:100%;max-height:100%;}}</style>\n</head>\n<body><img src=\"{coverImageHref}\" alt=\"Cover\"/></body>\n</html>";
+        var coverPagePath = string.IsNullOrEmpty(opfDirectory) ? coverPageHref : $"{opfDirectory}/{coverPageHref}";
+        var pageEntry = zip.CreateEntry(coverPagePath.Replace('\\', '/'));
+        using (var pageStream = pageEntry.Open())
+        using (var writer = new StreamWriter(pageStream, System.Text.Encoding.UTF8))
+        {
+            writer.Write(coverXhtml);
+        }
+
+        // Ensure cover page is the first item in the spine.
+        var spine = opfDoc.Descendants(Opf + "spine").FirstOrDefault();
+        if (spine is null)
+        {
+            return;
+        }
+
+        var existingRef = spine.Elements(Opf + "itemref").FirstOrDefault(r => string.Equals(r.Attribute("idref")?.Value, coverPageId, StringComparison.OrdinalIgnoreCase));
+        if (existingRef is not null)
+        {
+            if (existingRef != spine.Elements(Opf + "itemref").First())
+            {
+                existingRef.Remove();
+                spine.AddFirst(new XElement(Opf + "itemref", new XAttribute("idref", coverPageId)));
+            }
+        }
+        else
+        {
+            spine.AddFirst(new XElement(Opf + "itemref", new XAttribute("idref", coverPageId)));
+        }
     }
 
     private static IEnumerable<XElement> MetaElements(XElement metadataEl)

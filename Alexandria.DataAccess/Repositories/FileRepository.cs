@@ -62,7 +62,7 @@ public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService 
 
     public async Task<string> ComputeFileHash(string filePath)
     {
-        await using var stream = File.OpenRead(filePath);
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         var hash = await SHA256.HashDataAsync(stream);
         return $"sha256:{Convert.ToHexStringLower(hash)}";
     }
