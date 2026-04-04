@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models;
 using Alexandria.Business.Models.Proxy;
 
 namespace Alexandria.Business.Services;

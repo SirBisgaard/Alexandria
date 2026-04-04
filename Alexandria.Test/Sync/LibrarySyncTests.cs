@@ -91,7 +91,7 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(KoboStoreToken));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(2, items.Count);
+        Assert.HasCount(2, items);
         Assert.IsTrue(items.All(i => i.NewEntitlement is not null), "All items should be NewEntitlement on first sync");
         Assert.IsTrue(items.All(i => i.ChangedEntitlement is null));
     }
@@ -108,7 +108,7 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(0, items.Count, "No local books should be sent when nothing changed");
+        Assert.IsEmpty(items, "No local books should be sent when nothing changed");
     }
 
     [TestMethod]
@@ -124,7 +124,7 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(1, items.Count, "Only the new book should be sent");
+        Assert.HasCount(1, items, "Only the new book should be sent");
         Assert.IsNotNull(items[0].NewEntitlement, "New book should be sent as NewEntitlement");
         Assert.AreEqual("New Book", items[0].NewEntitlement!.BookMetadata!.Title);
     }
@@ -142,7 +142,7 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(1, items.Count, "Only the updated book should be sent");
+        Assert.HasCount(1, items, "Only the updated book should be sent");
         Assert.IsNotNull(items[0].ChangedEntitlement, "Updated book should be sent as ChangedEntitlement");
         Assert.AreEqual("Updated", items[0].ChangedEntitlement!.BookMetadata!.Title);
     }
@@ -160,7 +160,7 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(0, items.Count, "Archived books should not be sent");
+        Assert.IsEmpty(items, "Archived books should not be sent");
     }
 
     [TestMethod]
@@ -217,7 +217,7 @@ public sealed class LibrarySyncTests
         // First page — should have continue header and lastSync NOT advanced.
         var response1 = await service.LibrarySync(MakeRequest(KoboStoreToken));
         var items1 = DeserializeBody(response1);
-        Assert.AreEqual(100, items1.Count, "First page should have 100 items");
+        Assert.HasCount(100, items1, "First page should have 100 items");
         Assert.IsTrue(response1.Headers.TryGetValue("x-kobo-sync", out var continueValues) && continueValues.Contains("continue"), "First page should have x-kobo-sync: continue");
         var token1 = ParseResponseToken(response1);
         Assert.AreEqual(DateTimeOffset.MinValue, token1.LastSync, "LastSync should NOT be advanced during continuation");
@@ -226,7 +226,7 @@ public sealed class LibrarySyncTests
         var before = DateTimeOffset.UtcNow;
         var response2 = await service.LibrarySync(MakeRequest(syncTokenService.Generate(token1)));
         var items2 = DeserializeBody(response2);
-        Assert.AreEqual(50, items2.Count, "Second page should have the remaining 50 items");
+        Assert.HasCount(50, items2, "Second page should have the remaining 50 items");
         Assert.IsFalse(response2.Headers.ContainsKey("x-kobo-sync"), "Final page should NOT have x-kobo-sync header");
         var token2 = ParseResponseToken(response2);
         Assert.IsTrue(token2.LastSync >= before, "LastSync should be advanced on the final page");
@@ -259,7 +259,7 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(syncToken: null));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(1, items.Count, "Missing token should trigger full sync");
+        Assert.HasCount(1, items, "Missing token should trigger full sync");
         Assert.IsNotNull(items[0].NewEntitlement);
     }
 
@@ -277,11 +277,11 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.AreEqual(2, items.Count, "Only new and changed books should be sent");
+        Assert.HasCount(2, items, "Only new and changed books should be sent");
         var newItems = items.Where(i => i.NewEntitlement is not null).ToList();
         var changedItems = items.Where(i => i.ChangedEntitlement is not null).ToList();
-        Assert.AreEqual(1, newItems.Count);
-        Assert.AreEqual(1, changedItems.Count);
+        Assert.HasCount(1, newItems);
+        Assert.HasCount(1, changedItems);
         Assert.AreEqual("New Book", newItems[0].NewEntitlement!.BookMetadata!.Title);
         Assert.AreEqual("Changed Book", changedItems[0].ChangedEntitlement!.BookMetadata!.Title);
     }
@@ -294,7 +294,7 @@ public sealed class LibrarySyncTests
     }
 
     private class FakeLibraryService(List<Book> books) : IAlexandriaLibraryService
-    {
+    { 
         public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books);
         public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.Uuid == uuid));
         public Task ArchiveBook(Guid uuid) => Task.CompletedTask;
@@ -311,6 +311,8 @@ public sealed class LibrarySyncTests
         public Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<Series?>(null);
         public Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null) => Task.FromResult<byte[]?>(null);
         public Task UpdateReadingStatus(Guid uuid, string status) => Task.CompletedTask;
+        public Task<Book?> UpdateBookMetadata(Guid uuid, Book book) => Task.FromResult<Book?>(null);
+        public Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType) => Task.FromResult<Book?>(null);
     }
 
     private class FakeFileRepository : IFileRepository

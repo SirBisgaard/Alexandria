@@ -20,4 +20,6 @@ public interface IAlexandriaLibraryService
     Task DeleteCollection(Guid uuid);
     Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since);
     Task UpdateReadingStatus(Guid uuid, string status);
+    Task<Book?> UpdateBookMetadata(Guid uuid, Book book);
+    Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType);
 }

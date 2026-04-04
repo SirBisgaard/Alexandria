@@ -30,6 +30,18 @@ public static class BookExtensions
                 LastModified = lastModified
             };
         }
+
+        public EpubMetadata ToEpubMetadata() => new()
+        {
+            Title = book.Title,
+            Authors = book.Authors,
+            Language = book.Language,
+            PublicationDate = book.PublicationDate,
+            Description = book.Description,
+            Publisher = book.Publisher,
+            SeriesName = book.SeriesName,
+            SeriesIndex = book.SeriesIndex
+        };
         
         public BookEntitlement ToEntitlement() => new()
         {

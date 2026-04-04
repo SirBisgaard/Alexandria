@@ -2,8 +2,10 @@ using Alexandria.Business.Models.Files;
 
 namespace Alexandria.Business.Interfaces;
 
-public interface IEpubMetadataExtractor
+public interface IEpubMetadataHandler
 {
     EpubMetadata ExtractMetadata(string epubPath);
     string? ExtractCover(string epubPath, string coverOutputDirectory);
+    void EmbedMetadata(string epubPath, EpubMetadata metadata);
+    void EmbedCover(string epubPath, byte[] coverData, string mediaType);
 }

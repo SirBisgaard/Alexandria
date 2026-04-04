@@ -35,7 +35,7 @@ public sealed class CoverThumbnailServiceTests
 
     private string ExtractTestCover()
     {
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var epub = Directory.GetFiles(ContentBooksDir, "*.epub").First();
         var coverPath = extractor.ExtractCover(epub, coversDir);
         Assert.IsNotNull(coverPath, "Test EPUB should have a cover.");
@@ -51,7 +51,7 @@ public sealed class CoverThumbnailServiceTests
         var result = await service.GetOrCreateThumbnail(coverPath, uuid, 355, 530, 80);
 
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.Length > 0);
+        Assert.IsNotEmpty(result);
 
         var expectedPath = Path.Combine(coversDir, "355x530q80", $"{uuid}.jpg");
         Assert.IsTrue(File.Exists(expectedPath), "Thumbnail file should be written to disk.");

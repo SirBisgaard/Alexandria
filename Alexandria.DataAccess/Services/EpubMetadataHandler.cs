@@ -5,7 +5,7 @@ using Alexandria.Business.Models.Files;
 
 namespace Alexandria.DataAccess.Services;
 
-public class EpubMetadataExtractor : IEpubMetadataExtractor
+public class EpubMetadataHandler : IEpubMetadataHandler
 {
     private static readonly XNamespace Dc = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
@@ -57,6 +57,133 @@ public class EpubMetadataExtractor : IEpubMetadataExtractor
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
 
         return WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.Uuid);
+    }
+
+    public void EmbedMetadata(string epubPath, EpubMetadata metadata)
+    {
+        if (!File.Exists(epubPath))
+        {
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+        }
+
+        using var zip = ZipFile.Open(epubPath, ZipArchiveMode.Update);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        XDocument opfDoc;
+        using (var opfStream = opfEntry.Open())
+        {
+            opfDoc = XDocument.Load(opfStream);
+        }
+
+        var metadataEl = opfDoc.Descendants(Opf + "metadata").FirstOrDefault()
+            ?? throw new InvalidOperationException("No <metadata> element found in OPF.");
+
+        // Update DC elements.
+        SetDcElement(metadataEl, "title", metadata.Title);
+        SetDcElement(metadataEl, "language", metadata.Language);
+        SetDcElement(metadataEl, "date", metadata.PublicationDate);
+        SetDcElement(metadataEl, "description", metadata.Description);
+        SetDcElement(metadataEl, "publisher", metadata.Publisher);
+
+        // Replace all authors.
+        metadataEl.Elements(Dc + "creator").Remove();
+        foreach (var author in metadata.Authors)
+        {
+            metadataEl.Add(new XElement(Dc + "creator", author));
+        }
+
+        // Update Calibre series meta tags.
+        SetMetaByName(metadataEl, "calibre:series", metadata.SeriesName);
+        SetMetaByName(metadataEl, "calibre:series_index", metadata.SeriesIndex?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        // Remove EPUB 3 series metadata to avoid conflicts with Calibre tags.
+        RemoveEpub3SeriesMeta(metadataEl);
+
+        ReplaceOpfEntry(zip, opfPath, opfDoc);
+    }
+
+    public void EmbedCover(string epubPath, byte[] coverData, string mediaType)
+    {
+        if (!File.Exists(epubPath))
+        {
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+        }
+
+        var extension = mediaType switch
+        {
+            "image/jpeg" => ".jpeg",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            _ => ".jpg"
+        };
+
+        using var zip = ZipFile.Open(epubPath, ZipArchiveMode.Update);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        XDocument opfDoc;
+        using (var opfStream = opfEntry.Open())
+        {
+            opfDoc = XDocument.Load(opfStream);
+        }
+
+        var metadataEl = opfDoc.Descendants(Opf + "metadata").FirstOrDefault()
+            ?? throw new InvalidOperationException("No <metadata> element found in OPF.");
+        var manifest = opfDoc.Descendants(Opf + "manifest").FirstOrDefault()
+            ?? throw new InvalidOperationException("No <manifest> element found in OPF.");
+
+        var opfDirectory = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
+
+        // Find existing cover href and remove old entry from ZIP.
+        var existingHref = FindCoverHref(opfDoc, metadataEl);
+        string coverHref;
+        if (existingHref is not null)
+        {
+            var oldEntryPath = string.IsNullOrEmpty(opfDirectory) ? existingHref : $"{opfDirectory}/{existingHref}";
+            var oldEntry = zip.GetEntry(oldEntryPath.Replace('\\', '/'));
+            oldEntry?.Delete();
+
+            // Keep the same relative path but update the extension if needed.
+            var existingWithoutExt = Path.ChangeExtension(existingHref, null);
+            coverHref = existingWithoutExt + extension;
+        }
+        else
+        {
+            coverHref = $"Images/cover{extension}";
+        }
+
+        // Add the new cover image to the ZIP.
+        var newEntryPath = string.IsNullOrEmpty(opfDirectory) ? coverHref : $"{opfDirectory}/{coverHref}";
+        var newCoverEntry = zip.CreateEntry(newEntryPath.Replace('\\', '/'), CompressionLevel.NoCompression);
+        using (var coverStream = newCoverEntry.Open())
+        {
+            coverStream.Write(coverData, 0, coverData.Length);
+        }
+
+        // Update or add manifest item.
+        var items = manifest.Elements(Opf + "item").ToList();
+        var coverId = FindMetaByName(metadataEl, "cover");
+        var coverItem = coverId is not null
+            ? items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, coverId, StringComparison.OrdinalIgnoreCase))
+            : items.FirstOrDefault(i => (i.Attribute("properties")?.Value ?? string.Empty).Split(' ').Any(p => string.Equals(p, "cover-image", StringComparison.OrdinalIgnoreCase)));
+
+        if (coverItem is not null)
+        {
+            coverItem.SetAttributeValue("href", coverHref);
+            coverItem.SetAttributeValue("media-type", mediaType);
+        }
+        else
+        {
+            manifest.Add(new XElement(Opf + "item", new XAttribute("id", "cover-image"), new XAttribute("href", coverHref), new XAttribute("media-type", mediaType), new XAttribute("properties", "cover-image")));
+            SetMetaByName(metadataEl, "cover", "cover-image");
+        }
+
+        ReplaceOpfEntry(zip, opfPath, opfDoc);
     }
 
     private static IEnumerable<XElement> MetaElements(XElement metadataEl)
@@ -202,6 +329,51 @@ public class EpubMetadataExtractor : IEpubMetadataExtractor
         entryStream.CopyTo(fileStream);
 
         return outputPath;
+    }
+
+    private static void SetDcElement(XElement metadataEl, string localName, string? value)
+    {
+        metadataEl.Elements(Dc + localName).Remove();
+        if (!string.IsNullOrEmpty(value))
+        {
+            metadataEl.Add(new XElement(Dc + localName, value));
+        }
+    }
+
+    private static void SetMetaByName(XElement metadataEl, string name, string? value)
+    {
+        var existing = MetaElements(metadataEl).Where(m => string.Equals(m.Attribute("name")?.Value, name, StringComparison.OrdinalIgnoreCase)).ToList();
+        foreach (var el in existing)
+        {
+            el.Remove();
+        }
+        if (!string.IsNullOrEmpty(value))
+        {
+            metadataEl.Add(new XElement(Opf + "meta", new XAttribute("name", name), new XAttribute("content", value)));
+        }
+    }
+
+    private static void RemoveEpub3SeriesMeta(XElement metadataEl)
+    {
+        var collectionMetas = MetaElements(metadataEl).Where(m => string.Equals(m.Attribute("property")?.Value, "belongs-to-collection", StringComparison.OrdinalIgnoreCase)).ToList();
+        foreach (var meta in collectionMetas)
+        {
+            var refineId = meta.Attribute("id")?.Value;
+            if (refineId is not null)
+            {
+                // Remove associated group-position and collection-type refines.
+                MetaElements(metadataEl).Where(m => m.Attribute("refines")?.Value == $"#{refineId}").ToList().ForEach(m => m.Remove());
+            }
+            meta.Remove();
+        }
+    }
+
+    private static void ReplaceOpfEntry(ZipArchive zip, string opfPath, XDocument opfDoc)
+    {
+        zip.GetEntry(opfPath)?.Delete();
+        var newEntry = zip.CreateEntry(opfPath);
+        using var stream = newEntry.Open();
+        opfDoc.Save(stream);
     }
 
     /// <summary>

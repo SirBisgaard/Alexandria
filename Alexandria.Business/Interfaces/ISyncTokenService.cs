@@ -1,4 +1,3 @@
-using Alexandria.Business.Models;
 using Alexandria.Business.Models.Proxy;
 
 namespace Alexandria.Business.Interfaces;

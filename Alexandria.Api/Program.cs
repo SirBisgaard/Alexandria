@@ -29,7 +29,7 @@ builder.Services.AddTransient<IFileRepository, FileRepository>();
 builder.Services.AddTransient<IReadingStateRepository, ReadingStateRepository>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddTransient<IBookCollectionRepository, BookCollectionRepository>();
-builder.Services.AddTransient<IEpubMetadataExtractor, EpubMetadataExtractor>();
+builder.Services.AddTransient<IEpubMetadataHandler, EpubMetadataHandler>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();
 

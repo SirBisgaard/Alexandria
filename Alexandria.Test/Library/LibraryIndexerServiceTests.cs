@@ -51,7 +51,7 @@ public sealed class LibraryIndexerServiceTests
     {
         var settings = CreateSettings();
         var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
@@ -59,16 +59,16 @@ public sealed class LibraryIndexerServiceTests
 
         var books = await bookRepository.GetAll();
         var epubCount = Directory.GetFiles(ContentBooksDir, "*.epub").Length;
-        Assert.AreEqual(epubCount, books.Count, "All books should be indexed.");
+        Assert.HasCount(epubCount, books, "All books should be indexed.");
 
         foreach (var book in books)
         {
             Assert.AreNotEqual(string.Empty, book.Title);
-            Assert.IsTrue(book.Authors.Count > 0);
-            Assert.IsTrue(book.FileHash.StartsWith("sha256:"));
+            Assert.IsNotEmpty(book.Authors);
+            Assert.StartsWith("sha256:", book.FileHash);
             Assert.IsNotNull(book.KepubFilePath);
             Assert.IsTrue(File.Exists(book.KepubFilePath), $"KEPUB should exist for {book.Title}");
-            Assert.IsTrue(book.KepubFileSize > 0, $"KepubFileSize should be positive for {book.Title}");
+            Assert.IsGreaterThan(0, book.KepubFileSize, $"KepubFileSize should be positive for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt, $"CreatedAt should be set for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.LastModified, $"LastModified should be set for {book.Title}");
             Assert.AreEqual(book.CreatedAt, book.LastModified, $"CreatedAt and LastModified should match on first index for {book.Title}");
@@ -80,7 +80,7 @@ public sealed class LibraryIndexerServiceTests
     {
         var settings = CreateSettings();
         var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
@@ -92,7 +92,7 @@ public sealed class LibraryIndexerServiceTests
         await indexer.Index();
 
         var secondRunBooks = await bookRepository.GetAll();
-        Assert.AreEqual(firstRunCount, secondRunBooks.Count, "Running twice should not duplicate books.");
+        Assert.HasCount(firstRunCount, secondRunBooks, "Running twice should not duplicate books.");
         foreach (var book in secondRunBooks)
         {
             Assert.AreEqual(timestamps[book.Uuid].CreatedAt, book.CreatedAt, $"CreatedAt should not change for {book.Title}");
@@ -108,14 +108,14 @@ public sealed class LibraryIndexerServiceTests
 
         var settings = CreateSettings(emptyBooksDir);
         var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
         var books = await bookRepository.GetAll();
-        Assert.AreEqual(0, books.Count);
+        Assert.IsEmpty(books);
     }
 
     [TestMethod]
@@ -131,14 +131,14 @@ public sealed class LibraryIndexerServiceTests
 
         var settings = CreateSettings(booksDir);
         var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         // Index the book.
         await indexer.Index();
         var books = await bookRepository.GetAll();
-        Assert.AreEqual(1, books.Count);
+        Assert.HasCount(1, books);
         var kepubPath = books[0].KepubFilePath!;
         Assert.IsTrue(File.Exists(kepubPath));
 
@@ -148,7 +148,7 @@ public sealed class LibraryIndexerServiceTests
         // Re-index — stale entry and its kepub should be removed.
         await indexer.Index();
         books = await bookRepository.GetAll();
-        Assert.AreEqual(0, books.Count);
+        Assert.IsEmpty(books);
         Assert.IsFalse(File.Exists(kepubPath), "Orphaned KEPUB file should be deleted.");
     }
 
@@ -164,13 +164,13 @@ public sealed class LibraryIndexerServiceTests
 
         var settings = CreateSettings(booksDir);
         var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
         var books = await bookRepository.GetAll();
-        Assert.AreEqual(1, books.Count);
+        Assert.HasCount(1, books);
 
         var originalCreatedAt = books[0].CreatedAt;
         var originalLastModified = books[0].LastModified;
@@ -186,12 +186,12 @@ public sealed class LibraryIndexerServiceTests
         await indexer.Index();
 
         books = await bookRepository.GetAll();
-        Assert.AreEqual(1, books.Count);
+        Assert.HasCount(1, books);
         var book = books[0];
         Assert.AreEqual(originalCreatedAt, book.CreatedAt, "CreatedAt must be preserved.");
         Assert.IsTrue(book.LastModified > originalLastModified, "LastModified must be updated.");
         Assert.AreEqual(originalHash, book.FileHash, "FileHash should be the real hash again.");
-        Assert.IsTrue(book.KepubFileSize > 0, "KepubFileSize must be set.");
+        Assert.IsGreaterThan(0, book.KepubFileSize, "KepubFileSize must be set.");
     }
 
     [TestMethod]
@@ -199,13 +199,13 @@ public sealed class LibraryIndexerServiceTests
     {
         var settings = CreateSettings(Path.Combine(testDir, "does-not-exist"));
         var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataExtractor();
+        var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, NullLogger<LibraryIndexerService>.Instance);
 
         await indexer.Index();
 
         var books = await bookRepository.GetAll();
-        Assert.AreEqual(0, books.Count);
+        Assert.IsEmpty(books);
     }
 }

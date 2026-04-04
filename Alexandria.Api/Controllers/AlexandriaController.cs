@@ -1,3 +1,4 @@
+using Alexandria.Api.Models;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -104,6 +105,38 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         }
         return Ok(result);
     }
-}
+    
+    [HttpPut("books/{uuid:guid}/metadata")]
+    public async Task<IActionResult> UpdateBookMetadata(Guid uuid, [FromBody] Book book)
+    {
+        var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+        
+        var result = await alexandriaLibraryService.UpdateBookMetadata(uuid, book);
+        return Ok(result);
+    }
 
-public record UpdateStatusRequest(string Status);
+    [HttpPut("books/{uuid:guid}/cover")]
+    public async Task<IActionResult> UpdateBookCover(Guid uuid, IFormFile? cover)
+    {
+        if (cover is null || cover.Length == 0)
+        {
+            return BadRequest("No cover file provided.");
+        }
+
+        var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        using var ms = new MemoryStream();
+        await cover.CopyToAsync(ms);
+
+        var result = await alexandriaLibraryService.UpdateBookCover(uuid, ms.ToArray(), cover.ContentType);
+        return Ok(result);
+    }
+}
