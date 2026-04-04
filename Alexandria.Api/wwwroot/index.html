@@ -31,7 +31,7 @@
 </div>
 
 <div class="page container-lg">
-    <div class="row row-cols-1 row-cols-sm-2 g-4 home-grid" id="home-grid"></div>
+    <div class="row g-4 home-grid mt-2" id="home-grid"></div>
 </div>
 
 <!-- Bottom Navigation -->
@@ -94,7 +94,8 @@ $(function () {
                 '</div>';
             });
             readingHtml += '</div>';
-            $grid.append('<div class="col-12">' + readingHtml + '</div>');
+            var colClass = readingBooks.length > 2 ? 'col-12' : 'col-12 col-md-6';
+            $grid.append('<div class="' + colClass + '">' + readingHtml + '</div>');
         }
 
         // Author spotlight — author with most unread books
@@ -122,7 +123,7 @@ $(function () {
             });
             stackHtml += '</div></div>';
             $grid.append(
-                '<div class="col"><a href="author-detail.html?name=' + encodeURIComponent(topAuthor) + '" class="home-card">' + stackHtml +
+                '<div class="col-12 col-md-6"><a href="author-detail.html?name=' + encodeURIComponent(topAuthor) + '" class="home-card">' + stackHtml +
                     '<div class="home-card-title">' + escapeHtml(topAuthor) + '</div>' +
                     '<div class="home-card-sub">' + topCount + ' unread books</div>' +
                 '</a></div>'
@@ -137,11 +138,29 @@ $(function () {
         });
         myBooksStack += '</div></div>';
         $grid.append(
-            '<div class="col"><a href="books.html" class="home-card">' + myBooksStack +
+            '<div class="col-12 col-md-6"><a href="books.html" class="home-card">' + myBooksStack +
                 '<div class="home-card-title">My Books</div>' +
                 '<div class="home-card-sub">' + books.length + ' books</div>' +
             '</a></div>'
         );
+
+        // Latest series
+        if (seriesList.length > 0) {
+            var latestSeries = seriesList[0];
+            var sBooks = (latestSeries.books || []).slice(0, 3);
+            var sStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+            $.each(sBooks, function (i, b) {
+                sStack += homeStackCoverHtml(b);
+            });
+            sStack += '</div></div>';
+            var sCount = (latestSeries.books || []).length;
+            $grid.append(
+                '<div class="col-12 col-md-6"><a href="series-detail.html?uuid=' + latestSeries.uuid + '" class="home-card">' + sStack +
+                    '<div class="home-card-title">' + escapeHtml(latestSeries.name) + '</div>' +
+                    '<div class="home-card-sub">' + sCount + (sCount === 1 ? ' book' : ' books') + '</div>' +
+                '</a></div>'
+            );
+        }
 
         // First collection
         if (collections.length > 0) {
@@ -160,28 +179,10 @@ $(function () {
             }
             colCovers += '</div></div>';
             $grid.append(
-                '<div class="col"><a href="collection-detail.html?uuid=' + col.uuid + '" class="home-card">' +
+                '<div class="col-12 col-md-6"><a href="collection-detail.html?uuid=' + col.uuid + '" class="home-card">' +
                     colCovers +
                     '<div class="home-card-title">' + escapeHtml(col.name) + '</div>' +
                     '<div class="home-card-sub">' + colCount + (colCount === 1 ? ' book' : ' books') + '</div>' +
-                '</a></div>'
-            );
-        }
-
-        // Latest series
-        if (seriesList.length > 0) {
-            var latestSeries = seriesList[0];
-            var sBooks = (latestSeries.books || []).slice(0, 3);
-            var sStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
-            $.each(sBooks, function (i, b) {
-                sStack += homeStackCoverHtml(b);
-            });
-            sStack += '</div></div>';
-            var sCount = (latestSeries.books || []).length;
-            $grid.append(
-                '<div class="col"><a href="series-detail.html?uuid=' + latestSeries.uuid + '" class="home-card">' + sStack +
-                    '<div class="home-card-title">' + escapeHtml(latestSeries.name) + '</div>' +
-                    '<div class="home-card-sub">' + sCount + (sCount === 1 ? ' book' : ' books') + '</div>' +
                 '</a></div>'
             );
         }
