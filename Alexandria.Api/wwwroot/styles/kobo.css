@@ -563,7 +563,6 @@ a.series-list-item {
     flex-direction: column;
     text-decoration: none;
     color: inherit;
-    overflow: hidden;
 }
 
 .home-card-covers {

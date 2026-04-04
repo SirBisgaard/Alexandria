@@ -79,7 +79,7 @@ $(function () {
         readingBooks.sort(function (a, b) {
             return new Date(b.readingProgress.lastModified) - new Date(a.readingProgress.lastModified);
         });
-        readingBooks = readingBooks.slice(0, 5);
+        readingBooks = readingBooks.slice(0, 6);
         if (readingBooks.length > 0) {
             var spanClass = readingBooks.length >= 3 ? ' home-reading-span' : '';
             var readingHtml = '<div class="home-reading' + spanClass + '">';
