@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Alexandria.Api.Models;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
@@ -161,5 +162,28 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
             return NotFound();
         }
         return Ok(result);
+    }
+
+    [HttpPost("sync")]
+    public async Task Sync()
+    {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+        var progress = new Progress<(int current, int total)>(async value =>
+        {
+            var json = JsonSerializer.Serialize(new SyncProgressEvent(value.current, value.total), jsonOptions);
+            await Response.WriteAsync($"data: {json}\n\n");
+            await Response.Body.FlushAsync();
+        });
+
+        var bookCount = await alexandriaLibraryService.Sync(progress);
+
+        var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount), jsonOptions);
+        await Response.WriteAsync($"data: {doneJson}\n\n");
+        await Response.Body.FlushAsync();
     }
 }

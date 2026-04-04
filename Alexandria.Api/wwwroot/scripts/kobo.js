@@ -531,6 +531,111 @@ $(function () {
         if (e.target === this) { $("#settings-modal-backdrop").removeClass("open"); }
     });
 
+    // ===== Inject Sync Popover HTML =====
+    var lastSyncTime = localStorage.getItem("lastSyncTime");
+    var lastSyncLabel = lastSyncTime ? "LAST SYNC: " + lastSyncTime : "LAST SYNC: NEVER";
+    $("body").append(
+        '<div class="sync-popover-backdrop" id="sync-popover-backdrop">' +
+            '<div class="sync-popover" id="sync-popover">' +
+                '<div class="sync-popover-text" id="sync-popover-text">Sync library files for changes.</div>' +
+                '<div class="sync-popover-progress" id="sync-popover-progress"><div class="sync-popover-progress-bar" id="sync-popover-progress-bar"></div></div>' +
+                '<button class="sync-popover-btn" id="sync-popover-btn">Sync now</button>' +
+                '<div class="sync-popover-last-sync" id="sync-popover-last-sync">' + lastSyncLabel + '</div>' +
+            '</div>' +
+        '</div>'
+    );
+
+    // ===== Sync Popover Open/Close =====
+    var syncInProgress = false;
+    var syncCompleted = false;
+
+    function openSyncPopover() {
+        if (!syncInProgress) {
+            $("#sync-popover-text").text("Sync library files for changes.");
+            $("#sync-popover-progress-bar").css("width", "0%");
+            $("#sync-popover-btn").text("Sync now").prop("disabled", false);
+            syncCompleted = false;
+        }
+        $("#sync-popover-backdrop").addClass("open");
+    }
+
+    function closeSyncPopover() {
+        if (syncInProgress) { return; }
+        $("#sync-popover-backdrop").removeClass("open");
+    }
+
+    $("#sync-btn").on("click", function () {
+        if ($("#sync-popover-backdrop").hasClass("open")) {
+            closeSyncPopover();
+        } else {
+            openSyncPopover();
+        }
+    });
+
+    $("#sync-popover-backdrop").on("click", function (e) {
+        if (e.target === this) { closeSyncPopover(); }
+    });
+
+    // ===== Sync Now =====
+    $("#sync-popover-btn").on("click", function () {
+        if (syncInProgress) { return; }
+
+        if (syncCompleted) {
+            syncCompleted = false;
+            $("#sync-popover-backdrop").removeClass("open");
+            if (typeof pageReload === "function" && pageReload) {
+                pageReload();
+            } else {
+                location.reload();
+            }
+            return;
+        }
+
+        syncInProgress = true;
+        syncCompleted = false;
+        $("#sync-popover-btn").text("Syncing...").prop("disabled", true);
+        $("#sync-popover-progress-bar").css("width", "0%");
+
+        fetch("/api/alexandria/sync", { method: "POST" }).then(function (response) {
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+
+            function read() {
+                reader.read().then(function (result) {
+                    if (result.done) { return; }
+                    var lines = decoder.decode(result.value).split("\n");
+                    lines.forEach(function (line) {
+                        if (!line.startsWith("data: ")) { return; }
+                        var json = JSON.parse(line.substring(6));
+                        if (json.done) {
+                            var now = new Date();
+                            var hh = String(now.getHours()).padStart(2, "0");
+                            var mm = String(now.getMinutes()).padStart(2, "0");
+                            var timeStr = hh + ":" + mm;
+                            localStorage.setItem("lastSyncTime", timeStr);
+                            $("#sync-popover-last-sync").text("LAST SYNC: " + timeStr);
+                            $("#sync-popover-progress-bar").css("width", "100%");
+                            $("#sync-popover-text").text("Sync complete. " + json.bookCount + " books indexed.");
+                            $("#sync-popover-btn").text("Close").prop("disabled", false);
+                            syncInProgress = false;
+                            syncCompleted = true;
+                        } else {
+                            var pct = Math.round((json.current / json.total) * 100);
+                            $("#sync-popover-progress-bar").css("width", pct + "%");
+                        }
+                    });
+                    read();
+                });
+            }
+            read();
+        }).catch(function () {
+            syncInProgress = false;
+            syncCompleted = false;
+            $("#sync-popover-text").text("Sync failed. Please try again.");
+            $("#sync-popover-btn").text("Sync now").prop("disabled", false);
+        });
+    });
+
     // ===== Search Modal Open/Close =====
     var searchCache = null;
     var searchTimer = null;
@@ -554,6 +659,7 @@ $(function () {
     });
 
     $(document).on("keydown", function (e) {
+        if (e.key === "Escape" && $("#sync-popover-backdrop").hasClass("open")) { closeSyncPopover(); }
         if (e.key === "Escape" && $("#search-modal-backdrop").hasClass("open")) { closeSearchModal(); }
         if (e.key === "Escape" && $("#about-modal-backdrop").hasClass("open")) { $("#about-modal-backdrop").removeClass("open"); }
         if (e.key === "Escape" && $("#settings-modal-backdrop").hasClass("open")) { $("#settings-modal-backdrop").removeClass("open"); }

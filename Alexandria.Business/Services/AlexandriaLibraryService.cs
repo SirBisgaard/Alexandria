@@ -206,4 +206,9 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         await libraryIndexerService.ReindexBook(uuid);
         return await bookRepository.FindByUuid(uuid);
     }
+
+    public async Task<int> Sync(IProgress<(int current, int total)>? progress = null)
+    {
+        return await libraryIndexerService.Index(progress);
+    }
 }

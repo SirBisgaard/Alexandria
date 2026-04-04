@@ -23,4 +23,5 @@ public interface IAlexandriaLibraryService
     Task<Book?> UpdateBookMetadata(Guid uuid, Book book);
     Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType);
     Task<Book?> RemoveBookCover(Guid uuid);
+    Task<int> Sync(IProgress<(int current, int total)>? progress = null);
 }

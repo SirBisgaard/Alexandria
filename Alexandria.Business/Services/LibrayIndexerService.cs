@@ -9,79 +9,100 @@ namespace Alexandria.Business.Services;
 
 public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, IKepubifyConverter kepubifyConverter, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
 {
-    public async Task Index()
+    private static readonly SemaphoreSlim IndexLock = new(1, 1);
+
+    public async Task<int> Index(IProgress<(int current, int total)>? progress = null)
     {
-        logger.LogInformation("Library indexing started. Books folder: {BooksFolder}", settings.BooksFolder);
-
-        var books = await bookRepository.GetAll();
-        var epubFiles = fileRepository.GetEpubFiles();
-        logger.LogInformation("Found {Count} epub files", epubFiles.Length);
-
-        // Remove stale entries whose source epub no longer exists on disk.
-        var currentPaths = new HashSet<string>(epubFiles);
-        var staleBooks = books.Where(b => !currentPaths.Contains(b.SourcePath)).ToList();
-        foreach (var stale in staleBooks)
+        await IndexLock.WaitAsync();
+        try
         {
-            logger.LogInformation("Removing stale entry: {Title} ({SourcePath})", stale.Title, stale.SourcePath);
-            fileRepository.DeleteCover(stale);
-            fileRepository.DeleteKepub(stale);
-            await bookRepository.Remove(stale.Uuid);
-        }
+            logger.LogInformation("Library indexing started. Books folder: {BooksFolder}", settings.BooksFolder);
 
-        foreach (var epubPath in epubFiles)
+            var books = await bookRepository.GetAll();
+            var epubFiles = fileRepository.GetEpubFiles();
+            logger.LogInformation("Found {Count} epub files", epubFiles.Length);
+
+            // Remove stale entries whose source epub no longer exists on disk.
+            var currentPaths = new HashSet<string>(epubFiles);
+            var staleBooks = books.Where(b => !currentPaths.Contains(b.SourcePath)).ToList();
+            foreach (var stale in staleBooks)
+            {
+                logger.LogInformation("Removing stale entry: {Title} ({SourcePath})", stale.Title, stale.SourcePath);
+                fileRepository.DeleteCover(stale);
+                fileRepository.DeleteKepub(stale);
+                await bookRepository.Remove(stale.Uuid);
+            }
+
+            for (var i = 0; i < epubFiles.Length; i++)
+            {
+                progress?.Report((i + 1, epubFiles.Length));
+                var epubPath = epubFiles[i];
+                var fileHash = await fileRepository.ComputeFileHash(epubPath);
+
+                // Fast path: hash unchanged, nothing to do.
+                if (await bookRepository.FindByHash(fileHash) is not null)
+                {
+                    continue;
+                }
+
+                // Hash is new — extract metadata to get UUID.
+                var metadata = epubMetadataHandler.ExtractMetadata(epubPath);
+                var existingBook = await bookRepository.FindByUuid(metadata.Uuid);
+
+                if (existingBook is not null)
+                {
+                    logger.LogInformation("Updating changed book: {Title}", metadata.Title);
+                    await RebuildBook(existingBook, epubPath, fileHash, metadata);
+                    existingBook.LastModified = DateTimeOffset.UtcNow;
+                    await bookRepository.Update(existingBook);
+                    logger.LogInformation("Updated: {Title} by {Authors}", existingBook.Title, string.Join(", ", existingBook.Authors));
+                }
+                else
+                {
+                    logger.LogInformation("Indexing new book: {FileName}", Path.GetFileName(epubPath));
+                    var now = DateTimeOffset.UtcNow;
+                    var book = Book.FromMetadata(metadata, fileHash, epubPath, now, now);
+                    await RebuildBook(book, epubPath, fileHash, metadata);
+                    book.CreatedAt = now;
+                    book.LastModified = now;
+                    await bookRepository.Add(book);
+                    logger.LogInformation("Indexed: {Title} by {Authors}", book.Title, string.Join(", ", book.Authors));
+                }
+            }
+
+            var totalBooks = (await bookRepository.GetAll()).Count;
+            logger.LogInformation("Library indexing complete. Total books: {Count}", totalBooks);
+            return totalBooks;
+        }
+        finally
         {
-            var fileHash = await fileRepository.ComputeFileHash(epubPath);
-
-            // Fast path: hash unchanged, nothing to do.
-            if (await bookRepository.FindByHash(fileHash) is not null)
-            {
-                continue;
-            }
-
-            // Hash is new — extract metadata to get UUID.
-            var metadata = epubMetadataHandler.ExtractMetadata(epubPath);
-            var existingBook = await bookRepository.FindByUuid(metadata.Uuid);
-
-            if (existingBook is not null)
-            {
-                logger.LogInformation("Updating changed book: {Title}", metadata.Title);
-                await RebuildBook(existingBook, epubPath, fileHash, metadata);
-                existingBook.LastModified = DateTimeOffset.UtcNow;
-                await bookRepository.Update(existingBook);
-                logger.LogInformation("Updated: {Title} by {Authors}", existingBook.Title, string.Join(", ", existingBook.Authors));
-            }
-            else
-            {
-                logger.LogInformation("Indexing new book: {FileName}", Path.GetFileName(epubPath));
-                var now = DateTimeOffset.UtcNow;
-                var book = Book.FromMetadata(metadata, fileHash, epubPath, now, now);
-                await RebuildBook(book, epubPath, fileHash, metadata);
-                book.CreatedAt = now;
-                book.LastModified = now;
-                await bookRepository.Add(book);
-                logger.LogInformation("Indexed: {Title} by {Authors}", book.Title, string.Join(", ", book.Authors));
-            }
+            IndexLock.Release();
         }
-
-        var totalBooks = (await bookRepository.GetAll()).Count;
-        logger.LogInformation("Library indexing complete. Total books: {Count}", totalBooks);
     }
 
     public async Task ReindexBook(Guid uuid)
     {
-        var book = await bookRepository.FindByUuid(uuid)
-            ?? throw new InvalidOperationException($"Book with UUID '{uuid}' not found.");
+        await IndexLock.WaitAsync();
+        try
+        {
+            var book = await bookRepository.FindByUuid(uuid)
+                ?? throw new InvalidOperationException($"Book with UUID '{uuid}' not found.");
 
-        logger.LogInformation("Reindexing book: {Title}", book.Title);
+            logger.LogInformation("Reindexing book: {Title}", book.Title);
 
-        var fileHash = await fileRepository.ComputeFileHash(book.SourcePath);
-        var metadata = epubMetadataHandler.ExtractMetadata(book.SourcePath);
+            var fileHash = await fileRepository.ComputeFileHash(book.SourcePath);
+            var metadata = epubMetadataHandler.ExtractMetadata(book.SourcePath);
 
-        await RebuildBook(book, book.SourcePath, fileHash, metadata);
-        book.LastModified = DateTimeOffset.UtcNow;
-        await bookRepository.Update(book);
+            await RebuildBook(book, book.SourcePath, fileHash, metadata);
+            book.LastModified = DateTimeOffset.UtcNow;
+            await bookRepository.Update(book);
 
-        logger.LogInformation("Reindexed: {Title} by {Authors}", book.Title, string.Join(", ", book.Authors));
+            logger.LogInformation("Reindexed: {Title} by {Authors}", book.Title, string.Join(", ", book.Authors));
+        }
+        finally
+        {
+            IndexLock.Release();
+        }
     }
 
     private async Task RebuildBook(Book book, string epubPath, string fileHash, EpubMetadata metadata)
