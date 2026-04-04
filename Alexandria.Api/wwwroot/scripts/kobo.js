@@ -129,7 +129,7 @@ function renderBooks(books) {
         var archivedListLabel = book.isArchived ? '<div class="book-list-archived-label">Archived</div>' : '';
 
         $grid.append(
-            '<div class="book-card' + archivedClass + '" data-book-uuid="' + book.uuid + '">' +
+            '<div class="col"><div class="book-card' + archivedClass + '" data-book-uuid="' + book.uuid + '">' +
                 bookCoverHtml(book, "book-cover-img") +
                 '<div class="book-status">' + escapeHtml(status) + archivedLabel + '</div>' +
                 '<div class="dropdown book-menu-dropdown">' +
@@ -139,7 +139,7 @@ function renderBooks(books) {
                         extraItems +
                     '</ul>' +
                 '</div>' +
-            '</div>'
+            '</div></div>'
         );
 
         $list.append(
@@ -534,12 +534,12 @@ $(function () {
     // ===== Inject Sync Popover HTML =====
     $("body").append(
         '<div class="sync-popover-backdrop" id="sync-popover-backdrop">' +
-            '<div class="sync-popover" id="sync-popover">' +
+            '<div class="sync-popover-anchor"><div class="sync-popover" id="sync-popover">' +
                 '<div class="sync-popover-text" id="sync-popover-text">Sync library files for changes.</div>' +
                 '<div class="sync-popover-progress" id="sync-popover-progress"><div class="sync-popover-progress-bar" id="sync-popover-progress-bar"></div></div>' +
                 '<button class="sync-popover-btn" id="sync-popover-btn">Sync now</button>' +
                 '<div class="sync-popover-last-sync" id="sync-popover-last-sync">LAST SYNC: NEVER</div>' +
-            '</div>' +
+            '</div></div>' +
         '</div>'
     );
 

@@ -12,7 +12,7 @@
 <body>
 <!-- Top Bar -->
 <div class="top-bar-outer">
-<header class="top-bar">
+<header class="top-bar container-lg">
     <span class="top-bar-clock" id="clock">00:00</span>
     <a href="index.html" class="top-bar-logo">Alexandria</a>
     <div class="top-bar-icons">
@@ -30,13 +30,13 @@
 </header>
 </div>
 
-<div class="page">
-    <div class="home-grid" id="home-grid"></div>
+<div class="page container-lg">
+    <div class="row row-cols-1 row-cols-sm-2 g-4 home-grid" id="home-grid"></div>
 </div>
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav-outer">
-<nav class="bottom-nav">
+<nav class="bottom-nav container-lg">
     <a href="index.html" class="active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
         <span>Home</span>
@@ -94,7 +94,7 @@ $(function () {
                 '</div>';
             });
             readingHtml += '</div>';
-            $grid.append(readingHtml);
+            $grid.append('<div class="col-12">' + readingHtml + '</div>');
         }
 
         // Author spotlight — author with most unread books
@@ -122,10 +122,10 @@ $(function () {
             });
             stackHtml += '</div></div>';
             $grid.append(
-                '<a href="author-detail.html?name=' + encodeURIComponent(topAuthor) + '" class="home-card">' + stackHtml +
+                '<div class="col"><a href="author-detail.html?name=' + encodeURIComponent(topAuthor) + '" class="home-card">' + stackHtml +
                     '<div class="home-card-title">' + escapeHtml(topAuthor) + '</div>' +
                     '<div class="home-card-sub">' + topCount + ' unread books</div>' +
-                '</a>'
+                '</a></div>'
             );
         }
 
@@ -137,10 +137,10 @@ $(function () {
         });
         myBooksStack += '</div></div>';
         $grid.append(
-            '<a href="books.html" class="home-card">' + myBooksStack +
+            '<div class="col"><a href="books.html" class="home-card">' + myBooksStack +
                 '<div class="home-card-title">My Books</div>' +
                 '<div class="home-card-sub">' + books.length + ' books</div>' +
-            '</a>'
+            '</a></div>'
         );
 
         // First collection
@@ -160,11 +160,11 @@ $(function () {
             }
             colCovers += '</div></div>';
             $grid.append(
-                '<a href="collection-detail.html?uuid=' + col.uuid + '" class="home-card">' +
+                '<div class="col"><a href="collection-detail.html?uuid=' + col.uuid + '" class="home-card">' +
                     colCovers +
                     '<div class="home-card-title">' + escapeHtml(col.name) + '</div>' +
                     '<div class="home-card-sub">' + colCount + (colCount === 1 ? ' book' : ' books') + '</div>' +
-                '</a>'
+                '</a></div>'
             );
         }
 
@@ -179,10 +179,10 @@ $(function () {
             sStack += '</div></div>';
             var sCount = (latestSeries.books || []).length;
             $grid.append(
-                '<a href="series-detail.html?uuid=' + latestSeries.uuid + '" class="home-card">' + sStack +
+                '<div class="col"><a href="series-detail.html?uuid=' + latestSeries.uuid + '" class="home-card">' + sStack +
                     '<div class="home-card-title">' + escapeHtml(latestSeries.name) + '</div>' +
                     '<div class="home-card-sub">' + sCount + (sCount === 1 ? ' book' : ' books') + '</div>' +
-                '</a>'
+                '</a></div>'
             );
         }
     });

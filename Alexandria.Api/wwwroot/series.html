@@ -12,7 +12,7 @@
 <body>
 <!-- Top Bar -->
 <div class="top-bar-outer">
-<header class="top-bar">
+<header class="top-bar container-lg">
     <span class="top-bar-clock" id="clock">00:00</span>
     <a href="index.html" class="top-bar-logo">Alexandria</a>
     <div class="top-bar-icons">
@@ -30,7 +30,7 @@
 </header>
 </div>
 
-<div class="page">
+<div class="page container-lg">
     <!-- Tab Bar -->
     <ul class="nav nav-underline mb-2">
         <li class="nav-item"><a class="nav-link" href="books.html">Books</a></li>
@@ -60,7 +60,7 @@
     </div>
 
     <!-- Grid View -->
-    <div class="book-grid view-grid-container" id="series-grid"></div>
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 book-grid view-grid-container" id="series-grid"></div>
 
     <!-- List View -->
     <div class="view-list-container d-none" id="series-list"></div>
@@ -70,7 +70,7 @@
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav-outer">
-<nav class="bottom-nav">
+<nav class="bottom-nav container-lg">
     <a href="index.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
         <span>Home</span>
@@ -109,10 +109,10 @@ $(function () {
             if (firstBook) {
                 var detailUrl = "series-detail.html?uuid=" + s.uuid;
                 $grid.append(
-                    '<a href="' + detailUrl + '" class="book-card">' +
+                    '<div class="col"><a href="' + detailUrl + '" class="book-card">' +
                         bookCoverHtml(firstBook, "book-cover-img") +
                         '<div class="book-status">' + escapeHtml(countText) + '</div>' +
-                    '</a>'
+                    '</a></div>'
                 );
                 $list.append(
                     '<a href="' + detailUrl + '" class="series-list-item">' +
