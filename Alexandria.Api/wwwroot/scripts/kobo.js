@@ -79,8 +79,10 @@ function fallbackColor(uuid) {
 function bookCoverHtml(book, cssClass) {
     var cls = cssClass || "book-cover-img";
     var size = cls === "book-list-cover-img" ? COVER_SMALL : COVER_LARGE;
-    return '<div class="cover-frame ' + cls + '"><img loading="lazy" src="' + coverUrl(book.uuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-           '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).join(", ")) + '</small></div></div>';
+    var hasCover = !!book.coverFilePath;
+    return '<div class="cover-frame ' + cls + '">' +
+           (hasCover ? '<img loading="lazy" src="' + coverUrl(book.uuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' : '') +
+           '<div class="book-cover" style="' + (hasCover ? 'display:none;' : '') + 'background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).join(", ")) + '</small></div></div>';
 }
 
 function homeStackCoverHtml(book) {
@@ -163,9 +165,15 @@ function openBookModal(uuid) {
         var status = readingStatusText(book.readingProgress);
         var rawStatus = readingStatusRaw(book.readingProgress);
 
-        $("#bm-cover").attr("src", coverUrl(book.uuid, COVER_LARGE.w, COVER_LARGE.h)).show();
+        $("#bm-cover-fallback").css("background", fallbackColor(book.uuid)).html(escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small>');
+        if (book.coverFilePath) {
+            $("#bm-cover").attr("src", coverUrl(book.uuid, COVER_LARGE.w, COVER_LARGE.h)).show();
+            $("#bm-cover-fallback").hide();
+        } else {
+            $("#bm-cover").hide();
+            $("#bm-cover-fallback").show();
+        }
         $("#bm-cover-frame").show();
-        $("#bm-cover-fallback").hide().css("background", fallbackColor(book.uuid)).html(escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small>');
         $("#bm-title").text(book.title);
         $("#bm-series").text(series).toggle(!!series);
         $("#bm-author").text(authors);
@@ -226,8 +234,9 @@ function openEditModal(uuid) {
             '<button class="book-modal-close" id="bm-edit-close">&times;</button>' +
             '<div class="bm-edit-form">' +
                 '<div class="bm-edit-cover-col">' +
-                    '<div class="cover-frame book-modal-cover" style="cursor:pointer;"><img id="bm-edit-cover-img" src="' + coverSrc + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-                    '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div></div>' +
+                    '<div class="cover-frame book-modal-cover" style="cursor:pointer;position:relative;"><img id="bm-edit-cover-img" src="' + coverSrc + '" alt="" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.book-cover\').style.display=\'flex\';">' +
+                    '<div class="book-cover" style="display:none;background:' + fallbackColor(book.uuid) + ';">' + escapeHtml(book.title) + '</div>' +
+                    '<button class="bm-edit-cover-remove" id="bm-edit-cover-remove" title="Remove cover">&times;</button></div>' +
                     '<label class="bm-edit-btn bm-edit-cover-upload">' +
                         '<input type="file" id="bm-edit-cover-file" accept="image/*" style="display:none;">' +
                         '<span>Upload Cover</span>' +
@@ -700,6 +709,26 @@ $(function () {
             $("#bm-edit-cover-img").attr("src", URL.createObjectURL(file)).show().next().hide();
             uploadBookCover(currentModalUuid, file);
         }
+    });
+
+    $(document).on("click", "#bm-edit-cover-remove", function (e) {
+        e.stopPropagation();
+        if (!currentModalUuid) { return; }
+        var uuid = currentModalUuid;
+        $.ajax({
+            url: "/api/alexandria/books/" + uuid + "/cover",
+            type: "DELETE",
+            success: function () {
+                $("#bm-edit-cover-img").hide();
+                $(".bm-edit-cover-col .book-cover").show();
+                if (pageReload) { pageReload(); }
+            },
+            error: function () {
+                $("#bm-edit-cover-img").hide();
+                $(".bm-edit-cover-col .book-cover").show();
+                if (pageReload) { pageReload(); }
+            }
+        });
     });
 
     // ===== Clock =====

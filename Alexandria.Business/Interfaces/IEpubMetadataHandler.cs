@@ -8,4 +8,5 @@ public interface IEpubMetadataHandler
     string? ExtractCover(string epubPath, string coverOutputDirectory);
     void EmbedMetadata(string epubPath, EpubMetadata metadata);
     void EmbedCover(string epubPath, byte[] coverData, string mediaType);
+    void RemoveCover(string epubPath);
 }

@@ -195,6 +195,79 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         ReplaceOpfEntry(zip, opfPath, opfDoc);
     }
 
+    public void RemoveCover(string epubPath)
+    {
+        if (!File.Exists(epubPath))
+        {
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+        }
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Update);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        XDocument opfDoc;
+        using (var opfStream = opfEntry.Open())
+        {
+            opfDoc = XDocument.Load(opfStream);
+        }
+
+        var metadataEl = opfDoc.Descendants(Opf + "metadata").FirstOrDefault()
+            ?? throw new InvalidOperationException("No <metadata> element found in OPF.");
+        var manifest = opfDoc.Descendants(Opf + "manifest").FirstOrDefault()
+            ?? throw new InvalidOperationException("No <manifest> element found in OPF.");
+        var spine = opfDoc.Descendants(Opf + "spine").FirstOrDefault();
+        var opfDirectory = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
+        var items = manifest.Elements(Opf + "item").ToList();
+
+        // Remove cover image from ZIP and manifest.
+        var coverHref = FindCoverHref(opfDoc, metadataEl);
+        if (coverHref is not null)
+        {
+            var coverEntryPath = string.IsNullOrEmpty(opfDirectory) ? coverHref : $"{opfDirectory}/{coverHref}";
+            zip.GetEntry(coverEntryPath.Replace('\\', '/'))?.Delete();
+
+            var coverId = FindMetaByName(metadataEl, "cover");
+            var coverItem = coverId is not null
+                ? items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, coverId, StringComparison.OrdinalIgnoreCase))
+                : items.FirstOrDefault(i => (i.Attribute("properties")?.Value ?? string.Empty).Split(' ').Any(p => string.Equals(p, "cover-image", StringComparison.OrdinalIgnoreCase)));
+            coverItem?.Remove();
+        }
+
+        // Remove <meta name="cover" .../> from metadata.
+        SetMetaByName(metadataEl, "cover", null);
+
+        // Remove cover XHTML page from manifest, spine, and ZIP.
+        var coverPageItem = items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, "cover-page", StringComparison.OrdinalIgnoreCase))
+            ?? items.FirstOrDefault(i =>
+                (i.Attribute("media-type")?.Value ?? "").StartsWith("application/xhtml", StringComparison.OrdinalIgnoreCase) &&
+                (i.Attribute("href")?.Value ?? "").Contains("cover", StringComparison.OrdinalIgnoreCase));
+
+        if (coverPageItem is not null)
+        {
+            var pageId = coverPageItem.Attribute("id")?.Value;
+            var pageHref = coverPageItem.Attribute("href")?.Value;
+
+            if (pageHref is not null)
+            {
+                var pagePath = string.IsNullOrEmpty(opfDirectory) ? pageHref : $"{opfDirectory}/{pageHref}";
+                zip.GetEntry(pagePath.Replace('\\', '/'))?.Delete();
+            }
+
+            coverPageItem.Remove();
+
+            if (spine is not null && pageId is not null)
+            {
+                spine.Elements(Opf + "itemref").FirstOrDefault(r => string.Equals(r.Attribute("idref")?.Value, pageId, StringComparison.OrdinalIgnoreCase))?.Remove();
+            }
+        }
+
+        ReplaceOpfEntry(zip, opfPath, opfDoc);
+    }
+
     private static void EnsureCoverPage(ZipArchive zip, XDocument opfDoc, XElement manifest, string opfDirectory, string coverImageHref)
     {
         var items = manifest.Elements(Opf + "item").ToList();

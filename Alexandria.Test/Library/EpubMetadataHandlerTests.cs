@@ -316,7 +316,7 @@ public sealed class EpubMetadataHandlerTests
         using var pageStream = coverPageEntry.Open();
         using var reader = new StreamReader(pageStream);
         var html = reader.ReadToEnd();
-        Assert.IsTrue(html.Contains("<img"), "Cover page should contain an img tag.");
+        Assert.Contains("<img", html, "Cover page should contain an img tag.");
     }
 
     [TestMethod]
@@ -327,6 +327,35 @@ public sealed class EpubMetadataHandlerTests
 
         Assert.ThrowsExactly<FileNotFoundException>(
             () => handler.EmbedCover(bogusPath, [0xFF, 0xD8], "image/jpeg"));
+    }
+
+    [TestMethod]
+    public void RemoveCover_RemovesCoverFromEpub()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Verify cover exists before removal.
+        var beforeDir = Path.Combine(outputDir, "before-cover");
+        var beforeCover = handler.ExtractCover(epubPath, beforeDir);
+        Assert.IsNotNull(beforeCover, "Test book should have a cover before removal.");
+
+        handler.RemoveCover(epubPath);
+
+        // Verify cover is gone after removal.
+        var afterDir = Path.Combine(outputDir, "after-cover");
+        var afterCover = handler.ExtractCover(epubPath, afterDir);
+        Assert.IsNull(afterCover, "Cover should be null after removal.");
+    }
+
+    [TestMethod]
+    public void RemoveCover_NonExistentFile_ThrowsFileNotFoundException()
+    {
+        var handler = new EpubMetadataHandler();
+        var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
+
+        Assert.ThrowsExactly<FileNotFoundException>(
+            () => handler.RemoveCover(bogusPath));
     }
 
     private string CopyTestEpub(string fileName)

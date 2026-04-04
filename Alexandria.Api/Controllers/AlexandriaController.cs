@@ -139,4 +139,15 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         var result = await alexandriaLibraryService.UpdateBookCover(uuid, ms.ToArray(), cover.ContentType);
         return Ok(result);
     }
+
+    [HttpDelete("books/{uuid:guid}/cover")]
+    public async Task<IActionResult> RemoveBookCover(Guid uuid)
+    {
+        var result = await alexandriaLibraryService.RemoveBookCover(uuid);
+        if (result is null)
+        {
+            return NotFound();
+        }
+        return Ok(result);
+    }
 }

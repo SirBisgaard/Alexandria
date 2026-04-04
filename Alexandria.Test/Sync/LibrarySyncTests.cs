@@ -313,6 +313,7 @@ public sealed class LibrarySyncTests
         public Task UpdateReadingStatus(Guid uuid, string status) => Task.CompletedTask;
         public Task<Book?> UpdateBookMetadata(Guid uuid, Book book) => Task.FromResult<Book?>(null);
         public Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType) => Task.FromResult<Book?>(null);
+        public Task<Book?> RemoveBookCover(Guid uuid) => Task.FromResult<Book?>(null);
     }
 
     private class FakeFileRepository : IFileRepository

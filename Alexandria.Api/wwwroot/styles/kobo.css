@@ -866,6 +866,27 @@ a.series-list-item {
     color: var(--bs-body-bg);
 }
 
+.bm-edit-cover-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 20px;
+    line-height: 26px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.bm-edit-cover-remove:hover {
+    background: rgba(0, 0, 0, 0.85);
+}
+
 .bm-edit-btn-disabled {
     opacity: 0.4;
     cursor: not-allowed;

@@ -175,6 +175,24 @@ public sealed class AlexandriaLibraryServiceTests
     }
 
     [TestMethod]
+    public async Task RemoveBookCover_LifeAndFate_RemovesCoverAndUpdatesDb()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original);
+        Assert.IsNotNull(original.CoverFilePath, "Life and Fate should have a cover after indexing.");
+        Assert.IsTrue(File.Exists(original.CoverFilePath));
+
+        var result = await service.RemoveBookCover(LifeAndFateUuid);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(LifeAndFateUuid, result.Uuid);
+        Assert.IsNull(result.CoverFilePath, "CoverFilePath should be null after cover removal.");
+        Assert.IsFalse(File.Exists(original.CoverFilePath), "Cover file should be deleted from disk.");
+    }
+
+    [TestMethod]
     public async Task UpdateBookMetadata_NonExistentUuid_ReturnsNull()
     {
         var (service, _) = await CreateService();

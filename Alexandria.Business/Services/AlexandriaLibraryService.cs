@@ -192,4 +192,18 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         await libraryIndexerService.ReindexBook(uuid);
         return await bookRepository.FindByUuid(uuid);
     }
+
+    public async Task<Book?> RemoveBookCover(Guid uuid)
+    {
+        var book = await bookRepository.FindByUuid(uuid);
+        if (book is null)
+        {
+            return null;
+        }
+
+        epubMetadataHandler.RemoveCover(book.SourcePath);
+
+        await libraryIndexerService.ReindexBook(uuid);
+        return await bookRepository.FindByUuid(uuid);
+    }
 }
