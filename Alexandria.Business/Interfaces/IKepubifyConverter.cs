@@ -2,5 +2,5 @@ namespace Alexandria.Business.Interfaces;
 
 public interface IKepubifyConverter
 {
-    Task ConvertAsync(string inputPath, string outputPath);
+    Task Convert(string inputPath, string outputPath);
 }

@@ -14,7 +14,7 @@ public static class BookExtensions
         public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTimeOffset createdAt, DateTimeOffset lastModified)
         {
             var bookUuid = metadata.AlexandriaUuid ?? metadata.DeterministicUuid;
-            var entitlementUuid = Guid.NewGuid();
+            var entitlementUuid = Guid.GenerateUuidV5(fileHash);
             
             return new Book
             {

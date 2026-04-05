@@ -14,11 +14,8 @@ public interface IAlexandriaLibraryService
     Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null);
     Task SetBookArchiveStatus(Guid uuid, bool isArchived);
     Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null);
-    Task<BookCollection?> GetCollectionByUuid(Guid uuid);
     Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null);
-    Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids);
     Task UpsertCollection(BookCollection collection);
-    Task DeleteCollection(Guid uuid);
     Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since);
     Task UpdateReadingStatus(Guid uuid, string status);
     Task<Book?> UpdateBookMetadata(Guid uuid, Book book);

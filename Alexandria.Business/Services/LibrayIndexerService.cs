@@ -100,7 +100,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         var book = Book.FromMetadata(metadata, fileHash, epubPath, now, now);
 
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{book.BookUuid}.kepub.epub");
-        await kepubifyConverter.ConvertAsync(epubPath, kepubPath);
+        await kepubifyConverter.Convert(epubPath, kepubPath);
 
         book.CoverFilePath = metadata.CoverFilePath;
         book.KepubFilePath = kepubPath;
@@ -123,7 +123,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         var freshMetadata = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
 
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{existingBook.BookUuid}.kepub.epub");
-        await kepubifyConverter.ConvertAsync(epubPath, kepubPath);
+        await kepubifyConverter.Convert(epubPath, kepubPath);
 
         existingBook.FileHash = fileHash;
         existingBook.SourcePath = epubPath;

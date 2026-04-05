@@ -114,8 +114,6 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return AlexandriaLibraryHelper.SortCollections(collections, sortOptions ?? new CollectionSortOptions());
     }
 
-    public async Task<BookCollection?> GetCollectionByUuid(Guid uuid) => await collectionRepository.FindByUuid(uuid);
-
     public async Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null)
     {
         var collection = await collectionRepository.FindByUuid(uuid);
@@ -129,28 +127,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return new CollectionWithBooks { CollectionUuid = collection.CollectionUuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, LastModified = collection.LastModified };
     }
 
-    public async Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids)
-    {
-        var uuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
-        var existing = await collectionRepository.FindByUuid(uuid);
-        var now = DateTimeOffset.UtcNow;
-
-        var collection = new BookCollection
-        {
-            CollectionUuid = uuid,
-            Name = name,
-            BookUuids = bookUuids,
-            CreatedAt = existing?.CreatedAt ?? now,
-            LastModified = now
-        };
-
-        await collectionRepository.Upsert(collection);
-        return collection;
-    }
-
     public async Task UpsertCollection(BookCollection collection) => await collectionRepository.Upsert(collection);
-
-    public async Task DeleteCollection(Guid uuid) => await collectionRepository.Delete(uuid);
 
     public async Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => await collectionRepository.GetModifiedSince(since);
 

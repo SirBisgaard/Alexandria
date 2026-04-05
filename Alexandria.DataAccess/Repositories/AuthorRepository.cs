@@ -28,24 +28,6 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         return authors;
     }
 
-    public async Task<Author?> FindByUuid(Guid authorUuid)
-    {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name FROM Authors WHERE AuthorUuid = @uuid";
-        cmd.Parameters.AddWithValue("@uuid", authorUuid.ToString());
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            return MapAuthor(reader);
-        }
-
-        return null;
-    }
-
     public async Task<Author?> FindByName(string name)
     {
         await using var connection = new SqliteConnection(connectionString);

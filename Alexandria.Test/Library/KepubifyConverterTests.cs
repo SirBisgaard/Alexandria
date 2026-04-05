@@ -30,7 +30,7 @@ public sealed class KepubifyConverterTests
         var inputPath = Directory.GetFiles(ContentBooksDir, "*.epub").First();
         var outputPath = Path.Combine(outputDir, "output.kepub.epub");
 
-        await converter.ConvertAsync(inputPath, outputPath);
+        await converter.Convert(inputPath, outputPath);
 
         Assert.IsTrue(File.Exists(outputPath), "Expected kepub file was not created.");
         Assert.IsGreaterThan(0, new FileInfo(outputPath).Length, "Output file is empty.");
@@ -43,7 +43,7 @@ public sealed class KepubifyConverterTests
         var inputPath = Directory.GetFiles(ContentBooksDir, "*.epub").First();
         var outputPath = Path.Combine(outputDir, "output.kepub.epub");
 
-        await converter.ConvertAsync(inputPath, outputPath);
+        await converter.Convert(inputPath, outputPath);
 
         var inputBytes = await File.ReadAllBytesAsync(inputPath);
         var outputBytes = await File.ReadAllBytesAsync(outputPath);
@@ -58,7 +58,7 @@ public sealed class KepubifyConverterTests
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
         var outputPath = Path.Combine(outputDir, "output.kepub.epub");
 
-        await Assert.ThrowsExactlyAsync<FileNotFoundException>(() => converter.ConvertAsync(bogusPath, outputPath));
+        await Assert.ThrowsExactlyAsync<FileNotFoundException>(() => converter.Convert(bogusPath, outputPath));
     }
 
     [TestMethod]
@@ -71,7 +71,7 @@ public sealed class KepubifyConverterTests
         {
             var outputPath = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(epub) + ".kepub.epub");
 
-            await converter.ConvertAsync(epub, outputPath);
+            await converter.Convert(epub, outputPath);
 
             Assert.IsTrue(File.Exists(outputPath), $"Kepub not created for {Path.GetFileName(epub)}");
         }

@@ -15,7 +15,7 @@ public class KepubifyConverter : IKepubifyConverter
             throw new FileNotFoundException("Kepubify binary not found.", kepubifyPath);
     }
 
-    public async Task ConvertAsync(string inputPath, string outputPath)
+    public async Task Convert(string inputPath, string outputPath)
     {
         if (!File.Exists(inputPath))
             throw new FileNotFoundException("EPUB file not found.", inputPath);

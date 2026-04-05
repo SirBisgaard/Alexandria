@@ -128,8 +128,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         var batchSize = settings.SyncBatchSize;
         var batchUuids = syncSession.GetNextBatch(deviceId, batchSize);
         var hasMore = syncSession.HasMore(deviceId);
-        var lastSyncTime = alexandriaToken.LastSync;chrome://vivaldi-webui/startpage?section=Speed-dials&background-color=#2e2f37
-
+        var lastSyncTime = alexandriaToken.LastSync;
+        
         foreach (var uuid in batchUuids)
         {
             var book = await alexandriaLibraryService.GetBookByUuid(uuid);
