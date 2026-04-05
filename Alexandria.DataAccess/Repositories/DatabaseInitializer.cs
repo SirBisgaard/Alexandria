@@ -211,7 +211,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp)
-            VALUES (1, 'cd4631e2-04f2-4cc2-b938-b34c1e3c85a0', NULL)
+            VALUES (1, '00000000-0000-0000-0000-000000000002', NULL)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
     }
