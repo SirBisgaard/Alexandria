@@ -19,6 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Data\Alexandria\" />
       <Folder Include="wwwroot\styles\" />
     </ItemGroup>
 

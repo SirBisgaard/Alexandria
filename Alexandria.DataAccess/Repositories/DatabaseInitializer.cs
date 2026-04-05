@@ -26,10 +26,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
 
         var migrations = new (int Version, Func<SqliteConnection, Task> Apply)[]
         {
-            (1, MigrateV1_InitialSchema),
-            (2, MigrateV2_ReadingStates),
-            (3, MigrateV3_Collections),
-            (4, MigrateV4_Settings)
+            (1, MigrateV1_UnifiedSchema)
         };
 
         foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -69,22 +66,38 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         await cmd.ExecuteNonQueryAsync();
     }
 
-    private static async Task MigrateV1_InitialSchema(SqliteConnection connection)
+    private static async Task MigrateV1_UnifiedSchema(SqliteConnection connection)
     {
+        await using var seriesCmd = connection.CreateCommand();
+        seriesCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS Series (
+                SeriesUuid TEXT PRIMARY KEY,
+                Name TEXT NOT NULL UNIQUE
+            )
+            """;
+        await seriesCmd.ExecuteNonQueryAsync();
+
+        await using var authorsCmd = connection.CreateCommand();
+        authorsCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS Authors (
+                AuthorUuid TEXT PRIMARY KEY,
+                Name TEXT NOT NULL UNIQUE
+            )
+            """;
+        await authorsCmd.ExecuteNonQueryAsync();
+
         await using var booksCmd = connection.CreateCommand();
         booksCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Books (
-                Uuid TEXT PRIMARY KEY,
+                BookUuid TEXT PRIMARY KEY,
+                EntitlementUuid TEXT NOT NULL,
                 FileHash TEXT NOT NULL,
                 SourcePath TEXT NOT NULL,
                 Title TEXT NOT NULL,
-                Authors TEXT NOT NULL,
                 Language TEXT NOT NULL,
                 PublicationDate TEXT,
                 Description TEXT,
                 Publisher TEXT,
-                SeriesName TEXT,
-                SeriesIndex INTEGER,
                 CoverFilePath TEXT,
                 KepubFilePath TEXT,
                 KepubFileSize INTEGER NOT NULL DEFAULT 0,
@@ -95,28 +108,33 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             """;
         await booksCmd.ExecuteNonQueryAsync();
 
-        await using var logsCmd = connection.CreateCommand();
-        logsCmd.CommandText = """
-            CREATE TABLE IF NOT EXISTS KoboTrafficLogs (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                Timestamp TEXT NOT NULL,
-                Method TEXT NOT NULL,
-                Url TEXT NOT NULL,
-                RequestHeaders TEXT,
-                RequestBody TEXT,
-                StatusCode INTEGER NOT NULL,
-                ResponseHeaders TEXT,
-                ResponseBody TEXT,
-                DurationMs INTEGER NOT NULL
+        await using var bookSeriesCmd = connection.CreateCommand();
+        bookSeriesCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookSeries (
+                BookUuid TEXT NOT NULL,
+                SeriesUuid TEXT NOT NULL,
+                [Index] REAL,
+                PRIMARY KEY (BookUuid, SeriesUuid),
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid),
+                FOREIGN KEY (SeriesUuid) REFERENCES Series(SeriesUuid)
             )
             """;
-        await logsCmd.ExecuteNonQueryAsync();
-    }
+        await bookSeriesCmd.ExecuteNonQueryAsync();
 
-    private static async Task MigrateV2_ReadingStates(SqliteConnection connection)
-    {
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
+        await using var bookAuthorsCmd = connection.CreateCommand();
+        bookAuthorsCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookAuthors (
+                BookUuid TEXT NOT NULL,
+                AuthorUuid TEXT NOT NULL,
+                PRIMARY KEY (BookUuid, AuthorUuid),
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid),
+                FOREIGN KEY (AuthorUuid) REFERENCES Authors(AuthorUuid)
+            )
+            """;
+        await bookAuthorsCmd.ExecuteNonQueryAsync();
+
+        await using var readingStatesCmd = connection.CreateCommand();
+        readingStatesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS ReadingStates (
                 BookUuid TEXT PRIMARY KEY,
                 StatusInfoStatus TEXT NOT NULL DEFAULT 'ReadyToRead',
@@ -138,15 +156,12 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 RawPutBody TEXT
             )
             """;
-        await cmd.ExecuteNonQueryAsync();
-    }
+        await readingStatesCmd.ExecuteNonQueryAsync();
 
-    private static async Task MigrateV3_Collections(SqliteConnection connection)
-    {
         await using var collectionsCmd = connection.CreateCommand();
         collectionsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Collections (
-                Uuid TEXT PRIMARY KEY,
+                CollectionUuid TEXT PRIMARY KEY,
                 Name TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL,
                 LastModified TEXT NOT NULL
@@ -154,36 +169,50 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             """;
         await collectionsCmd.ExecuteNonQueryAsync();
 
-        await using var joinCmd = connection.CreateCommand();
-        joinCmd.CommandText = """
+        await using var collectionBooksCmd = connection.CreateCommand();
+        collectionBooksCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS CollectionBooks (
                 CollectionUuid TEXT NOT NULL,
                 BookUuid TEXT NOT NULL,
                 PRIMARY KEY (CollectionUuid, BookUuid),
-                FOREIGN KEY (CollectionUuid) REFERENCES Collections(Uuid),
-                FOREIGN KEY (BookUuid) REFERENCES Books(Uuid)
+                FOREIGN KEY (CollectionUuid) REFERENCES Collections(CollectionUuid),
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
-        await joinCmd.ExecuteNonQueryAsync();
-    }
+        await collectionBooksCmd.ExecuteNonQueryAsync();
 
-    private static async Task MigrateV4_Settings(SqliteConnection connection)
-    {
-        await using var createCmd = connection.CreateCommand();
-        createCmd.CommandText = """
+        await using var logsCmd = connection.CreateCommand();
+        logsCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS KoboTrafficLogs (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Timestamp TEXT NOT NULL,
+                Method TEXT NOT NULL,
+                Url TEXT NOT NULL,
+                RequestHeaders TEXT,
+                RequestBody TEXT,
+                StatusCode INTEGER NOT NULL,
+                ResponseHeaders TEXT,
+                ResponseBody TEXT,
+                DurationMs INTEGER NOT NULL
+            )
+            """;
+        await logsCmd.ExecuteNonQueryAsync();
+
+        await using var settingsCreateCmd = connection.CreateCommand();
+        settingsCreateCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Settings (
                 Id INTEGER PRIMARY KEY CHECK (Id = 1),
                 UuidSeed TEXT NOT NULL,
                 LastIndexedTimestamp TEXT
             )
             """;
-        await createCmd.ExecuteNonQueryAsync();
+        await settingsCreateCmd.ExecuteNonQueryAsync();
 
-        await using var seedCmd = connection.CreateCommand();
-        seedCmd.CommandText = """
+        await using var settingsSeedCmd = connection.CreateCommand();
+        settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp)
             VALUES (1, 'cd4631e2-04f2-4cc2-b938-b34c1e3c85a0', NULL)
             """;
-        await seedCmd.ExecuteNonQueryAsync();
+        await settingsSeedCmd.ExecuteNonQueryAsync();
     }
 }

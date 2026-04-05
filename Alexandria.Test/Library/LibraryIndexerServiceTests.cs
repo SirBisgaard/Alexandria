@@ -41,21 +41,30 @@ public sealed class LibraryIndexerServiceTests
 
     private AlexandriaSettings CreateSettings(string? booksFolder = null) => new() { Database = dbPath, BooksFolder = booksFolder ?? ContentBooksDir, CoversFolder = coversDir, KepubsFolder = kepubsDir };
 
-    private async Task<BookRepository> CreateRepository(AlexandriaSettings settings)
+    private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)> CreateRepositories(AlexandriaSettings settings)
     {
         var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
-        return new BookRepository(settings);
+        var authorRepository = new AuthorRepository(settings);
+        var seriesRepository = new SeriesRepository(settings);
+        var bookRepository = new BookRepository(settings, authorRepository, seriesRepository);
+        return (bookRepository, authorRepository, seriesRepository);
+    }
+
+    private LibraryIndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)
+    {
+        var extractor = new EpubMetadataHandler();
+        var converter = new KepubifyConverter();
+        var fileRepository = new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance));
+        return new LibraryIndexerService(settings, bookRepository, fileRepository, extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<LibraryIndexerService>.Instance);
     }
 
     [TestMethod]
     public async Task Index_NewBooks_IndexesAll()
     {
         var settings = CreateSettings();
-        var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
 
         await indexer.Index();
 
@@ -81,15 +90,13 @@ public sealed class LibraryIndexerServiceTests
     public async Task Index_ExistingBooks_SkipsUnchanged()
     {
         var settings = CreateSettings();
-        var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
 
         await indexer.Index();
         var firstRunBooks = await bookRepository.GetAll();
         var firstRunCount = firstRunBooks.Count;
-        var timestamps = firstRunBooks.ToDictionary(b => b.Uuid, b => (b.CreatedAt, b.LastModified));
+        var timestamps = firstRunBooks.ToDictionary(b => b.BookUuid, b => (b.CreatedAt, b.LastModified));
 
         await indexer.Index();
 
@@ -97,8 +104,8 @@ public sealed class LibraryIndexerServiceTests
         Assert.HasCount(firstRunCount, secondRunBooks, "Running twice should not duplicate books.");
         foreach (var book in secondRunBooks)
         {
-            Assert.AreEqual(timestamps[book.Uuid].CreatedAt, book.CreatedAt, $"CreatedAt should not change for {book.Title}");
-            Assert.AreEqual(timestamps[book.Uuid].LastModified, book.LastModified, $"LastModified should not change for unchanged {book.Title}");
+            Assert.AreEqual(timestamps[book.BookUuid].CreatedAt, book.CreatedAt, $"CreatedAt should not change for {book.Title}");
+            Assert.AreEqual(timestamps[book.BookUuid].LastModified, book.LastModified, $"LastModified should not change for unchanged {book.Title}");
         }
     }
 
@@ -109,10 +116,8 @@ public sealed class LibraryIndexerServiceTests
         Directory.CreateDirectory(emptyBooksDir);
 
         var settings = CreateSettings(emptyBooksDir);
-        var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
 
         await indexer.Index();
 
@@ -132,10 +137,8 @@ public sealed class LibraryIndexerServiceTests
         File.Copy(sourceEpub, tempEpub);
 
         var settings = CreateSettings(booksDir);
-        var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
 
         // Index the book.
         await indexer.Index();
@@ -165,10 +168,8 @@ public sealed class LibraryIndexerServiceTests
         File.Copy(sourceEpub, tempEpub);
 
         var settings = CreateSettings(booksDir);
-        var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
 
         await indexer.Index();
         var books = await bookRepository.GetAll();
@@ -197,13 +198,51 @@ public sealed class LibraryIndexerServiceTests
     }
 
     [TestMethod]
+    public async Task Index_NewBooks_PersistsAuthorsAndSeries()
+    {
+        var settings = CreateSettings();
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+
+        await indexer.Index();
+
+        var books = await bookRepository.GetAll();
+
+        // --- Series assertions ---
+        var seriesBooks = books.Where(b => b.Series is not null).ToList();
+        Assert.IsNotEmpty(seriesBooks, "At least one book should have a series.");
+
+        var allSeries = await seriesRepository.GetAll();
+        Assert.IsNotEmpty(allSeries, "Series table should have entries after indexing.");
+        var lastKingdom = allSeries.FirstOrDefault(s => s.Name == "The Last Kingdom");
+        Assert.IsNotNull(lastKingdom, "The Last Kingdom series should exist.");
+
+        foreach (var book in seriesBooks)
+        {
+            Assert.AreNotEqual(Guid.Empty, book.Series!.SeriesUuid, $"SeriesUuid should be non-empty on '{book.Title}'.");
+            Assert.AreEqual(lastKingdom.SeriesUuid, book.Series.SeriesUuid, $"SeriesUuid FK should match Series table for '{book.Title}'.");
+        }
+
+        // --- Author assertions ---
+        var allAuthors = await authorRepository.GetAll();
+        Assert.IsNotEmpty(allAuthors, "Authors table should have entries after indexing.");
+        var cornwell = allAuthors.FirstOrDefault(a => a.Name == "Bernard Cornwell");
+        Assert.IsNotNull(cornwell, "Bernard Cornwell should exist in Authors table.");
+
+        foreach (var book in seriesBooks)
+        {
+            Assert.IsNotEmpty(book.Authors, $"Book '{book.Title}' should have authors.");
+            Assert.IsTrue(book.Authors.Any(a => a.Name == "Bernard Cornwell"), $"'{book.Title}' should link to Bernard Cornwell.");
+            Assert.AreNotEqual(Guid.Empty, book.Authors[0].AuthorUuid, $"AuthorUuid should be non-empty on '{book.Title}'.");
+        }
+    }
+
+    [TestMethod]
     public async Task Index_NonExistentFolder_NoErrors()
     {
         var settings = CreateSettings(Path.Combine(testDir, "does-not-exist"));
-        var bookRepository = await CreateRepository(settings);
-        var extractor = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
-        var indexer = new LibraryIndexerService(settings, bookRepository, new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance)), extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
 
         await indexer.Index();
 

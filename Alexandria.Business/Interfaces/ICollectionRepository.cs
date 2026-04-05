@@ -2,7 +2,7 @@ using Alexandria.Business.Models;
 
 namespace Alexandria.Business.Interfaces;
 
-public interface IBookCollectionRepository
+public interface ICollectionRepository
 {
     Task<List<BookCollection>> GetAll();
     Task<BookCollection?> FindByUuid(Guid uuid);

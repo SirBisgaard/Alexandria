@@ -5,14 +5,14 @@ using Alexandria.Business.Models;
 
 namespace Alexandria.Business.Services;
 
-public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingStateRepository readingStateRepository, IBookCollectionRepository collectionRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, ILibraryIndexerService libraryIndexerService) : IAlexandriaLibraryService
+public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingStateRepository readingStateRepository, ICollectionRepository collectionRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, ILibraryIndexerService libraryIndexerService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IAlexandriaLibraryService
 {
     public async Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null)
     {
         var books = await bookRepository.GetAll();
         foreach (var book in books)
         {
-            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.Uuid);
+            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
         }
         return AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions());
     }
@@ -20,7 +20,20 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
     public async Task<Book?> GetBookByUuid(Guid uuid)
     {
         var book = await bookRepository.FindByUuid(uuid);
-        book?.ReadingProgress = await readingStateRepository.GetReadingProgress(book.Uuid);
+        if (book is not null)
+        {
+            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
+        }
+        return book;
+    }
+
+    public async Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid)
+    {
+        var book = await bookRepository.FindByEntitlementUuid(entitlementUuid);
+        if (book is not null)
+        {
+            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
+        }
         return book;
     }
 
@@ -37,37 +50,51 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
     public async Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null)
     {
+        var authors = await authorRepository.GetAll();
         var books = await GetBooks();
-        var authors = books.SelectMany(b => b.Authors, (book, author) => new { Author = author, Book = book }).GroupBy(x => x.Author, StringComparer.OrdinalIgnoreCase).Select(g => new Author { Name = g.Key, Books = g.Select(x => x.Book).OrderBy(b => b.Title).ToList() }).ToList();
-        return AlexandriaLibraryHelper.SortAuthors(authors, sortOptions ?? new AuthorSortOptions());
+        foreach (var author in authors)
+        {
+            author.Books = books.Where(b => b.Authors.Any(a => a.AuthorUuid == author.AuthorUuid)).OrderBy(b => b.Title).ToList();
+        }
+        var populatedAuthors = authors.Where(a => a.Books.Count > 0).ToList();
+        return AlexandriaLibraryHelper.SortAuthors(populatedAuthors, sortOptions ?? new AuthorSortOptions());
     }
 
     public async Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null)
     {
-        var books = await GetBooks();
-        var authorBooks = books.Where(b => b.Authors.Contains(name, StringComparer.OrdinalIgnoreCase)).ToList();
-        if (authorBooks.Count == 0)
+        var author = await authorRepository.FindByName(name);
+        if (author is null)
         {
             return null;
         }
-        return new Author { Name = name, Books = AlexandriaLibraryHelper.SortBooks(authorBooks, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)) };
+        var books = await GetBooks();
+        author.Books = books.Where(b => b.Authors.Any(a => a.AuthorUuid == author.AuthorUuid)).ToList();
+        author.Books = AlexandriaLibraryHelper.SortBooks(author.Books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc));
+        return author;
     }
 
     public async Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null)
     {
+        var allSeries = await seriesRepository.GetAll();
         var books = await GetBooks();
-        var series = books.Where(b => b.SeriesName is not null).GroupBy(b => b.SeriesName!).Select(g => new Series { Uuid = Guid.GenerateUuidV5(g.Key), Name = g.Key, Books = g.OrderBy(b => b.SeriesIndex ?? 0).ToList() }).ToList();
-        return AlexandriaLibraryHelper.SortSeries(series, sortOptions ?? new SeriesSortOptions());
+        foreach (var series in allSeries)
+        {
+            series.Books = books.Where(b => b.Series?.SeriesUuid == series.SeriesUuid).OrderBy(b => b.Series?.Index ?? 0).ToList();
+        }
+        var populatedSeries = allSeries.Where(s => s.Books.Count > 0).ToList();
+        return AlexandriaLibraryHelper.SortSeries(populatedSeries, sortOptions ?? new SeriesSortOptions());
     }
 
     public async Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null)
     {
-        var allSeries = await GetSeries();
-        var series = allSeries.FirstOrDefault(s => s.Uuid == uuid);
-        if (series is not null)
+        var series = await seriesRepository.FindByUuid(uuid);
+        if (series is null)
         {
-            series.Books = AlexandriaLibraryHelper.SortBooks(series.Books, sortOptions ?? new BookSortOptions(BookSortField.BookNumber, SortOrder.Asc));
+            return null;
         }
+        var books = await GetBooks();
+        series.Books = books.Where(b => b.Series?.SeriesUuid == series.SeriesUuid).ToList();
+        series.Books = AlexandriaLibraryHelper.SortBooks(series.Books, sortOptions ?? new BookSortOptions(BookSortField.BookNumber, SortOrder.Asc));
         return series;
     }
 
@@ -98,8 +125,8 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         }
         var allBooks = await GetBooks();
         var uuidSet = new HashSet<Guid>(collection.BookUuids);
-        var books = allBooks.Where(b => uuidSet.Contains(b.Uuid)).ToList();
-        return new CollectionWithBooks { Uuid = collection.Uuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, LastModified = collection.LastModified };
+        var books = allBooks.Where(b => uuidSet.Contains(b.BookUuid)).ToList();
+        return new CollectionWithBooks { CollectionUuid = collection.CollectionUuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, LastModified = collection.LastModified };
     }
 
     public async Task<BookCollection> CreateOrUpdateCollection(string name, List<Guid> bookUuids)
@@ -110,7 +137,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
         var collection = new BookCollection
         {
-            Uuid = uuid,
+            CollectionUuid = uuid,
             Name = name,
             BookUuids = bookUuids,
             CreatedAt = existing?.CreatedAt ?? now,
@@ -172,6 +199,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         }
 
         var metadata = book.ToEpubMetadata();
+        metadata.AlexandriaUuid = existing.BookUuid;
         epubMetadataHandler.EmbedMetadata(existing.SourcePath, metadata);
 
         await libraryIndexerService.ReindexBook(uuid);

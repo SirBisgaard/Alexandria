@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Repositories;
 
-public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollectionRepository
+public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepository
 {
     private readonly string connectionString = $"Data Source={settings.Database}";
 
@@ -24,7 +24,7 @@ public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollec
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
-        var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE Uuid = @uuid", ("@uuid", uuid.ToString()));
+        var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE CollectionUuid = @uuid", ("@uuid", uuid.ToString()));
         if (collections.Count == 0)
         {
             return null;
@@ -41,8 +41,8 @@ public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollec
         await using var transaction = await connection.BeginTransactionAsync();
 
         await using var upsertCmd = connection.CreateCommand();
-        upsertCmd.CommandText = "INSERT OR REPLACE INTO Collections (Uuid, Name, CreatedAt, LastModified) VALUES (@uuid, @name, @createdAt, @lastModified)";
-        upsertCmd.Parameters.AddWithValue("@uuid", collection.Uuid.ToString());
+        upsertCmd.CommandText = "INSERT OR REPLACE INTO Collections (CollectionUuid, Name, CreatedAt, LastModified) VALUES (@uuid, @name, @createdAt, @lastModified)";
+        upsertCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
         upsertCmd.Parameters.AddWithValue("@name", collection.Name);
         upsertCmd.Parameters.AddWithValue("@createdAt", collection.CreatedAt.ToString("O"));
         upsertCmd.Parameters.AddWithValue("@lastModified", collection.LastModified.ToString("O"));
@@ -50,14 +50,14 @@ public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollec
 
         await using var deleteCmd = connection.CreateCommand();
         deleteCmd.CommandText = "DELETE FROM CollectionBooks WHERE CollectionUuid = @uuid";
-        deleteCmd.Parameters.AddWithValue("@uuid", collection.Uuid.ToString());
+        deleteCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
         await deleteCmd.ExecuteNonQueryAsync();
 
         foreach (var bookUuid in collection.BookUuids)
         {
             await using var insertCmd = connection.CreateCommand();
             insertCmd.CommandText = "INSERT INTO CollectionBooks (CollectionUuid, BookUuid) VALUES (@collectionUuid, @bookUuid)";
-            insertCmd.Parameters.AddWithValue("@collectionUuid", collection.Uuid.ToString());
+            insertCmd.Parameters.AddWithValue("@collectionUuid", collection.CollectionUuid.ToString());
             insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
             await insertCmd.ExecuteNonQueryAsync();
         }
@@ -77,7 +77,7 @@ public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollec
         await deleteBooksCmd.ExecuteNonQueryAsync();
 
         await using var deleteCmd = connection.CreateCommand();
-        deleteCmd.CommandText = "DELETE FROM Collections WHERE Uuid = @uuid";
+        deleteCmd.CommandText = "DELETE FROM Collections WHERE CollectionUuid = @uuid";
         deleteCmd.Parameters.AddWithValue("@uuid", uuid.ToString());
         await deleteCmd.ExecuteNonQueryAsync();
 
@@ -109,7 +109,7 @@ public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollec
         {
             collections.Add(new BookCollection
             {
-                Uuid = Guid.Parse(reader.GetString(reader.GetOrdinal("Uuid"))),
+                CollectionUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("CollectionUuid"))),
                 Name = reader.GetString(reader.GetOrdinal("Name")),
                 CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
                 LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
@@ -130,7 +130,7 @@ public class BookCollectionRepository(AlexandriaSettings settings) : IBookCollec
         cmd.CommandText = "SELECT CollectionUuid, BookUuid FROM CollectionBooks";
         await using var reader = await cmd.ExecuteReaderAsync();
 
-        var lookup = collections.ToDictionary(c => c.Uuid);
+        var lookup = collections.ToDictionary(c => c.CollectionUuid);
         while (await reader.ReadAsync())
         {
             var collectionUuid = Guid.Parse(reader.GetString(0));

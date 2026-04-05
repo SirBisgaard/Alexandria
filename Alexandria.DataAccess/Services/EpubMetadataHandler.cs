@@ -12,39 +12,14 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     private static readonly XNamespace Container = "urn:oasis:names:tc:opendocument:xmlns:container";
 
     /// <summary>
-    /// Extracts metadata from an EPUB file.
+    /// Extracts metadata and cover from an EPUB in a single ZIP open.
     /// </summary>
-    /// <param name="epubPath">Absolute or relative path to the .epub file.</param>
-    public EpubMetadata ExtractMetadata(string epubPath)
+    public EpubMetadata ExtractAll(string epubPath, string coverOutputDirectory)
     {
         if (!File.Exists(epubPath))
+        {
             throw new FileNotFoundException("EPUB file not found.", epubPath);
-
-        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
-
-        var opfPath = GetOpfPath(zip);
-        var opfEntry = zip.GetEntry(opfPath)
-            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
-
-        using var opfStream = opfEntry.Open();
-        var opfDoc = XDocument.Load(opfStream);
-
-        var (metadata, _) = ParseMetadata(opfDoc);
-
-        return metadata;
-    }
-
-    /// <summary>
-    /// Extracts the cover image from an EPUB file to disk.
-    /// </summary>
-    /// <param name="epubPath">Absolute or relative path to the .epub file.</param>
-    /// <param name="coverOutputDirectory">Directory where the cover image should be saved.</param>
-    /// <returns>The path to the extracted cover file, or null if no cover was found.</returns>
-    public string? ExtractCover(string epubPath, string coverOutputDirectory)
-    {
-        if (!File.Exists(epubPath))
-            throw new FileNotFoundException("EPUB file not found.", epubPath);
+        }
 
         using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
@@ -57,8 +32,9 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         var opfDoc = XDocument.Load(opfStream);
 
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
+        metadata.CoverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.AlexandriaUuid ?? metadata.DeterministicUuid);
 
-        return WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.Uuid);
+        return metadata;
     }
 
     public void EmbedMetadata(string epubPath, EpubMetadata metadata)
@@ -104,6 +80,12 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
         // Remove EPUB 3 series metadata to avoid conflicts with Calibre tags.
         RemoveEpub3SeriesMeta(metadataEl);
+
+        // Embed Alexandria UUID if set.
+        if (metadata.AlexandriaUuid.HasValue)
+        {
+            SetMetaByName(metadataEl, "alexandria:uuid", metadata.AlexandriaUuid.Value.ToString());
+        }
 
         ReplaceOpfEntry(zip, opfPath, opfDoc);
     }
@@ -373,6 +355,12 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
         ParseSeries(metadataEl, result);
 
+        var alexandriaUuid = FindMetaByName(metadataEl, "alexandria:uuid");
+        if (alexandriaUuid is not null && Guid.TryParse(alexandriaUuid, out var parsedUuid))
+        {
+            result.AlexandriaUuid = parsedUuid;
+        }
+
         return (result, metadataEl);
     }
 
@@ -388,7 +376,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             result.SeriesName = calibreSeries;
             var indexStr = FindMetaByName(metadataEl, "calibre:series_index");
             if (double.TryParse(indexStr, System.Globalization.CultureInfo.InvariantCulture, out var idx))
-                result.SeriesIndex = (int)idx;
+                result.SeriesIndex = idx;
             return;
         }
 
@@ -423,7 +411,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
                     "group-position",
                     StringComparison.OrdinalIgnoreCase));
 
-        if (positionMeta is not null && int.TryParse(positionMeta.Value.Trim(), out var pos))
+        if (positionMeta is not null && double.TryParse(positionMeta.Value.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var pos))
             result.SeriesIndex = pos;
     }
 

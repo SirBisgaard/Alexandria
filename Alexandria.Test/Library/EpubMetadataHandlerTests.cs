@@ -58,7 +58,7 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
-    public void Extract_AllBooks_ExtractCover()
+    public void ExtractAll_AllBooks_ExtractsCover()
     {
         var extractor = new EpubMetadataHandler();
         var epubs = Directory.GetFiles(ContentBooksDir, "*.epub");
@@ -66,11 +66,11 @@ public sealed class EpubMetadataHandlerTests
         foreach (var epub in epubs)
         {
             var coverDir = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(epub));
-            var coverPath = extractor.ExtractCover(epub, coverDir);
+            var metadata = extractor.ExtractAll(epub, coverDir);
 
-            Assert.IsNotNull(coverPath, $"Cover should have been extracted for {Path.GetFileName(epub)}.");
-            Assert.IsTrue(File.Exists(coverPath), $"Cover file should exist for {Path.GetFileName(epub)}.");
-            Assert.IsGreaterThan(0, new FileInfo(coverPath).Length, $"Cover file should not be empty for {Path.GetFileName(epub)}.");
+            Assert.IsNotNull(metadata.CoverFilePath, $"Cover should have been extracted for {Path.GetFileName(epub)}.");
+            Assert.IsTrue(File.Exists(metadata.CoverFilePath), $"Cover file should exist for {Path.GetFileName(epub)}.");
+            Assert.IsGreaterThan(0, new FileInfo(metadata.CoverFilePath).Length, $"Cover file should not be empty for {Path.GetFileName(epub)}.");
         }
     }
 
@@ -81,7 +81,7 @@ public sealed class EpubMetadataHandlerTests
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
-            () => extractor.ExtractMetadata(bogusPath));
+            () => extractor.ExtractAll(bogusPath, outputDir));
     }
 
     [TestMethod]
@@ -90,11 +90,11 @@ public sealed class EpubMetadataHandlerTests
         var extractor = new EpubMetadataHandler();
         var inputPath = Path.Combine(ContentBooksDir, "Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var first = extractor.ExtractMetadata(inputPath);
-        var second = extractor.ExtractMetadata(inputPath);
+        var first = extractor.ExtractAll(inputPath, outputDir);
+        var second = extractor.ExtractAll(inputPath, outputDir);
 
-        Assert.AreEqual(first.Uuid, second.Uuid, "UUID should be deterministic for the same title and authors.");
-        Assert.AreNotEqual(Guid.Empty, first.Uuid);
+        Assert.AreEqual(first.DeterministicUuid, second.DeterministicUuid, "UUID should be deterministic for the same title and authors.");
+        Assert.AreNotEqual(Guid.Empty, first.DeterministicUuid);
     }
 
     [TestMethod]
@@ -106,8 +106,8 @@ public sealed class EpubMetadataHandlerTests
 
         foreach (var epub in epubs)
         {
-            var metadata = extractor.ExtractMetadata(epub);
-            Assert.IsTrue(uuids.Add(metadata.Uuid), $"UUID collision for {Path.GetFileName(epub)}.");
+            var metadata = extractor.ExtractAll(epub, outputDir);
+            Assert.IsTrue(uuids.Add(metadata.DeterministicUuid), $"UUID collision for {Path.GetFileName(epub)}.");
         }
     }
 
@@ -116,7 +116,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-        var original = handler.ExtractMetadata(epubPath);
+        var original = handler.ExtractAll(epubPath, outputDir);
 
         var modified = new EpubMetadata
         {
@@ -131,7 +131,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var result = handler.ExtractMetadata(epubPath);
+        var result = handler.ExtractAll(epubPath, outputDir);
 
         Assert.AreEqual("New Title", result.Title);
         Assert.HasCount(original.Authors.Count, result.Authors);
@@ -144,7 +144,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-        var original = handler.ExtractMetadata(epubPath);
+        var original = handler.ExtractAll(epubPath, outputDir);
 
         var modified = new EpubMetadata
         {
@@ -156,7 +156,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var result = handler.ExtractMetadata(epubPath);
+        var result = handler.ExtractAll(epubPath, outputDir);
 
         Assert.HasCount(2, result.Authors);
         Assert.Contains("Author One", result.Authors);
@@ -182,7 +182,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var result = handler.ExtractMetadata(epubPath);
+        var result = handler.ExtractAll(epubPath, outputDir);
 
         Assert.AreEqual("Test Title", result.Title);
         Assert.HasCount(1, result.Authors);
@@ -200,7 +200,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-        var original = handler.ExtractMetadata(epubPath);
+        var original = handler.ExtractAll(epubPath, outputDir);
 
         var modified = new EpubMetadata
         {
@@ -212,7 +212,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var result = handler.ExtractMetadata(epubPath);
+        var result = handler.ExtractAll(epubPath, outputDir);
 
         Assert.AreEqual("New Series Name", result.SeriesName);
         Assert.AreEqual(7, result.SeriesIndex);
@@ -224,7 +224,7 @@ public sealed class EpubMetadataHandlerTests
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var original = handler.ExtractMetadata(epubPath);
+        var original = handler.ExtractAll(epubPath, outputDir);
         Assert.IsNotNull(original.SeriesName, "Test book should have a series.");
 
         var modified = new EpubMetadata
@@ -237,7 +237,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var result = handler.ExtractMetadata(epubPath);
+        var result = handler.ExtractAll(epubPath, outputDir);
 
         Assert.IsNull(result.SeriesName);
         Assert.IsNull(result.SeriesIndex);
@@ -260,9 +260,9 @@ public sealed class EpubMetadataHandlerTests
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var originalCoverDir = Path.Combine(outputDir, "original-cover");
-        var originalCoverPath = handler.ExtractCover(epubPath, originalCoverDir);
-        Assert.IsNotNull(originalCoverPath);
-        var originalCoverSize = new FileInfo(originalCoverPath).Length;
+        var originalMetadata = handler.ExtractAll(epubPath, originalCoverDir);
+        Assert.IsNotNull(originalMetadata.CoverFilePath);
+        var originalCoverSize = new FileInfo(originalMetadata.CoverFilePath).Length;
 
         // Create a small but valid JPEG (minimal JFIF).
         var fakeCover = CreateMinimalJpeg();
@@ -270,10 +270,10 @@ public sealed class EpubMetadataHandlerTests
         handler.EmbedCover(epubPath, fakeCover, "image/jpeg");
 
         var newCoverDir = Path.Combine(outputDir, "new-cover");
-        var newCoverPath = handler.ExtractCover(epubPath, newCoverDir);
-        Assert.IsNotNull(newCoverPath);
+        var newMetadata = handler.ExtractAll(epubPath, newCoverDir);
+        Assert.IsNotNull(newMetadata.CoverFilePath);
 
-        var newCoverSize = new FileInfo(newCoverPath).Length;
+        var newCoverSize = new FileInfo(newMetadata.CoverFilePath).Length;
         Assert.AreEqual(fakeCover.Length, newCoverSize, "Extracted cover should match the embedded cover size.");
         Assert.AreNotEqual(originalCoverSize, newCoverSize, "Cover size should differ from original.");
     }
@@ -337,15 +337,15 @@ public sealed class EpubMetadataHandlerTests
 
         // Verify cover exists before removal.
         var beforeDir = Path.Combine(outputDir, "before-cover");
-        var beforeCover = handler.ExtractCover(epubPath, beforeDir);
-        Assert.IsNotNull(beforeCover, "Test book should have a cover before removal.");
+        var beforeMetadata = handler.ExtractAll(epubPath, beforeDir);
+        Assert.IsNotNull(beforeMetadata.CoverFilePath, "Test book should have a cover before removal.");
 
         handler.RemoveCover(epubPath);
 
         // Verify cover is gone after removal.
         var afterDir = Path.Combine(outputDir, "after-cover");
-        var afterCover = handler.ExtractCover(epubPath, afterDir);
-        Assert.IsNull(afterCover, "Cover should be null after removal.");
+        var afterMetadata = handler.ExtractAll(epubPath, afterDir);
+        Assert.IsNull(afterMetadata.CoverFilePath, "Cover should be null after removal.");
     }
 
     [TestMethod]
@@ -407,6 +407,6 @@ public sealed class EpubMetadataHandlerTests
     {
         var extractor = new EpubMetadataHandler();
         var inputPath = Path.Combine(ContentBooksDir, fileName);
-        return extractor.ExtractMetadata(inputPath);
+        return extractor.ExtractAll(inputPath, outputDir);
     }
 }

@@ -104,10 +104,10 @@ $(function () {
             var count = (s.books || []).length;
             var countText = count + (count === 1 ? " book" : " books");
             var firstBook = s.books && s.books.length > 0 ? s.books[0] : null;
-            var authors = firstBook ? (firstBook.authors || []).join(", ") : "";
+            var authors = firstBook ? (firstBook.authors || []).map(function(a){return a.name}).join(", ") : "";
 
             if (firstBook) {
-                var detailUrl = "series-detail.html?uuid=" + s.uuid;
+                var detailUrl = "series-detail.html?uuid=" + s.seriesUuid;
                 $grid.append(
                     '<div class="col"><a href="' + detailUrl + '" class="book-card">' +
                         bookCoverHtml(firstBook, "book-cover-img") +
@@ -116,7 +116,7 @@ $(function () {
                 );
                 $list.append(
                     '<a href="' + detailUrl + '" class="series-list-item">' +
-                        '<img loading="lazy" src="' + coverUrl(firstBook.uuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
+                        '<img loading="lazy" src="' + coverUrl(firstBook.bookUuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
                         '<div class="series-list-info">' +
                             '<div class="series-list-title">' + escapeHtml(s.name) + '</div>' +
                             '<div class="series-list-author">' + escapeHtml(authors) + '</div>' +

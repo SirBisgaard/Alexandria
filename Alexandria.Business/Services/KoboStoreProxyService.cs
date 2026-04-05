@@ -66,12 +66,6 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// Intercepts Kobo's /v1/library/sync endpoint. Uses a two-phase continuation model:
     /// Phase 1 — while Kobo returns x-kobo-sync: continue, pass through store results without injecting local books.
     /// Phase 2 — once Kobo is done, paginate local Alexandria books in batches using the same continuation header.
-    ///
-    /// All IDs returned for local books (EntitlementId, RevisionId, CrossRevisionId, WorkId, CoverImageId,
-    /// and Series.Id) are deterministic UUID v5 values generated via <see cref="GuidExtensions"/>.
-    /// Book UUIDs are derived from a normalized "title:authors" key (see <see cref="EpubMetadata.Uuid"/>),
-    /// and series IDs are derived from the series name. This means the same EPUB will always receive the
-    /// same identifiers regardless of when or where it is indexed.
     /// </summary>
     public async Task<KoboProxyResponse> LibrarySync(KoboProxyRequest request)
     {
@@ -127,14 +121,14 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             }
 
             logger.LogInformation("LibrarySync: {Count} local books new/changed since {LastSync}", books.Count, lastSync);
-            syncSession.Start(deviceId, books.Select(b => b.Uuid).ToList());
+            syncSession.Start(deviceId, books.Select(b => b.BookUuid).ToList());
         }
 
         // Get next batch of local book UUIDs from the session.
         var batchSize = settings.SyncBatchSize;
         var batchUuids = syncSession.GetNextBatch(deviceId, batchSize);
         var hasMore = syncSession.HasMore(deviceId);
-        var lastSyncTime = alexandriaToken.LastSync;
+        var lastSyncTime = alexandriaToken.LastSync;chrome://vivaldi-webui/startpage?section=Speed-dials&background-color=#2e2f37
 
         foreach (var uuid in batchUuids)
         {
@@ -144,8 +138,15 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 continue;
             }
 
-            var readingState = await readingStateRepository.GetByBookUuid(book.Uuid);
+            var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
             var readingStateChanged = readingState is not null && DateTimeOffset.Parse(readingState.LastModified) > alexandriaToken.ReadingStateLastModified;
+
+            // Override the EntitlementId in reading state to use the Kobo-facing EntitlementUuid.
+            if (readingState is not null)
+            {
+                readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
+            }
+
             var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = readingStateChanged ? readingState : null };
             var isNew = book.CreatedAt > lastSyncTime;
             syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
@@ -210,6 +211,11 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     private async Task<List<SyncResultItem>> GetCollectionSyncItems(DateTimeOffset lastSync)
     {
         var collections = lastSync == DateTimeOffset.MinValue ? await alexandriaLibraryService.GetCollections() : await alexandriaLibraryService.GetCollectionsModifiedSince(lastSync);
+
+        // Build a BookUuid -> EntitlementUuid lookup for tag items.
+        var allBooks = await alexandriaLibraryService.GetBooks();
+        var entitlementLookup = allBooks.ToDictionary(b => b.BookUuid, b => b.EntitlementUuid);
+
         return collections.Select(c =>
         {
             var isNew = c.CreatedAt > lastSync;
@@ -217,11 +223,11 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             {
                 Tag = new Tag
                 {
-                    Id = c.Uuid.ToString(),
+                    Id = c.CollectionUuid.ToString(),
                     Name = c.Name,
                     Created = c.CreatedAt.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     LastModified = c.LastModified.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    Items = c.BookUuids.Select(id => new TagItem { RevisionId = id.ToString() }).ToList()
+                    Items = c.BookUuids.Select(id => new TagItem { RevisionId = (entitlementLookup.TryGetValue(id, out var eid) ? eid : id).ToString() }).ToList()
                 }
             };
             return isNew ? new SyncResultItem { NewTag = tag } : new SyncResultItem { ChangedTag = tag };
@@ -240,7 +246,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
             var collection = new BookCollection
             {
-                Uuid = Guid.Parse(tag.Id),
+                CollectionUuid = Guid.Parse(tag.Id),
                 Name = tag.Name,
                 BookUuids = tag.Items?.Select(i => Guid.Parse(i.RevisionId)).ToList() ?? [],
                 CreatedAt = DateTimeOffset.TryParse(tag.Created, out var created) ? created : DateTimeOffset.UtcNow,
@@ -248,7 +254,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             };
 
             await alexandriaLibraryService.UpsertCollection(collection);
-            logger.LogInformation("LibrarySync: persisted store collection '{Name}' ({Uuid}) with {Count} books", collection.Name, collection.Uuid, collection.BookUuids.Count);
+            logger.LogInformation("LibrarySync: persisted store collection '{Name}' ({Uuid}) with {Count} books", collection.Name, collection.CollectionUuid, collection.BookUuids.Count);
         }
     }
 
@@ -259,7 +265,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> Download(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         // We dont know the book.
         if (book is null)
         {
@@ -300,7 +306,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         // We dont know the book.
         if (book is null)
         {
@@ -350,7 +356,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> ReadingState(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         // We dont know the book.
         if (book is null)
         {
@@ -360,23 +366,25 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         logger.LogInformation("ReadingState: {Method} for '{Title}' ({Uuid})", request.Method, book.Title, uuid);
 
         var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var uuidStr = uuid.ToString();
+        var entitlementUuidStr = book.EntitlementUuid.ToString();
 
         if (request.Method == "PUT")
         {
-            return await HandleReadingStatePut(request, uuid, uuidStr, now, book);
+            return await HandleReadingStatePut(request, book, entitlementUuidStr, now);
         }
 
         // GET — return persisted reading state, or default.
-        var storedState = await readingStateRepository.GetByBookUuid(uuid);
+        var storedState = await readingStateRepository.GetByBookUuid(book.BookUuid);
         if (storedState is not null)
         {
+            // Override EntitlementId to use Kobo-facing UUID.
+            storedState = storedState with { EntitlementId = entitlementUuidStr };
             return JsonResponse(StatusCodes.Status200OK, new[] { storedState });
         }
 
-        var defaultState = new ReadingState
+        var defaultState = new Models.KoboStore.ReadingState
         {
-            EntitlementId = uuidStr,
+            EntitlementId = entitlementUuidStr,
             Created = book.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
             LastModified = now,
             PriorityTimestamp = now,
@@ -395,7 +403,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> Metadata(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         // We dont know the book.
         if (book is null)
         {
@@ -403,7 +411,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             return await Proxy(request);
         }
         logger.LogInformation("Metadata: serving metadata for '{Title}' ({Uuid})", book.Title, uuid);
-        
+
         return JsonResponse(StatusCodes.Status200OK, new[] { book.ToMetadata(settings.KoboApiUrl) });
     }
 
@@ -414,7 +422,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> DeleteBook(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         // We dont know the book.
         if (book is null)
         {
@@ -423,8 +431,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
 
         logger.LogInformation("DeleteBook: archiving '{Title}' ({Uuid})", book.Title, uuid);
-        await alexandriaLibraryService.SetBookArchiveStatus(uuid, true);
-        
+        await alexandriaLibraryService.SetBookArchiveStatus(book.BookUuid, true);
+
         return new KoboProxyResponse
         {
             StatusCode = StatusCodes.Status204NoContent,
@@ -495,19 +503,19 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             Body = responseBody
         };
     }
-    
-    private async Task<KoboProxyResponse> HandleReadingStatePut(KoboProxyRequest request, Guid uuid, string uuidStr, string now, Book book)
+
+    private async Task<KoboProxyResponse> HandleReadingStatePut(KoboProxyRequest request, Book book, string entitlementUuidStr, string now)
     {
         var rawBody = Encoding.UTF8.GetString(request.Body);
         var putRequest = JsonSerializer.Deserialize<ReadingStatePutRequest>(rawBody);
         var item = putRequest?.ReadingStates?.FirstOrDefault();
 
-        var putResponse = new { RequestResult = "Success", UpdateResults = new[] { new { EntitlementId = uuidStr, CurrentBookmarkResult = new { Result = "Success" }, StatisticsResult = new { Result = "Success" }, StatusInfoResult = new { Result = "Success" }, LastModified = now, PriorityTimestamp = now } } };
+        var putResponse = new { RequestResult = "Success", UpdateResults = new[] { new { EntitlementId = entitlementUuidStr, CurrentBookmarkResult = new { Result = "Success" }, StatisticsResult = new { Result = "Success" }, StatusInfoResult = new { Result = "Success" }, LastModified = now, PriorityTimestamp = now } } };
 
         if (item is not null)
         {
             // Load existing state to handle status transitions.
-            var existing = await readingStateRepository.GetByBookUuid(uuid);
+            var existing = await readingStateRepository.GetByBookUuid(book.BookUuid);
 
             // Last-update-wins: reject the PUT if the device's state is older than what we have.
             // This prevents the device from overwriting server-side changes (e.g. "Mark as finished" from the web UI).
@@ -529,9 +537,9 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 lastTimeStarted = now;
             }
 
-            var state = new ReadingState
+            var state = new Models.KoboStore.ReadingState
             {
-                EntitlementId = uuidStr,
+                EntitlementId = entitlementUuidStr,
                 Created = existing?.Created ?? book.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 LastModified = item.LastModified ?? now,
                 PriorityTimestamp = now,
@@ -557,7 +565,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 }
             };
 
-            await readingStateRepository.Upsert(uuid, state, rawBody);
+            await readingStateRepository.Upsert(book.BookUuid, state, rawBody);
         }
 
         return JsonResponse(StatusCodes.Status200OK, putResponse);

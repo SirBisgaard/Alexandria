@@ -54,15 +54,17 @@ public sealed class AlexandriaLibraryServiceTests
         var settings = CreateSettings();
         var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
-        var bookRepository = new BookRepository(settings);
+        var authorRepository = new AuthorRepository(settings);
+        var seriesRepository = new SeriesRepository(settings);
+        var bookRepository = new BookRepository(settings, authorRepository, seriesRepository);
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubMetadataHandler = new EpubMetadataHandler();
         var kepubifyConverter = new KepubifyConverter();
-        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, new AlexandriaSettingsService(new SettingsRepository(settings)), NullLogger<LibraryIndexerService>.Instance);
+        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<LibraryIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
-        var collectionRepository = new FakeBookCollectionRepository();
-        var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, fileRepository, epubMetadataHandler, indexerService);
+        var collectionRepository = new FakeCollectionRepository();
+        var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, fileRepository, epubMetadataHandler, indexerService, authorRepository, seriesRepository);
 
         await indexerService.Index();
         return (service, bookRepository);
@@ -77,12 +79,12 @@ public sealed class AlexandriaLibraryServiceTests
         Assert.IsNotNull(original, "Life and Fate should be indexed with the expected UUID.");
         Assert.AreEqual("Life and Fate", original.Title);
 
-        var updateBook = new Book { Title = "Life and Fate (Updated)", Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, SeriesName = original.SeriesName, SeriesIndex = original.SeriesIndex, PublicationDate = original.PublicationDate, Description = original.Description };
+        var updateBook = new Book { Title = "Life and Fate (Updated)", Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
 
         var result = await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(LifeAndFateUuid, result.Uuid, "UUID should be preserved after metadata edit.");
+        Assert.AreEqual(LifeAndFateUuid, result.BookUuid, "UUID should be preserved after metadata edit.");
         Assert.AreEqual("Life and Fate (Updated)", result.Title);
         Assert.HasCount(original.Authors.Count, result.Authors);
     }
@@ -95,20 +97,20 @@ public sealed class AlexandriaLibraryServiceTests
         var original = await bookRepository.FindByUuid(LifeAndFateUuid);
         Assert.IsNotNull(original);
 
-        var updateBook = new Book { Title = "New Title", Authors = ["Author A", "Author B"], Language = "da", Publisher = "Test Publisher", SeriesName = "Test Series", SeriesIndex = 5, PublicationDate = "2025-01-01", Description = "A new description" };
+        var updateBook = new Book { Title = "New Title", Authors = [new Author { Name = "Author A" }, new Author { Name = "Author B" }], Language = "da", Publisher = "Test Publisher", Series = new Series { Name = "Test Series", Index = 5 }, PublicationDate = "2025-01-01", Description = "A new description" };
 
         var result = await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(LifeAndFateUuid, result.Uuid);
+        Assert.AreEqual(LifeAndFateUuid, result.BookUuid);
         Assert.AreEqual("New Title", result.Title);
         Assert.HasCount(2, result.Authors);
-        Assert.AreEqual("Author A", result.Authors[0]);
-        Assert.AreEqual("Author B", result.Authors[1]);
+        Assert.AreEqual("Author A", result.Authors[0].Name);
+        Assert.AreEqual("Author B", result.Authors[1].Name);
         Assert.AreEqual("da", result.Language);
         Assert.AreEqual("Test Publisher", result.Publisher);
-        Assert.AreEqual("Test Series", result.SeriesName);
-        Assert.AreEqual(5, result.SeriesIndex);
+        Assert.AreEqual("Test Series", result.Series?.Name);
+        Assert.AreEqual(5, result.Series?.Index);
         Assert.AreEqual("2025-01-01", result.PublicationDate);
         Assert.AreEqual("A new description", result.Description);
     }
@@ -121,13 +123,13 @@ public sealed class AlexandriaLibraryServiceTests
         var original = await bookRepository.FindByUuid(LifeAndFateUuid);
         Assert.IsNotNull(original);
 
-        var updateBook = new Book { Title = "Roundtrip Title", Authors = ["Roundtrip Author"], Language = "fr", Publisher = original.Publisher, SeriesName = original.SeriesName, SeriesIndex = original.SeriesIndex, PublicationDate = original.PublicationDate, Description = original.Description };
+        var updateBook = new Book { Title = "Roundtrip Title", Authors = [new Author { Name = "Roundtrip Author" }], Language = "fr", Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
 
         await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
 
         // Verify the EPUB file itself was modified by re-extracting metadata directly.
         var handler = new EpubMetadataHandler();
-        var freshMetadata = handler.ExtractMetadata(original.SourcePath);
+        var freshMetadata = handler.ExtractAll(original.SourcePath, coversDir);
         Assert.AreEqual("Roundtrip Title", freshMetadata.Title);
         Assert.HasCount(1, freshMetadata.Authors);
         Assert.AreEqual("Roundtrip Author", freshMetadata.Authors[0]);
@@ -189,7 +191,7 @@ public sealed class AlexandriaLibraryServiceTests
         var result = await service.RemoveBookCover(LifeAndFateUuid);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(LifeAndFateUuid, result.Uuid);
+        Assert.AreEqual(LifeAndFateUuid, result.BookUuid);
         Assert.IsNull(result.CoverFilePath, "CoverFilePath should be null after cover removal.");
         Assert.IsFalse(File.Exists(original.CoverFilePath), "Cover file should be deleted from disk.");
     }
@@ -199,7 +201,7 @@ public sealed class AlexandriaLibraryServiceTests
     {
         var (service, _) = await CreateService();
 
-        var result = await service.UpdateBookMetadata(Guid.NewGuid(), new Book { Title = "x", Authors = ["a"], Language = "en" });
+        var result = await service.UpdateBookMetadata(Guid.NewGuid(), new Book { Title = "x", Authors = [new Author { Name = "a" }], Language = "en" });
 
         Assert.IsNull(result);
     }
@@ -211,7 +213,7 @@ public sealed class AlexandriaLibraryServiceTests
         public Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody) => Task.CompletedTask;
     }
 
-    private class FakeBookCollectionRepository : IBookCollectionRepository
+    private class FakeCollectionRepository : ICollectionRepository
     {
         public Task<List<BookCollection>> GetAll() => Task.FromResult<List<BookCollection>>([]);
         public Task<BookCollection?> FindByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);

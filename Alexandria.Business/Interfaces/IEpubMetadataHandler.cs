@@ -4,8 +4,7 @@ namespace Alexandria.Business.Interfaces;
 
 public interface IEpubMetadataHandler
 {
-    EpubMetadata ExtractMetadata(string epubPath);
-    string? ExtractCover(string epubPath, string coverOutputDirectory);
+    EpubMetadata ExtractAll(string epubPath, string coverOutputDirectory);
     void EmbedMetadata(string epubPath, EpubMetadata metadata);
     void EmbedCover(string epubPath, byte[] coverData, string mediaType);
     void RemoveCover(string epubPath);

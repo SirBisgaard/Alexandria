@@ -735,9 +735,27 @@ a.series-list-item {
     margin-bottom: 4px;
 }
 
+.book-modal-series a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.book-modal-series a:hover {
+    text-decoration: underline;
+}
+
 .book-modal-author {
     font-size: 16px;
     margin-bottom: 12px;
+}
+
+.book-modal-author a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.book-modal-author a:hover {
+    text-decoration: underline;
 }
 
 .book-modal-status-row {

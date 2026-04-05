@@ -26,7 +26,8 @@ public sealed class LibrarySyncTests
 
     private static Book MakeBook(string title, DateTimeOffset createdAt, DateTimeOffset? lastModified = null)
     {
-        return new Book { Uuid = Guid.NewGuid(), Title = title, Authors = ["Test Author"], Language = "en", FileHash = "sha256:abc", SourcePath = "/test.epub", KepubFileSize = 1000, CreatedAt = createdAt, LastModified = lastModified ?? createdAt };
+        var uuid = Guid.NewGuid();
+        return new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", FileHash = "sha256:abc", SourcePath = "/test.epub", KepubFileSize = 1000, CreatedAt = createdAt, LastModified = lastModified ?? createdAt };
     }
 
     private static KoboProxyRequest MakeRequest(string? syncToken = null)
@@ -294,9 +295,10 @@ public sealed class LibrarySyncTests
     }
 
     private class FakeLibraryService(List<Book> books) : IAlexandriaLibraryService
-    { 
+    {
         public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books);
-        public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.Uuid == uuid));
+        public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.BookUuid == uuid));
+        public Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid) => Task.FromResult(books.FirstOrDefault(b => b.EntitlementUuid == entitlementUuid));
         public Task SetBookArchiveStatus(Guid uuid, bool isArchived) => Task.CompletedTask;
         public Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null) => Task.FromResult<List<BookCollection>>([]);
         public Task<BookCollection?> GetCollectionByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);

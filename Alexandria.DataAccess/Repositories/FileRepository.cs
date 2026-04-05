@@ -20,7 +20,7 @@ public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService 
     {
         if (width.HasValue && height.HasValue)
         {
-            var thumbnail = await coverThumbnailService.GetOrCreateThumbnail(book.CoverFilePath, book.Uuid, width.Value, height.Value, quality ?? 80);
+            var thumbnail = await coverThumbnailService.GetOrCreateThumbnail(book.CoverFilePath, book.BookUuid, width.Value, height.Value, quality ?? 80);
             if (thumbnail is not null)
             {
                 return thumbnail;
@@ -36,7 +36,7 @@ public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService 
 
     public void DeleteCover(Book book)
     {
-        coverThumbnailService.DeleteThumbnails(book.Uuid);
+        coverThumbnailService.DeleteThumbnails(book.BookUuid);
         if (book.CoverFilePath is not null && File.Exists(book.CoverFilePath))
         {
             File.Delete(book.CoverFilePath);

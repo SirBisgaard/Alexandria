@@ -63,7 +63,7 @@ $(function () {
         $.get("/api/alexandria/collections"),
         $.get("/api/alexandria/series?sort=Recent&order=Desc")
     ).done(function (booksResult, collectionsResult, seriesResult) {
-        var books = booksResult[0];
+        var books = booksResult[0].filter(function (b) { return !b.isArchived; });
         var collections = collectionsResult[0];
         var seriesList = seriesResult[0];
         var $grid = $("#home-grid");
@@ -87,7 +87,7 @@ $(function () {
                 var pct = Math.round(book.readingProgress.progressPercent);
                 var remaining = book.readingProgress.remainingTimeMinutes;
                 var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
-                readingHtml += '<div class="home-reading-item" onclick="openBookModal(\'' + book.uuid + '\')">' +
+                readingHtml += '<div class="home-reading-item" onclick="openBookModal(\'' + book.bookUuid + '\')">' +
                     '<div class="home-card-covers">' + homeSingleCoverHtml(book) + '</div>' +
                     '<div class="home-card-title">' + pct + '% Read</div>' +
                     '<div class="home-card-sub">' + escapeHtml(subText) + '</div>' +
@@ -102,8 +102,8 @@ $(function () {
         var authorMap = {};
         $.each(books, function (i, b) {
             $.each(b.authors || [], function (j, a) {
-                if (!authorMap[a]) { authorMap[a] = []; }
-                authorMap[a].push(b);
+                if (!authorMap[a.name]) { authorMap[a.name] = []; }
+                authorMap[a.name].push(b);
             });
         });
         var topAuthor = null;
@@ -157,7 +157,7 @@ $(function () {
             sStack += '</div></div>';
             var sCount = (latestSeries.books || []).length;
             $grid.append(
-                '<div class="col-12 col-md-6"><a href="series-detail.html?uuid=' + latestSeries.uuid + '" class="home-card">' + sStack +
+                '<div class="col-12 col-md-6"><a href="series-detail.html?uuid=' + latestSeries.seriesUuid + '" class="home-card">' + sStack +
                     '<div class="home-card-title">' + escapeHtml(latestSeries.name) + '</div>' +
                     '<div class="home-card-sub">' + sCount + (sCount === 1 ? ' book' : ' books') + '</div>' +
                 '</a></div>'
@@ -170,7 +170,7 @@ $(function () {
             var colUuids = col.bookUuids || [];
             var colCount = colUuids.length;
             var bookMap = {};
-            $.each(books, function (i, b) { bookMap[b.uuid] = b; });
+            $.each(books, function (i, b) { bookMap[b.bookUuid] = b; });
             var colCovers = '<div class="home-card-covers"><div class="home-card-cover-stack">';
             var shown = 0;
             for (var ci = 0; ci < colUuids.length && shown < 3; ci++) {
@@ -181,7 +181,7 @@ $(function () {
             }
             colCovers += '</div></div>';
             $grid.append(
-                '<div class="col-12 col-md-6"><a href="collection-detail.html?uuid=' + col.uuid + '" class="home-card">' +
+                '<div class="col-12 col-md-6"><a href="collection-detail.html?uuid=' + col.collectionUuid + '" class="home-card">' +
                     colCovers +
                     '<div class="home-card-title">' + escapeHtml(col.name) + '</div>' +
                     '<div class="home-card-sub">' + colCount + (colCount === 1 ? ' book' : ' books') + '</div>' +

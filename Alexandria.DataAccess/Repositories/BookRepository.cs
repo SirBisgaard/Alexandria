@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
 using Alexandria.Business.Models.Settings;
@@ -6,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Repositories;
 
-public class BookRepository(AlexandriaSettings settings) : IBookRepository
+public class BookRepository(AlexandriaSettings settings, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
 {
     private readonly string connectionString = $"Data Source={settings.Database}";
 
@@ -25,6 +24,12 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
             books.Add(MapBook(reader));
         }
 
+        foreach (var book in books)
+        {
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+        }
+
         return books;
     }
 
@@ -34,13 +39,37 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books WHERE Uuid = @uuid";
+        cmd.CommandText = "SELECT * FROM Books WHERE BookUuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
 
         await using var reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
-            return MapBook(reader);
+            var book = MapBook(reader);
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            return book;
+        }
+
+        return null;
+    }
+
+    public async Task<Book?> FindByEntitlementUuid(Guid entitlementUuid)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT * FROM Books WHERE EntitlementUuid = @uuid";
+        cmd.Parameters.AddWithValue("@uuid", entitlementUuid.ToString());
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            var book = MapBook(reader);
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            return book;
         }
 
         return null;
@@ -58,7 +87,10 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
         await using var reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
-            return MapBook(reader);
+            var book = MapBook(reader);
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            return book;
         }
 
         return null;
@@ -71,8 +103,8 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO Books (Uuid, FileHash, SourcePath, Title, Authors, Language, PublicationDate, Description, Publisher, SeriesName, SeriesIndex, CoverFilePath, KepubFilePath, KepubFileSize, CreatedAt, LastModified, IsArchived)
-            VALUES (@uuid, @fileHash, @sourcePath, @title, @authors, @language, @publicationDate, @description, @publisher, @seriesName, @seriesIndex, @coverFilePath, @kepubFilePath, @kepubFileSize, @createdAt, @lastModified, @isArchived)
+            INSERT INTO Books (BookUuid, EntitlementUuid, FileHash, SourcePath, Title, Language, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, KepubFileSize, CreatedAt, LastModified, IsArchived)
+            VALUES (@bookUuid, @entitlementUuid, @fileHash, @sourcePath, @title, @language, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @kepubFileSize, @createdAt, @lastModified, @isArchived)
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
@@ -85,8 +117,8 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE Books SET FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Authors = @authors, Language = @language, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, SeriesName = @seriesName, SeriesIndex = @seriesIndex, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, KepubFileSize = @kepubFileSize, CreatedAt = @createdAt, LastModified = @lastModified, IsArchived = @isArchived
-            WHERE Uuid = @uuid
+            UPDATE Books SET EntitlementUuid = @entitlementUuid, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Language = @language, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, KepubFileSize = @kepubFileSize, CreatedAt = @createdAt, LastModified = @lastModified, IsArchived = @isArchived
+            WHERE BookUuid = @bookUuid
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
@@ -96,6 +128,16 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
+
+        await using var deleteBookSeries = connection.CreateCommand();
+        deleteBookSeries.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @uuid";
+        deleteBookSeries.Parameters.AddWithValue("@uuid", uuid.ToString());
+        await deleteBookSeries.ExecuteNonQueryAsync();
+
+        await using var deleteBookAuthors = connection.CreateCommand();
+        deleteBookAuthors.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @uuid";
+        deleteBookAuthors.Parameters.AddWithValue("@uuid", uuid.ToString());
+        await deleteBookAuthors.ExecuteNonQueryAsync();
 
         await using var deleteCollectionBooks = connection.CreateCommand();
         deleteCollectionBooks.CommandText = "DELETE FROM CollectionBooks WHERE BookUuid = @uuid";
@@ -108,24 +150,22 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
         await deleteReadingStates.ExecuteNonQueryAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "DELETE FROM Books WHERE Uuid = @uuid";
+        cmd.CommandText = "DELETE FROM Books WHERE BookUuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
         await cmd.ExecuteNonQueryAsync();
     }
 
     private static void AddBookParameters(SqliteCommand cmd, Book book)
     {
-        cmd.Parameters.AddWithValue("@uuid", book.Uuid.ToString());
+        cmd.Parameters.AddWithValue("@bookUuid", book.BookUuid.ToString());
+        cmd.Parameters.AddWithValue("@entitlementUuid", book.EntitlementUuid.ToString());
         cmd.Parameters.AddWithValue("@fileHash", book.FileHash);
         cmd.Parameters.AddWithValue("@sourcePath", book.SourcePath);
         cmd.Parameters.AddWithValue("@title", book.Title);
-        cmd.Parameters.AddWithValue("@authors", JsonSerializer.Serialize(book.Authors));
         cmd.Parameters.AddWithValue("@language", book.Language);
         cmd.Parameters.AddWithValue("@publicationDate", (object?)book.PublicationDate ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@description", (object?)book.Description ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@publisher", (object?)book.Publisher ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@seriesName", (object?)book.SeriesName ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@seriesIndex", (object?)book.SeriesIndex ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@coverFilePath", (object?)book.CoverFilePath ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@kepubFilePath", (object?)book.KepubFilePath ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@kepubFileSize", book.KepubFileSize);
@@ -138,17 +178,15 @@ public class BookRepository(AlexandriaSettings settings) : IBookRepository
     {
         return new Book
         {
-            Uuid = Guid.Parse(reader.GetString(reader.GetOrdinal("Uuid"))),
+            BookUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("BookUuid"))),
+            EntitlementUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("EntitlementUuid"))),
             FileHash = reader.GetString(reader.GetOrdinal("FileHash")),
             SourcePath = reader.GetString(reader.GetOrdinal("SourcePath")),
             Title = reader.GetString(reader.GetOrdinal("Title")),
-            Authors = JsonSerializer.Deserialize<List<string>>(reader.GetString(reader.GetOrdinal("Authors"))) ?? [],
             Language = reader.GetString(reader.GetOrdinal("Language")),
             PublicationDate = reader.IsDBNull(reader.GetOrdinal("PublicationDate")) ? null : reader.GetString(reader.GetOrdinal("PublicationDate")),
             Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
             Publisher = reader.IsDBNull(reader.GetOrdinal("Publisher")) ? null : reader.GetString(reader.GetOrdinal("Publisher")),
-            SeriesName = reader.IsDBNull(reader.GetOrdinal("SeriesName")) ? null : reader.GetString(reader.GetOrdinal("SeriesName")),
-            SeriesIndex = reader.IsDBNull(reader.GetOrdinal("SeriesIndex")) ? null : reader.GetInt32(reader.GetOrdinal("SeriesIndex")),
             CoverFilePath = reader.IsDBNull(reader.GetOrdinal("CoverFilePath")) ? null : reader.GetString(reader.GetOrdinal("CoverFilePath")),
             KepubFilePath = reader.IsDBNull(reader.GetOrdinal("KepubFilePath")) ? null : reader.GetString(reader.GetOrdinal("KepubFilePath")),
             KepubFileSize = reader.GetInt64(reader.GetOrdinal("KepubFileSize")),

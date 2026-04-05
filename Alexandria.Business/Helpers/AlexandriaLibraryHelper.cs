@@ -11,10 +11,10 @@ public static class AlexandriaLibraryHelper
         {
             BookSortField.DateAdded => desc ? books.OrderByDescending(b => b.CreatedAt).ToList() : books.OrderBy(b => b.CreatedAt).ToList(),
             BookSortField.Title => desc ? books.OrderByDescending(b => b.Title).ToList() : books.OrderBy(b => b.Title).ToList(),
-            BookSortField.Author => desc ? books.OrderByDescending(b => b.Authors.FirstOrDefault() ?? "").ThenByDescending(b => b.Title).ToList() : books.OrderBy(b => b.Authors.FirstOrDefault() ?? "").ThenBy(b => b.Title).ToList(),
-            BookSortField.Series => desc ? books.OrderBy(b => b.SeriesName is null ? 1 : 0).ThenByDescending(b => b.SeriesName).ThenByDescending(b => b.SeriesIndex ?? 0).ToList() : books.OrderBy(b => b.SeriesName is null ? 1 : 0).ThenBy(b => b.SeriesName).ThenBy(b => b.SeriesIndex ?? 0).ToList(),
+            BookSortField.Author => desc ? books.OrderByDescending(b => b.Authors.FirstOrDefault()?.Name ?? "").ThenByDescending(b => b.Title).ToList() : books.OrderBy(b => b.Authors.FirstOrDefault()?.Name ?? "").ThenBy(b => b.Title).ToList(),
+            BookSortField.Series => desc ? books.OrderBy(b => b.Series is null ? 1 : 0).ThenByDescending(b => b.Series?.Name).ThenByDescending(b => b.Series?.Index ?? 0).ToList() : books.OrderBy(b => b.Series is null ? 1 : 0).ThenBy(b => b.Series?.Name).ThenBy(b => b.Series?.Index ?? 0).ToList(),
             BookSortField.FileSize => desc ? books.OrderByDescending(b => b.KepubFileSize).ToList() : books.OrderBy(b => b.KepubFileSize).ToList(),
-            BookSortField.BookNumber => desc ? books.OrderByDescending(b => b.SeriesIndex ?? 0).ToList() : books.OrderBy(b => b.SeriesIndex ?? 0).ToList(),
+            BookSortField.BookNumber => desc ? books.OrderByDescending(b => b.Series?.Index ?? 0).ToList() : books.OrderBy(b => b.Series?.Index ?? 0).ToList(),
             _ => desc ? books.OrderByDescending(b => b.LastModified).ToList() : books.OrderBy(b => b.LastModified).ToList()
         };
     }

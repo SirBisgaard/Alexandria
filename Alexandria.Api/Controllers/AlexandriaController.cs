@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Alexandria.Api.Models;
+using Alexandria.Api.Models.Events;
+using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +17,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         var options = new BookSortOptions(sort ?? BookSortField.Recent, order ?? SortOrder.Desc);
         var books = await alexandriaLibraryService.GetBooks(options);
-        return Ok(books);
+        return Ok(books.Select(ApiMapper.ToBookResponse));
     }
 
     [HttpGet("books/{uuid:guid}")]
@@ -26,7 +28,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             return NotFound();
         }
-        return Ok(book);
+        return Ok(ApiMapper.ToBookResponse(book));
     }
 
     [HttpPut("books/{uuid:guid}/status")]
@@ -64,7 +66,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         var options = new AuthorSortOptions(sort ?? AuthorSortField.LastName, order ?? SortOrder.Asc);
         var authors = await alexandriaLibraryService.GetAuthors(options);
-        return Ok(authors);
+        return Ok(authors.Select(ApiMapper.ToAuthorDetailResponse));
     }
 
     [HttpGet("authors/{name}")]
@@ -76,7 +78,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             return NotFound();
         }
-        return Ok(author);
+        return Ok(ApiMapper.ToAuthorDetailResponse(author));
     }
 
     [HttpGet("series")]
@@ -84,7 +86,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         var options = new SeriesSortOptions(sort ?? SeriesSortField.SeriesTitle, order ?? SortOrder.Asc);
         var series = await alexandriaLibraryService.GetSeries(options);
-        return Ok(series);
+        return Ok(series.Select(ApiMapper.ToSeriesDetailResponse));
     }
 
     [HttpGet("series/{uuid:guid}")]
@@ -96,7 +98,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             return NotFound();
         }
-        return Ok(series);
+        return Ok(ApiMapper.ToSeriesDetailResponse(series));
     }
 
     [HttpGet("collections")]
@@ -104,7 +106,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         var options = new CollectionSortOptions(sort ?? CollectionSortField.CollectionName, order ?? SortOrder.Asc);
         var collections = await alexandriaLibraryService.GetCollections(options);
-        return Ok(collections);
+        return Ok(collections.Select(ApiMapper.ToCollectionResponse));
     }
 
     [HttpGet("collections/{uuid:guid}")]
@@ -116,20 +118,20 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             return NotFound();
         }
-        return Ok(result);
+        return Ok(ApiMapper.ToCollectionDetailResponse(result));
     }
-    
+
     [HttpPut("books/{uuid:guid}/metadata")]
-    public async Task<IActionResult> UpdateBookMetadata(Guid uuid, [FromBody] Book book)
+    public async Task<IActionResult> UpdateBookMetadata(Guid uuid, [FromBody] UpdateBookMetadataRequest request)
     {
         var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
         if (existing is null)
         {
             return NotFound();
         }
-        
-        var result = await alexandriaLibraryService.UpdateBookMetadata(uuid, book);
-        return Ok(result);
+
+        var result = await alexandriaLibraryService.UpdateBookMetadata(uuid, ApiMapper.ToBook(request));
+        return Ok(ApiMapper.ToBookResponse(result!));
     }
 
     [HttpPut("books/{uuid:guid}/cover")]
@@ -150,7 +152,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         await cover.CopyToAsync(ms);
 
         var result = await alexandriaLibraryService.UpdateBookCover(uuid, ms.ToArray(), cover.ContentType);
-        return Ok(result);
+        return Ok(ApiMapper.ToBookResponse(result!));
     }
 
     [HttpDelete("books/{uuid:guid}/cover")]
@@ -161,14 +163,14 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             return NotFound();
         }
-        return Ok(result);
+        return Ok(ApiMapper.ToBookResponse(result));
     }
 
     [HttpGet("settings")]
     public async Task<IActionResult> GetSettings()
     {
         var settings = await settingsService.Get();
-        return Ok(settings);
+        return Ok(ApiMapper.ToSettingsResponse(settings));
     }
 
     [HttpPost("sync")]
