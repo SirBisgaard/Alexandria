@@ -37,6 +37,14 @@ public class CoverThumbnailService(AlexandriaSettings settings, ILogger<CoverThu
         return await File.ReadAllBytesAsync(thumbnailPath);
     }
 
+    public byte[] ConvertToJpeg(byte[] imageData)
+    {
+        using var image = new MagickImage(imageData);
+        image.Format = MagickFormat.Jpeg;
+        image.Quality = 100;
+        return image.ToByteArray();
+    }
+
     public void DeleteThumbnails(Guid uuid)
     {
         var fileName = $"{uuid}.jpg";

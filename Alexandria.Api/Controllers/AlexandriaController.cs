@@ -138,9 +138,14 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     public async Task<IActionResult> UpdateBookCover(Guid uuid, IFormFile? cover)
     {
         if (cover is null || cover.Length == 0)
-        {
             return BadRequest("No cover file provided.");
-        }
+
+        string[] allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+        if (!allowedTypes.Contains(cover.ContentType))
+            return BadRequest("Cover must be a JPEG, PNG, or GIF image.");
+
+        if (cover.Length > 10 * 1024 * 1024)
+            return BadRequest("Cover file must be smaller than 10 MB.");
 
         var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
         if (existing is null)
@@ -176,6 +181,9 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("settings/sync-batch-size")]
     public async Task<IActionResult> UpdateSyncBatchSize([FromBody] int batchSize)
     {
+        if (batchSize < 1 || batchSize > 1000)
+            return BadRequest("Batch size must be between 1 and 1000.");
+
         await settingsService.UpdateSyncBatchSize(batchSize);
         return NoContent();
     }

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Services;
 
-public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, IKepubifyConverter kepubifyConverter, IAlexandriaSettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
+public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository bookRepository, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, IKepubifyConverter kepubifyConverter, IAlexandriaSettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, ICoverThumbnailService coverThumbnailService, ILogger<LibraryIndexerService> logger) : ILibraryIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
@@ -38,6 +38,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
 
                 // Slow path: extract metadata + cover in a single ZIP read.
                 var metadata = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
+                metadata.CoverFilePath = ConvertCoverToJpeg(metadata.CoverFilePath);
 
                 // Stamp with alexandria:uuid if not already present.
                 if (metadata.AlexandriaUuid is null)
@@ -121,6 +122,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
 
         // Re-extract metadata + cover now that old files are gone.
         var freshMetadata = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
+        freshMetadata.CoverFilePath = ConvertCoverToJpeg(freshMetadata.CoverFilePath);
 
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{existingBook.BookUuid}.kepub.epub");
         await kepubifyConverter.Convert(epubPath, kepubPath);
@@ -170,6 +172,22 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
             book.Series = null;
         }
         
+    }
+
+    private string? ConvertCoverToJpeg(string? coverFilePath)
+    {
+        if (coverFilePath is null)
+            return null;
+
+        var extension = Path.GetExtension(coverFilePath);
+        if (extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase))
+            return coverFilePath;
+
+        var jpegBytes = coverThumbnailService.ConvertToJpeg(File.ReadAllBytes(coverFilePath));
+        var jpegPath = Path.ChangeExtension(coverFilePath, ".jpg");
+        File.WriteAllBytes(jpegPath, jpegBytes);
+        File.Delete(coverFilePath);
+        return jpegPath;
     }
 
     private async Task HandleStaleBooks(string[] epubFiles, List<Book> books)

@@ -62,7 +62,7 @@ public sealed class AlexandriaLibraryServiceTests
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubMetadataHandler = new EpubMetadataHandler();
         var kepubifyConverter = new KepubifyConverter();
-        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<LibraryIndexerService>.Instance);
+        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, coverThumbnailService, NullLogger<LibraryIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
         var collectionRepository = new FakeCollectionRepository();
         var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, fileRepository, epubMetadataHandler, indexerService, authorRepository, seriesRepository);

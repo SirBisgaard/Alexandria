@@ -56,8 +56,9 @@ public sealed class LibraryIndexerServiceTests
     {
         var extractor = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
-        var fileRepository = new FileRepository(settings, new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance));
-        return new LibraryIndexerService(settings, bookRepository, fileRepository, extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<LibraryIndexerService>.Instance);
+        var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
+        var fileRepository = new FileRepository(settings, coverThumbnailService);
+        return new LibraryIndexerService(settings, bookRepository, fileRepository, extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, coverThumbnailService, NullLogger<LibraryIndexerService>.Instance);
     }
 
     [TestMethod]

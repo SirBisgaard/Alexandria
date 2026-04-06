@@ -13,6 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Alexandria.Api\Alexandria.Api.csproj"/>
         <ProjectReference Include="..\Alexandria.DataAccess\Alexandria.DataAccess.csproj"/>
     </ItemGroup>
 
