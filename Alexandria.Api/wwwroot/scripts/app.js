@@ -316,7 +316,16 @@ $(function () {
         if (pageReload) { pageReload(); }
     });
 
-    // ===== View Toggle (Grid / List) =====
+    // ===== View Toggle (Cover / List) =====
+    function updateViewToggleMenu(activeView) {
+        $("[data-view-toggle]").each(function () {
+            if ($(this).data("view-toggle") === activeView)
+                $(this).closest("li").addClass("d-none");
+            else
+                $(this).closest("li").removeClass("d-none");
+        });
+    }
+
     var savedView = localStorage.getItem("view") || "grid";
     var $gridInit = $(".view-grid-container");
     var $listInit = $(".view-list-container");
@@ -324,6 +333,7 @@ $(function () {
         $gridInit.addClass("d-none");
         $listInit.removeClass("d-none");
     }
+    updateViewToggleMenu(savedView);
 
     $(document).on("click", "[data-view-toggle]", function (e) {
         e.preventDefault();
@@ -340,6 +350,7 @@ $(function () {
                 $grid.addClass("d-none");
                 $list.removeClass("d-none");
             }
+            updateViewToggleMenu(view);
         }
     });
 });
