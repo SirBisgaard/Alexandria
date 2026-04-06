@@ -158,9 +158,15 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
             {
                 // Kobo devices only fetch covers during NewEntitlement processing, not ChangedEntitlement.
                 // Force a full re-fetch by removing the book then re-adding it as new.
+                // Reading state is sent separately so the device rebuilds "Currently Reading" with the new cover.
                 var removedEntitlement = entitlement with { BookEntitlement = entitlement.BookEntitlement with { IsRemoved = true } };
+                var cleanEntitlement = entitlement with { ReadingState = null };
                 syncResults.Add(new SyncResultItem { ChangedEntitlement = removedEntitlement });
-                syncResults.Add(new SyncResultItem { NewEntitlement = entitlement });
+                syncResults.Add(new SyncResultItem { NewEntitlement = cleanEntitlement });
+                if (readingState is not null)
+                {
+                    syncResults.Add(new SyncResultItem { ChangedReadingState = new ChangedReadingState { ReadingState = readingState } });
+                }
             }
             else
             {
