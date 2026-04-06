@@ -322,6 +322,94 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
+    public void EmbedCover_PreservesOriginalCoverFilePath()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+
+        // The original cover was at EPUB/images/cover.jpg — it must stay there, not become cover.jpeg.
+        Assert.IsNotNull(zip.GetEntry("EPUB/images/cover.jpg"), "Cover image should remain at its original path (cover.jpg, not cover.jpeg).");
+        Assert.IsNull(zip.GetEntry("EPUB/images/cover.jpeg"), "No renamed cover.jpeg should exist.");
+
+        // Manifest href should also still reference the original path.
+        var opfEntry = zip.Entries.First(e => e.FullName.EndsWith(".opf"));
+        using var opfStream = opfEntry.Open();
+        var opfDoc = System.Xml.Linq.XDocument.Load(opfStream);
+        var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
+        var manifest = opfDoc.Descendants(opfNs + "manifest").First();
+        var coverItem = manifest.Elements(opfNs + "item").First(i => (i.Attribute("properties")?.Value ?? "").Contains("cover-image"));
+        Assert.AreEqual("images/cover.jpg", coverItem.Attribute("href")?.Value);
+    }
+
+    [TestMethod]
+    public void EmbedCover_DoesNotAddDuplicateCoverPage()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Count XHTML entries before.
+        int xhtmlCountBefore;
+        using (var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read))
+            xhtmlCountBefore = zip.Entries.Count(e => e.FullName.EndsWith(".xhtml") || e.FullName.EndsWith(".html"));
+
+        handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
+
+        using var stream2 = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip2 = new System.IO.Compression.ZipArchive(stream2, System.IO.Compression.ZipArchiveMode.Read);
+
+        var xhtmlCountAfter = zip2.Entries.Count(e => e.FullName.EndsWith(".xhtml") || e.FullName.EndsWith(".html"));
+        Assert.AreEqual(xhtmlCountBefore, xhtmlCountAfter, "EmbedCover should not add a new cover page when one already exists.");
+
+        // First spine item should still be the original titlepage.
+        var opfEntry = zip2.Entries.First(e => e.FullName.EndsWith(".opf"));
+        using var opfStream = opfEntry.Open();
+        var opfDoc = System.Xml.Linq.XDocument.Load(opfStream);
+        var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
+        var spine = opfDoc.Descendants(opfNs + "spine").First();
+        var firstIdRef = spine.Elements(opfNs + "itemref").First().Attribute("idref")?.Value;
+        Assert.AreEqual("titlepage", firstIdRef, "First spine item should remain the original titlepage.");
+    }
+
+    [TestMethod]
+    public void EmbedCover_ExistingCoverPageReferencesRemainValid()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+
+        // Read the titlepage.xhtml and extract the SVG image reference.
+        var titlepageEntry = zip.GetEntry("EPUB/xhtml/titlepage.xhtml");
+        Assert.IsNotNull(titlepageEntry, "titlepage.xhtml should still exist.");
+
+        using var pageStream = titlepageEntry.Open();
+        using var reader = new StreamReader(pageStream);
+        var html = reader.ReadToEnd();
+
+        // Extract xlink:href value from the SVG image element.
+        var match = System.Text.RegularExpressions.Regex.Match(html, @"xlink:href=""([^""]+)""");
+        Assert.IsTrue(match.Success, "titlepage.xhtml should contain an SVG image with xlink:href.");
+        var imageRef = match.Groups[1].Value;
+
+        // Resolve the reference relative to titlepage.xhtml's directory (EPUB/xhtml/).
+        var resolvedPath = $"EPUB/xhtml/{imageRef}".Replace('\\', '/');
+        // Normalize "../images/cover.jpg" → "EPUB/images/cover.jpg"
+        resolvedPath = Path.GetFullPath(resolvedPath, "/").TrimStart('/');
+
+        var imageEntry = zip.GetEntry(resolvedPath);
+        Assert.IsNotNull(imageEntry, $"Image referenced by titlepage.xhtml ({imageRef} → {resolvedPath}) must exist in the EPUB.");
+    }
+
+    [TestMethod]
     public void EmbedCover_NonExistentFile_ThrowsFileNotFoundException()
     {
         var handler = new EpubMetadataHandler();

@@ -137,9 +137,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             var oldEntry = zip.GetEntry(oldEntryPath.Replace('\\', '/'));
             oldEntry?.Delete();
 
-            // Keep the same relative path but update the extension if needed.
-            var existingWithoutExt = Path.ChangeExtension(existingHref, null);
-            coverHref = existingWithoutExt + extension;
+            coverHref = existingHref;
         }
         else
         {
@@ -257,6 +255,21 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     {
         var items = manifest.Elements(Opf + "item").ToList();
 
+        // If the first spine item already has "cover" or "title" in its href, kepubify is satisfied.
+        var spine = opfDoc.Descendants(Opf + "spine").FirstOrDefault();
+        if (spine is not null)
+        {
+            var firstRef = spine.Elements(Opf + "itemref").FirstOrDefault();
+            var firstIdRef = firstRef?.Attribute("idref")?.Value;
+            if (firstIdRef is not null)
+            {
+                var firstItem = items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, firstIdRef, StringComparison.OrdinalIgnoreCase));
+                var firstHref = firstItem?.Attribute("href")?.Value;
+                if (firstHref is not null && (firstHref.Contains("cover", StringComparison.OrdinalIgnoreCase) || firstHref.Contains("title", StringComparison.OrdinalIgnoreCase)))
+                    return;
+            }
+        }
+
         // Find existing cover page: look for id="cover-page" or an XHTML item whose href contains "cover".
         var coverPageItem = items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, "cover-page", StringComparison.OrdinalIgnoreCase))
             ?? items.FirstOrDefault(i =>
@@ -293,7 +306,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         }
 
         // Ensure cover page is the first item in the spine.
-        var spine = opfDoc.Descendants(Opf + "spine").FirstOrDefault();
+        spine ??= opfDoc.Descendants(Opf + "spine").FirstOrDefault();
         if (spine is null)
         {
             return;
