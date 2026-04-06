@@ -148,15 +148,28 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
 
             var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = readingStateChanged ? readingState : null };
             var isNew = book.CreatedAt > lastSyncTime;
-            syncResults.Add(isNew ? new SyncResultItem { NewEntitlement = entitlement } : new SyncResultItem { ChangedEntitlement = entitlement });
+            var metadataChanged = book.LastModified > lastSyncTime;
 
-            // Kobo devices ignore ReadingState inside ChangedEntitlement for books they already have locally.
-            // They only apply reading state from NewEntitlement (first sync) or from a dedicated ChangedReadingState
-            // sync item. Without this, server-side reading state changes (e.g. "Mark as finished" from the web UI)
-            // are never picked up by the device.
-            if (readingStateChanged && !isNew)
+            if (isNew)
             {
-                syncResults.Add(new SyncResultItem { ChangedReadingState = new ChangedReadingState { ReadingState = readingState! } });
+                syncResults.Add(new SyncResultItem { NewEntitlement = entitlement });
+            }
+            else if (metadataChanged)
+            {
+                // Kobo devices only fetch covers during NewEntitlement processing, not ChangedEntitlement.
+                // Force a full re-fetch by removing the book then re-adding it as new.
+                var removedEntitlement = entitlement with { BookEntitlement = entitlement.BookEntitlement with { IsRemoved = true } };
+                syncResults.Add(new SyncResultItem { ChangedEntitlement = removedEntitlement });
+                syncResults.Add(new SyncResultItem { NewEntitlement = entitlement });
+            }
+            else
+            {
+                // Only reading state changed — use the standard ChangedEntitlement + ChangedReadingState approach.
+                syncResults.Add(new SyncResultItem { ChangedEntitlement = entitlement });
+                if (readingStateChanged)
+                {
+                    syncResults.Add(new SyncResultItem { ChangedReadingState = new ChangedReadingState { ReadingState = readingState! } });
+                }
             }
         }
 
@@ -305,7 +318,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByCoverImageUuid(uuid)
+            ?? await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         // We dont know the book.
         if (book is null)
         {

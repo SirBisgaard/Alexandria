@@ -7,6 +7,7 @@ public interface IAlexandriaLibraryService
     Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null);
     Task<Book?> GetBookByUuid(Guid uuid);
     Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid);
+    Task<Book?> GetBookByCoverImageUuid(Guid uuid);
     Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null);
     Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null);
     Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null);

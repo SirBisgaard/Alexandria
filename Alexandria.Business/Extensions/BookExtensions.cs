@@ -13,12 +13,14 @@ public static class BookExtensions
         public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTimeOffset createdAt, DateTimeOffset lastModified)
         {
             var bookUuid = metadata.AlexandriaUuid ?? metadata.DeterministicUuid;
-            var entitlementUuid = Guid.GenerateUuidV5(fileHash);
-            
+            var entitlementUuid = bookUuid; // Can be changed later on in the frontend.
+            var coverImageUuid = Guid.GenerateUuidV5("cover:" + fileHash);
+
             return new Book
             {
                 BookUuid = bookUuid,
                 EntitlementUuid = entitlementUuid,
+                CoverImageUuid = coverImageUuid,
                 FileHash = fileHash,
                 SourcePath = sourcePath,
                 Title = metadata.Title,
@@ -62,7 +64,7 @@ public static class BookExtensions
 
             var metadata = new BookMetadata
             {
-                CoverImageId = entitlementUuid,
+                CoverImageId = book.CoverImageUuid?.ToString() ?? entitlementUuid,
                 CrossRevisionId = entitlementUuid,
                 Description = book.Description,
                 DownloadUrls =

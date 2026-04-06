@@ -101,6 +101,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 CoverFilePath TEXT,
                 KepubFilePath TEXT,
                 KepubFileSize INTEGER NOT NULL DEFAULT 0,
+                CoverImageUuid TEXT,
                 CreatedAt TEXT NOT NULL,
                 LastModified TEXT NOT NULL,
                 IsArchived INTEGER NOT NULL DEFAULT 0

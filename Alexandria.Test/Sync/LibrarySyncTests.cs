@@ -143,9 +143,11 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.HasCount(1, items, "Only the updated book should be sent");
-        Assert.IsNotNull(items[0].ChangedEntitlement, "Updated book should be sent as ChangedEntitlement");
-        Assert.AreEqual("Updated", items[0].ChangedEntitlement!.BookMetadata!.Title);
+        Assert.HasCount(2, items, "Updated book should produce a removal + re-add");
+        Assert.IsNotNull(items[0].ChangedEntitlement, "First item should be a ChangedEntitlement removal");
+        Assert.IsTrue(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved, "Removal entitlement should have IsRemoved = true");
+        Assert.IsNotNull(items[1].NewEntitlement, "Second item should be a NewEntitlement re-add");
+        Assert.AreEqual("Updated", items[1].NewEntitlement!.BookMetadata!.Title);
     }
 
     [TestMethod]
@@ -278,13 +280,12 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.HasCount(2, items, "Only new and changed books should be sent");
+        Assert.HasCount(3, items, "New book (1 item) + changed book (removal + re-add = 2 items)");
         var newItems = items.Where(i => i.NewEntitlement is not null).ToList();
         var changedItems = items.Where(i => i.ChangedEntitlement is not null).ToList();
-        Assert.HasCount(1, newItems);
-        Assert.HasCount(1, changedItems);
-        Assert.AreEqual("New Book", newItems[0].NewEntitlement!.BookMetadata!.Title);
-        Assert.AreEqual("Changed Book", changedItems[0].ChangedEntitlement!.BookMetadata!.Title);
+        Assert.HasCount(2, newItems, "New book + changed book re-add");
+        Assert.HasCount(1, changedItems, "Changed book removal");
+        Assert.IsTrue(changedItems[0].ChangedEntitlement!.BookEntitlement!.IsRemoved);
     }
 
     // --- Test doubles ---
@@ -299,6 +300,7 @@ public sealed class LibrarySyncTests
         public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books);
         public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.BookUuid == uuid));
         public Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid) => Task.FromResult(books.FirstOrDefault(b => b.EntitlementUuid == entitlementUuid));
+        public Task<Book?> GetBookByCoverImageUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.CoverImageUuid == uuid));
         public Task SetBookArchiveStatus(Guid uuid, bool isArchived) => Task.CompletedTask;
         public Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null) => Task.FromResult<List<BookCollection>>([]);
         public Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<CollectionWithBooks?>(null);

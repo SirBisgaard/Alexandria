@@ -10,6 +10,8 @@ public static class ApiMapper
     public static BookResponse ToBookResponse(Book book) => new()
     {
         BookUuid = book.BookUuid,
+        EntitlementUuid = book.EntitlementUuid,
+        CoverImageUuid = book.CoverImageUuid,
         Title = book.Title,
         Authors = book.Authors.Select(ToAuthorResponse).ToList(),
         Language = book.Language,

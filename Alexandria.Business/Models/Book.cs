@@ -18,6 +18,7 @@ public class Book
     public long KepubFileSize { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset LastModified { get; set; }
+    public Guid? CoverImageUuid { get; set; }
     public bool IsArchived { get; set; }
 
     public ReadingProgress? ReadingProgress { get; set; }

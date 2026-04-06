@@ -3,6 +3,8 @@ namespace Alexandria.Api.Models.Responses;
 public class BookResponse
 {
     public Guid BookUuid { get; set; }
+    public Guid EntitlementUuid { get; set; }
+    public Guid? CoverImageUuid { get; set; }
     public string Title { get; set; } = string.Empty;
     public List<AuthorResponse> Authors { get; set; } = [];
     public string Language { get; set; } = string.Empty;

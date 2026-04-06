@@ -126,6 +126,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         await kepubifyConverter.Convert(epubPath, kepubPath);
 
         existingBook.FileHash = fileHash;
+        existingBook.CoverImageUuid = Guid.GenerateUuidV5("cover:" + fileHash);
         existingBook.SourcePath = epubPath;
         existingBook.Title = freshMetadata.Title;
         existingBook.Language = freshMetadata.Language;
