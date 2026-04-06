@@ -222,6 +222,51 @@ $(function () {
         $("#bm-edit-error-banner").hide();
     });
 
+    // ===== Combo Box (Autocomplete) =====
+    $(document).on("input", ".bm-combo-input", function () {
+        updateComboDropdown($(this));
+    });
+
+    $(document).on("focus", ".bm-combo-input", function () {
+        updateComboDropdown($(this));
+    });
+
+    $(document).on("mousedown", ".bm-combo-item", function (e) {
+        e.preventDefault();
+        var $input = $(this).closest(".bm-combo-wrap").find(".bm-combo-input");
+        selectComboItem($input, $(this).data("value"));
+    });
+
+    $(document).on("blur", ".bm-combo-input", function () {
+        var $dropdown = $(this).siblings(".bm-combo-dropdown");
+        setTimeout(function () { $dropdown.hide().empty(); comboHighlight = -1; }, 150);
+    });
+
+    $(document).on("keydown", ".bm-combo-input", function (e) {
+        var $dropdown = $(this).siblings(".bm-combo-dropdown");
+        var $items = $dropdown.find(".bm-combo-item");
+        if (!$dropdown.is(":visible") || $items.length === 0)
+            return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            comboHighlight = Math.min(comboHighlight + 1, $items.length - 1);
+            $items.removeClass("bm-combo-item-active");
+            $items.eq(comboHighlight).addClass("bm-combo-item-active")[0].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            comboHighlight = Math.max(comboHighlight - 1, 0);
+            $items.removeClass("bm-combo-item-active");
+            $items.eq(comboHighlight).addClass("bm-combo-item-active")[0].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter" && comboHighlight >= 0) {
+            e.preventDefault();
+            selectComboItem($(this), $items.eq(comboHighlight).data("value"));
+        } else if (e.key === "Escape") {
+            $dropdown.hide().empty();
+            comboHighlight = -1;
+        }
+    });
+
     $(document).on("click", "#bm-edit-cover-remove", function (e) {
         e.stopPropagation();
         if (!currentModalUuid) { return; }

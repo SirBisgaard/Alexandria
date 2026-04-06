@@ -1007,6 +1007,42 @@ a.series-list-item {
     gap: 8px;
 }
 
+/* ===== Combo Box (Autocomplete) ===== */
+.bm-combo-wrap {
+    position: relative;
+}
+
+.bm-combo-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bs-body-bg);
+    border: 2px solid var(--bs-body-color);
+    border-top: none;
+}
+
+.bm-combo-item {
+    padding: 8px 10px;
+    font-size: 15px;
+    font-family: "Times New Roman", Times, serif;
+    cursor: pointer;
+}
+
+.bm-combo-item:hover,
+.bm-combo-item-active {
+    background: var(--bs-body-color);
+    color: var(--bs-body-bg);
+}
+
+.bm-combo-item + .bm-combo-item {
+    border-top: 1px solid var(--bs-border-color);
+}
+
 /* Book card/list clickable */
 .book-card {
     cursor: pointer;

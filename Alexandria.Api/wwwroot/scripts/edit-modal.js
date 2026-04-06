@@ -1,4 +1,8 @@
 // ===== Edit Modal =====
+var comboAuthors = [];
+var comboSeries = [];
+var comboHighlight = -1;
+
 var FIELD_MAP = {
     "Title": "bm-edit-title",
     "Authors": "bm-edit-authors",
@@ -58,7 +62,15 @@ function handleCoverError(jqXHR) {
 }
 
 function openEditModal(uuid) {
-    $.get("/api/alexandria/books/" + uuid, function (book) {
+    $.when(
+        $.get("/api/alexandria/books/" + uuid),
+        $.get("/api/alexandria/authors"),
+        $.get("/api/alexandria/series")
+    ).done(function (bookRes, authorsRes, seriesRes) {
+        var book = bookRes[0];
+        comboAuthors = (authorsRes[0] || []).map(function (a) { return a.name; });
+        comboSeries = (seriesRes[0] || []).map(function (s) { return s.name; });
+
         currentModalUuid = book.bookUuid;
         if (!originalModalHtml)
             originalModalHtml = $("#book-modal").html();
@@ -86,7 +98,10 @@ function openEditModal(uuid) {
                     '</div>' +
                     '<div class="bm-edit-field">' +
                         '<div class="bm-edit-label">Author(s) <span class="bm-edit-hint">Separate multiple authors with commas</span></div>' +
-                        '<input type="text" class="bm-edit-input" id="bm-edit-authors" value="' + escapeHtml(authors) + '">' +
+                        '<div class="bm-combo-wrap">' +
+                            '<input type="text" class="bm-edit-input bm-combo-input" id="bm-edit-authors" data-combo="authors" autocomplete="off" value="' + escapeHtml(authors) + '">' +
+                            '<div class="bm-combo-dropdown" id="bm-combo-authors"></div>' +
+                        '</div>' +
                     '</div>' +
                     '<div class="bm-edit-row">' +
                         '<div class="bm-edit-field" style="flex:1;">' +
@@ -101,7 +116,10 @@ function openEditModal(uuid) {
                     '<div class="bm-edit-row">' +
                         '<div class="bm-edit-field" style="flex:1;">' +
                             '<div class="bm-edit-label">Series Name</div>' +
-                            '<input type="text" class="bm-edit-input" id="bm-edit-series-name" value="' + escapeHtml(book.series ? book.series.name : "") + '">' +
+                            '<div class="bm-combo-wrap">' +
+                                '<input type="text" class="bm-edit-input bm-combo-input" id="bm-edit-series-name" data-combo="series" autocomplete="off" value="' + escapeHtml(book.series ? book.series.name : "") + '">' +
+                                '<div class="bm-combo-dropdown" id="bm-combo-series"></div>' +
+                            '</div>' +
                         '</div>' +
                         '<div class="bm-edit-field" style="width:100px;">' +
                             '<div class="bm-edit-label">Series Index</div>' +
@@ -131,6 +149,7 @@ function openEditModal(uuid) {
 }
 
 function showEditLoading(target) {
+    closeAllComboDropdowns();
     var $el = $(target);
     $el.data("original-text", $el.text()).text("Loading...").prop("disabled", true);
     $(".bm-edit-btn").prop("disabled", true).addClass("bm-edit-btn-disabled");
@@ -170,6 +189,65 @@ function saveBookMetadata(uuid) {
         error: function (jqXHR) { handleMetadataError(jqXHR); },
         complete: function () { hideEditLoading("#bm-edit-save"); }
     });
+}
+
+function closeAllComboDropdowns() {
+    $(".bm-combo-dropdown").hide().empty();
+    comboHighlight = -1;
+}
+
+function updateComboDropdown($input) {
+    var isAuthors = $input.data("combo") === "authors";
+    var allItems = isAuthors ? comboAuthors : comboSeries;
+    var $dropdown = $input.siblings(".bm-combo-dropdown");
+    var val = $input.val();
+
+    var segment, usedNames;
+    if (isAuthors) {
+        var lastComma = val.lastIndexOf(",");
+        segment = (lastComma >= 0 ? val.substring(lastComma + 1) : val).trim().toLowerCase();
+        usedNames = val.split(",").map(function (s) { return s.trim().toLowerCase(); }).filter(function (s) { return s; });
+    } else {
+        segment = val.trim().toLowerCase();
+        usedNames = [];
+    }
+
+    var matches = [];
+    for (var i = 0; i < allItems.length && matches.length < 8; i++) {
+        var name = allItems[i];
+        var nameLower = name.toLowerCase();
+        if (isAuthors && usedNames.indexOf(nameLower) >= 0)
+            continue;
+        if (segment === "" || nameLower.indexOf(segment) >= 0)
+            matches.push(name);
+    }
+
+    comboHighlight = -1;
+    if (matches.length === 0 || (matches.length === 1 && matches[0].toLowerCase() === segment)) {
+        $dropdown.hide().empty();
+        return;
+    }
+
+    var html = "";
+    for (var j = 0; j < matches.length; j++)
+        html += '<div class="bm-combo-item" data-value="' + escapeHtml(matches[j]) + '">' + escapeHtml(matches[j]) + '</div>';
+
+    $dropdown.html(html).show();
+}
+
+function selectComboItem($input, value) {
+    var isAuthors = $input.data("combo") === "authors";
+    if (isAuthors) {
+        var val = $input.val();
+        var lastComma = val.lastIndexOf(",");
+        var prefix = lastComma >= 0 ? val.substring(0, lastComma + 1) + " " : "";
+        $input.val(prefix + value + ", ");
+    } else {
+        $input.val(value);
+    }
+    $input.siblings(".bm-combo-dropdown").hide().empty();
+    comboHighlight = -1;
+    $input.focus();
 }
 
 function uploadBookCover(uuid, file, previousSrc) {
