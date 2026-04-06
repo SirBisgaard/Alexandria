@@ -22,6 +22,9 @@ public static class GuidExtensions
         /// <returns>A deterministic UUID v5 with version nibble 0101 and variant bits 10.</returns>
         public static Guid GenerateUuidV5(string name)
         {
+            if (seed == Guid.Empty)
+                throw new InvalidOperationException("UUID namespace has not been initialized. Call SetNamespace() first.");
+
             var namespaceBytes = seed.ToByteArray();
             Guid.SwapGuidByteOrder(namespaceBytes);
             var nameBytes = Encoding.UTF8.GetBytes(name);

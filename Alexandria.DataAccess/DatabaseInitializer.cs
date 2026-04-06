@@ -3,7 +3,7 @@ using Alexandria.Business.Models.Settings;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
-namespace Alexandria.DataAccess.Repositories;
+namespace Alexandria.DataAccess;
 
 public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
@@ -211,7 +211,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp)
-            VALUES (1, '00000000-0000-0000-0000-000000000002', NULL)
+            VALUES (1, '00000000-0000-0000-0000-000000000003', NULL)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
     }

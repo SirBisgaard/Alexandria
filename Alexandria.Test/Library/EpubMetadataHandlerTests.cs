@@ -1,3 +1,4 @@
+using Alexandria.Business.Extensions;
 using Alexandria.Business.Models.Files;
 using Alexandria.DataAccess.Services;
 
@@ -15,6 +16,7 @@ public sealed class EpubMetadataHandlerTests
     {
         outputDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
+        GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
     }
 
     [TestCleanup]
@@ -401,6 +403,81 @@ public sealed class EpubMetadataHandlerTests
             0x00, 0x00, 0x3F, 0x00, 0x7B, 0x94, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xFF, 0xD9
         ];
+    }
+
+    [TestMethod]
+    public void Extract_EpubWithEmptyGuidUuid_IgnoresItAndReturnsNull()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Directly inject Guid.Empty into the EPUB's OPF (simulates a previous bug).
+        InjectAlexandriaUuid(epubPath, Guid.Empty.ToString());
+
+        // Re-extract: the Guid.Empty should be rejected, so AlexandriaUuid comes back null.
+        var result = handler.ExtractAll(epubPath, outputDir);
+
+        Assert.IsNull(result.AlexandriaUuid, "Guid.Empty in EPUB should be treated as unset.");
+        Assert.AreNotEqual(Guid.Empty, result.DeterministicUuid, "DeterministicUuid should never be Guid.Empty.");
+    }
+
+    [TestMethod]
+    public void EmbedMetadata_ExistingUuid_DoesNotOverwrite()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Stamp a known UUID directly into the EPUB.
+        var originalUuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        InjectAlexandriaUuid(epubPath, originalUuid.ToString());
+
+        // Now embed metadata with a different UUID.
+        var original = handler.ExtractAll(epubPath, outputDir);
+        var modified = new EpubMetadata
+        {
+            AlexandriaUuid = Guid.NewGuid(),
+            Title = "Changed Title",
+            Authors = original.Authors,
+            Language = original.Language,
+            SeriesName = original.SeriesName,
+            SeriesIndex = original.SeriesIndex
+        };
+        handler.EmbedMetadata(epubPath, modified);
+
+        // The original UUID should be preserved, title should be updated.
+        var result = handler.ExtractAll(epubPath, outputDir);
+
+        Assert.AreEqual(originalUuid, result.AlexandriaUuid, "Existing UUID in EPUB should not be overwritten.");
+        Assert.AreEqual("Changed Title", result.Title);
+    }
+
+    private static void InjectAlexandriaUuid(string epubPath, string uuid)
+    {
+        var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update);
+
+        var opfEntry = zip.Entries.First(e => e.FullName.EndsWith(".opf"));
+        System.Xml.Linq.XDocument opfDoc;
+        using (var opfStream = opfEntry.Open())
+            opfDoc = System.Xml.Linq.XDocument.Load(opfStream);
+
+        var metadataEl = opfDoc.Descendants(opfNs + "metadata").First();
+
+        // Remove any existing alexandria:uuid meta.
+        foreach (var el in metadataEl.Elements(opfNs + "meta").Where(m => m.Attribute("name")?.Value == "alexandria:uuid").ToList())
+            el.Remove();
+
+        // Add the tainted one.
+        metadataEl.Add(new System.Xml.Linq.XElement(opfNs + "meta",
+            new System.Xml.Linq.XAttribute("name", "alexandria:uuid"),
+            new System.Xml.Linq.XAttribute("content", uuid)));
+
+        opfEntry.Delete();
+        var newEntry = zip.CreateEntry(opfEntry.FullName);
+        using var writeStream = newEntry.Open();
+        opfDoc.Save(writeStream);
     }
 
     private EpubMetadata ExtractBook(string fileName)

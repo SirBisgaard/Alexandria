@@ -81,10 +81,13 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         // Remove EPUB 3 series metadata to avoid conflicts with Calibre tags.
         RemoveEpub3SeriesMeta(metadataEl);
 
-        // Embed Alexandria UUID if set.
-        if (metadata.AlexandriaUuid.HasValue)
+        // Stamp Alexandria UUID only if the file doesn't already have one.
+        var existingUuid = FindMetaByName(metadataEl, "alexandria:uuid");
+        Guid.TryParse(existingUuid?.Trim() ?? string.Empty, out var existingAlexandriaUuid);
+        if (existingAlexandriaUuid == Guid.Empty)
         {
-            SetMetaByName(metadataEl, "alexandria:uuid", metadata.AlexandriaUuid.Value.ToString());
+            var alexandriaUuid = metadata.AlexandriaUuid ?? metadata.DeterministicUuid;
+            SetMetaByName(metadataEl, "alexandria:uuid", alexandriaUuid.ToString());
         }
 
         ReplaceOpfEntry(zip, opfPath, opfDoc);
@@ -356,7 +359,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         ParseSeries(metadataEl, result);
 
         var alexandriaUuid = FindMetaByName(metadataEl, "alexandria:uuid");
-        if (alexandriaUuid is not null && Guid.TryParse(alexandriaUuid, out var parsedUuid))
+        if (alexandriaUuid is not null && Guid.TryParse(alexandriaUuid, out var parsedUuid) && parsedUuid != Guid.Empty)
         {
             result.AlexandriaUuid = parsedUuid;
         }
@@ -420,7 +423,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         return MetaElements(metadataEl)
             .FirstOrDefault(m =>
                 string.Equals(m.Attribute("name")?.Value, name, StringComparison.OrdinalIgnoreCase))
-            ?.Attribute("content")?.Value?.Trim();
+            ?.Attribute("content")?.Value.Trim();
     }
 
     private static string? WriteCoverToDisk(ZipArchive zip, XDocument opfDoc, string opfPath, string outputDirectory, XElement metadataEl, Guid uuid)
