@@ -131,7 +131,7 @@ public sealed class LibrarySyncTests
     }
 
     [TestMethod]
-    public async Task SubsequentSync_BookUpdated_SendsOnlyChangedBookAsChangedEntitlement()
+    public async Task SubsequentSync_BookUpdated_SendsRemovalAndNewEntitlement()
     {
         var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
         var unchangedBook = MakeBook("Unchanged", lastSync.AddHours(-1));
@@ -145,7 +145,7 @@ public sealed class LibrarySyncTests
         var items = DeserializeBody(response);
         Assert.HasCount(2, items, "Updated book should produce a removal + re-add");
         Assert.IsNotNull(items[0].ChangedEntitlement, "First item should be a ChangedEntitlement removal");
-        Assert.IsTrue(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved, "Removal entitlement should have IsRemoved = true");
+        Assert.IsTrue(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved);
         Assert.IsNotNull(items[1].NewEntitlement, "Second item should be a NewEntitlement re-add");
         Assert.AreEqual("Updated", items[1].NewEntitlement!.BookMetadata!.Title);
     }

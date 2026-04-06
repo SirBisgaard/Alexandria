@@ -133,18 +133,14 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         {
             var book = await alexandriaLibraryService.GetBookByUuid(uuid);
             if (book is null || book.IsArchived)
-            {
                 continue;
-            }
 
             var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
             var readingStateChanged = readingState is not null && DateTimeOffset.Parse(readingState.LastModified) > alexandriaToken.ReadingStateLastModified;
 
             // Override the EntitlementId in reading state to use the Kobo-facing EntitlementUuid.
             if (readingState is not null)
-            {
                 readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
-            }
 
             var entitlement = new Entitlement { BookEntitlement = book.ToEntitlement(), BookMetadata = book.ToMetadata(settings.KoboApiUrl), ReadingState = readingStateChanged ? readingState : null };
             var isNew = book.CreatedAt > lastSyncTime;
