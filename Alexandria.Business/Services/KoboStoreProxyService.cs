@@ -18,7 +18,7 @@ namespace Alexandria.Business.Services;
 /// Intercepts specific Kobo API endpoints to inject local Alexandria library books into the sync flow.
 /// Unrecognized requests are transparently forwarded to Kobo via <see cref="Proxy"/>.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, ISyncSessionService syncSession, ISyncTokenService syncTokenService, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
+public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IFileRepository fileRepository, IReadingStateRepository readingStateRepository, ISyncSessionService syncSession, ISyncTokenService syncTokenService, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
 {
     // Headers that shouldn't be forwarded in either direction
     private static readonly HashSet<string> HopByHopHeaders =
@@ -124,7 +124,8 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
         }
 
         // Get next batch of local book UUIDs from the session.
-        var batchSize = settings.SyncBatchSize;
+        var appSettings = await settingsService.Get();
+        var batchSize = appSettings.SyncBatchSize;
         var batchUuids = syncSession.GetNextBatch(deviceId, batchSize);
         var hasMore = syncSession.HasMore(deviceId);
         var lastSyncTime = alexandriaToken.LastSync;

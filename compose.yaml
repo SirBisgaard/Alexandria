@@ -15,7 +15,6 @@ services:
       # KoboProxySettings
       - KoboProxySettings__AlexandriaApi=http://localhost
       - KoboProxySettings__StoreApi=https://storeapi.kobo.com
-      - KoboProxySettings__SyncBatchSize=50
       # AlexandriaSettings
       - AlexandriaSettings__Database=/app/content/data/alexandria.db
       - AlexandriaSettings__BooksFolder=/app/content/books

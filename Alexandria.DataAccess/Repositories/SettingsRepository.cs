@@ -14,7 +14,7 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp FROM Settings WHERE Id = 1";
+        cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize FROM Settings WHERE Id = 1";
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -22,7 +22,8 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         return new AppSettings
         {
             UuidSeed = Guid.Parse(reader.GetString(reader.GetOrdinal("UuidSeed"))),
-            LastIndexedTimestamp = reader.IsDBNull(reader.GetOrdinal("LastIndexedTimestamp")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastIndexedTimestamp")))
+            LastIndexedTimestamp = reader.IsDBNull(reader.GetOrdinal("LastIndexedTimestamp")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastIndexedTimestamp"))),
+            SyncBatchSize = reader.GetInt32(reader.GetOrdinal("SyncBatchSize"))
         };
     }
 
@@ -34,6 +35,17 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Settings SET LastIndexedTimestamp = @timestamp WHERE Id = 1";
         cmd.Parameters.AddWithValue("@timestamp", timestamp.ToString("O"));
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task UpdateSyncBatchSize(int batchSize)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @batchSize WHERE Id = 1";
+        cmd.Parameters.AddWithValue("@batchSize", batchSize);
         await cmd.ExecuteNonQueryAsync();
     }
 }

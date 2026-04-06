@@ -22,7 +22,7 @@ public sealed class LibrarySyncTests
     private readonly SyncTokenService syncTokenService = new();
     private readonly SyncSessionService syncSessionService = new();
 
-    private static readonly KoboProxySettings Settings = new() { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi, SyncBatchSize = 100 };
+    private static readonly KoboProxySettings Settings = new() { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi };
 
     private static Book MakeBook(string title, DateTimeOffset createdAt, DateTimeOffset? lastModified = null)
     {
@@ -48,7 +48,7 @@ public sealed class LibrarySyncTests
         var readingStateRepository = new FakeReadingStateRepository();
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
-        return new KoboStoreProxyService(Settings, httpClient, libraryService, fileRepository, readingStateRepository, syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        return new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(), fileRepository, readingStateRepository, syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
     }
 
     private static HttpResponseMessage MakeEmptyStoreResponse(string? syncToken = null)
@@ -211,11 +211,10 @@ public sealed class LibrarySyncTests
     {
         var now = DateTimeOffset.UtcNow;
         var books = Enumerable.Range(0, 150).Select(i => MakeBook($"Book {i}", now)).ToList();
-        var settingsSmallBatch = new KoboProxySettings { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi, SyncBatchSize = 100 };
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(MakeEmptyStoreResponse(KoboStoreToken));
         var httpClient = new HttpClient(handler);
-        var service = new KoboStoreProxyService(settingsSmallBatch, httpClient, libraryService, new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(100), new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
 
         // First page — should have continue header and lastSync NOT advanced.
         var response1 = await service.LibrarySync(MakeRequest(KoboStoreToken));
@@ -243,7 +242,7 @@ public sealed class LibrarySyncTests
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(MakeContinuationStoreResponse());
         var httpClient = new HttpClient(handler);
-        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(), new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
 
         var response = await service.LibrarySync(MakeRequest(token));
@@ -334,6 +333,13 @@ public sealed class LibrarySyncTests
         public Task<ReadingState?> GetByBookUuid(Guid bookUuid) => Task.FromResult<ReadingState?>(null);
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult<ReadingProgress?>(null);
         public Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody) => Task.CompletedTask;
+    }
+
+    private class FakeSettingsService(int syncBatchSize = 60) : IAlexandriaSettingsService
+    {
+        public Task<AppSettings> Get() => Task.FromResult(new AppSettings { SyncBatchSize = syncBatchSize });
+        public Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp) => Task.CompletedTask;
+        public Task UpdateSyncBatchSize(int batchSize) => Task.CompletedTask;
     }
 
 }

@@ -173,6 +173,13 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(ApiMapper.ToSettingsResponse(settings));
     }
 
+    [HttpPut("settings/sync-batch-size")]
+    public async Task<IActionResult> UpdateSyncBatchSize([FromBody] int batchSize)
+    {
+        await settingsService.UpdateSyncBatchSize(batchSize);
+        return NoContent();
+    }
+
     [HttpPost("sync")]
     public async Task Sync()
     {

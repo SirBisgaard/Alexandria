@@ -6,4 +6,5 @@ public interface ISettingsRepository
 {
     Task<AppSettings> Get();
     Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp);
+    Task UpdateSyncBatchSize(int batchSize);
 }

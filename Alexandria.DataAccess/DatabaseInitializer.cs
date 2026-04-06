@@ -39,6 +39,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             logger.LogInformation("Migration V{Version} applied successfully", migration.Version);
         }
 
+        await EnsureSettingsColumns(connection);
+
         logger.LogInformation("Database initialization complete");
     }
 
@@ -204,16 +206,34 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             CREATE TABLE IF NOT EXISTS Settings (
                 Id INTEGER PRIMARY KEY CHECK (Id = 1),
                 UuidSeed TEXT NOT NULL,
-                LastIndexedTimestamp TEXT
+                LastIndexedTimestamp TEXT,
+                SyncBatchSize INTEGER NOT NULL DEFAULT 60
             )
             """;
         await settingsCreateCmd.ExecuteNonQueryAsync();
 
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
-            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp)
-            VALUES (1, '00000000-0000-0000-0000-000000000003', NULL)
+            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize)
+            VALUES (1, '00000000-0000-0000-0000-000000000003', NULL, 60)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task EnsureSettingsColumns(SqliteConnection connection)
+    {
+        await using var pragmaCmd = connection.CreateCommand();
+        pragmaCmd.CommandText = "PRAGMA table_info(Settings)";
+        var columns = new HashSet<string>();
+        await using var reader = await pragmaCmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            columns.Add(reader.GetString(1));
+
+        if (!columns.Contains("SyncBatchSize"))
+        {
+            await using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE Settings ADD COLUMN SyncBatchSize INTEGER NOT NULL DEFAULT 60";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
     }
 }

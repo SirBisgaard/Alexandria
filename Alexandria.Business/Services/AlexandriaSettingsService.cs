@@ -8,4 +8,6 @@ public class AlexandriaSettingsService(ISettingsRepository settingsRepository) :
     public async Task<AppSettings> Get() => await settingsRepository.Get();
 
     public async Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp) => await settingsRepository.UpdateLastIndexedTimestamp(timestamp);
+
+    public async Task UpdateSyncBatchSize(int batchSize) => await settingsRepository.UpdateSyncBatchSize(batchSize);
 }
