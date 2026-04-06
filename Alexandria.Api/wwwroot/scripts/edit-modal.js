@@ -1,4 +1,62 @@
 // ===== Edit Modal =====
+var FIELD_MAP = {
+    "Title": "bm-edit-title",
+    "Authors": "bm-edit-authors",
+    "Language": "bm-edit-language",
+    "PublicationDate": "bm-edit-pub-date",
+    "Index": "bm-edit-series-index"
+};
+
+function clearEditErrors() {
+    $(".bm-edit-error").remove();
+    $(".bm-edit-input-invalid").removeClass("bm-edit-input-invalid");
+    $("#bm-edit-error-banner").hide().text("");
+}
+
+function showFieldError(fieldId, message) {
+    var $input = $("#" + fieldId);
+    $input.addClass("bm-edit-input-invalid");
+    $input.closest(".bm-edit-field").append('<div class="bm-edit-error">' + escapeHtml(message) + '</div>');
+}
+
+function showBannerError(message) {
+    $("#bm-edit-error-banner").text(message).show();
+}
+
+function handleMetadataError(jqXHR) {
+    clearEditErrors();
+    if (jqXHR.status === 400) {
+        try {
+            var body = typeof jqXHR.responseJSON === "object" ? jqXHR.responseJSON : JSON.parse(jqXHR.responseText);
+            if (body && body.errors) {
+                for (var key in body.errors) {
+                    var fieldId = FIELD_MAP[key];
+                    var messages = body.errors[key];
+                    if (fieldId && messages && messages.length > 0)
+                        showFieldError(fieldId, messages[0]);
+                }
+                return;
+            }
+        } catch (e) { }
+        showBannerError(jqXHR.responseText || "Invalid request.");
+    } else {
+        showBannerError("Something went wrong. Please try again.");
+    }
+}
+
+function handleCoverError(jqXHR) {
+    clearEditErrors();
+    if (jqXHR.status === 400) {
+        var message = jqXHR.responseText || "Cover upload failed.";
+        if (message.length >= 2 && message.charAt(0) === '"' && message.charAt(message.length - 1) === '"') {
+            try { message = JSON.parse(message); } catch (e) { }
+        }
+        showBannerError(message);
+    } else {
+        showBannerError("Cover upload failed. Please try again.");
+    }
+}
+
 function openEditModal(uuid) {
     $.get("/api/alexandria/books/" + uuid, function (book) {
         currentModalUuid = book.bookUuid;
@@ -60,6 +118,7 @@ function openEditModal(uuid) {
                 '<div class="bm-edit-label">Description</div>' +
                 '<textarea class="bm-edit-textarea" id="bm-edit-description">' + escapeHtml(book.description || "") + '</textarea>' +
             '</div>' +
+            '<div class="bm-edit-error-banner" id="bm-edit-error-banner"></div>' +
             '<div class="bm-edit-footer">' +
                 '<div class="bm-edit-warning">Editing metadata or covers will trigger a re-sync to the device on next sync. The book will need to be re-downloaded on the device, but reading progress is preserved. A device reboot may be needed to refresh the cover in Currently Reading.</div>' +
                 '<div class="bm-edit-buttons"><button class="bm-edit-btn" id="bm-edit-cancel">Cancel</button>' +
@@ -108,11 +167,12 @@ function saveBookMetadata(uuid) {
             if (pageReload) { pageReload(); }
             openEditModal(uuid);
         },
+        error: function (jqXHR) { handleMetadataError(jqXHR); },
         complete: function () { hideEditLoading("#bm-edit-save"); }
     });
 }
 
-function uploadBookCover(uuid, file) {
+function uploadBookCover(uuid, file, previousSrc) {
     var formData = new FormData();
     formData.append("cover", file);
     showEditLoading(".bm-edit-cover-upload span");
@@ -126,6 +186,13 @@ function uploadBookCover(uuid, file) {
             bustCoverCache(uuid);
             $("#bm-edit-cover-img").attr("src", coverUrl(uuid, COVER_LARGE.w, COVER_LARGE.h)).show().next().hide();
             if (pageReload) { pageReload(); }
+        },
+        error: function (jqXHR) {
+            if (previousSrc)
+                $("#bm-edit-cover-img").attr("src", previousSrc);
+            else
+                $("#bm-edit-cover-img").hide().next().show();
+            handleCoverError(jqXHR);
         },
         complete: function () { hideEditLoading(".bm-edit-cover-upload span"); }
     });

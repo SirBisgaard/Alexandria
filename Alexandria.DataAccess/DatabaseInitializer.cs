@@ -207,15 +207,16 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 Id INTEGER PRIMARY KEY CHECK (Id = 1),
                 UuidSeed TEXT NOT NULL,
                 LastIndexedTimestamp TEXT,
-                SyncBatchSize INTEGER NOT NULL DEFAULT 60
+                SyncBatchSize INTEGER NOT NULL DEFAULT 60,
+                ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1
             )
             """;
         await settingsCreateCmd.ExecuteNonQueryAsync();
 
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
-            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize)
-            VALUES (1, '00000000-0000-0000-0000-000000000003', NULL, 60)
+            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled)
+            VALUES (1, '00000000-0000-0000-0000-000000000003', NULL, 60, 1)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
     }
@@ -233,6 +234,13 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         {
             await using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE Settings ADD COLUMN SyncBatchSize INTEGER NOT NULL DEFAULT 60";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+
+        if (!columns.Contains("ProxyLoggingEnabled"))
+        {
+            await using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE Settings ADD COLUMN ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1";
             await alterCmd.ExecuteNonQueryAsync();
         }
     }

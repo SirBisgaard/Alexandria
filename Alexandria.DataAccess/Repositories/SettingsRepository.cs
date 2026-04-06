@@ -14,7 +14,7 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize FROM Settings WHERE Id = 1";
+        cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled FROM Settings WHERE Id = 1";
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -23,7 +23,8 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         {
             UuidSeed = Guid.Parse(reader.GetString(reader.GetOrdinal("UuidSeed"))),
             LastIndexedTimestamp = reader.IsDBNull(reader.GetOrdinal("LastIndexedTimestamp")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastIndexedTimestamp"))),
-            SyncBatchSize = reader.GetInt32(reader.GetOrdinal("SyncBatchSize"))
+            SyncBatchSize = reader.GetInt32(reader.GetOrdinal("SyncBatchSize")),
+            ProxyLoggingEnabled = reader.GetInt32(reader.GetOrdinal("ProxyLoggingEnabled")) == 1
         };
     }
 
@@ -38,14 +39,15 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await cmd.ExecuteNonQueryAsync();
     }
 
-    public async Task UpdateSyncBatchSize(int batchSize)
+    public async Task UpdateSettings(int syncBatchSize, bool proxyLoggingEnabled)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @batchSize WHERE Id = 1";
-        cmd.Parameters.AddWithValue("@batchSize", batchSize);
+        cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled WHERE Id = 1";
+        cmd.Parameters.AddWithValue("@syncBatchSize", syncBatchSize);
+        cmd.Parameters.AddWithValue("@proxyLoggingEnabled", proxyLoggingEnabled ? 1 : 0);
         await cmd.ExecuteNonQueryAsync();
     }
 }

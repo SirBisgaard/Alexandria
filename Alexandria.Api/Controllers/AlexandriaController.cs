@@ -178,13 +178,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(ApiMapper.ToSettingsResponse(settings));
     }
 
-    [HttpPut("settings/sync-batch-size")]
-    public async Task<IActionResult> UpdateSyncBatchSize([FromBody] int batchSize)
+    [HttpPut("settings")]
+    public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
     {
-        if (batchSize < 1 || batchSize > 1000)
-            return BadRequest("Batch size must be between 1 and 1000.");
-
-        await settingsService.UpdateSyncBatchSize(batchSize);
+        await settingsService.UpdateSettings(request.SyncBatchSize, request.ProxyLoggingEnabled);
         return NoContent();
     }
 

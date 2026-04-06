@@ -7,7 +7,7 @@ public class UpdateBookMetadataRequest : IValidatableObject
     [Required, MinLength(1)]
     public string Title { get; set; } = string.Empty;
 
-    [Required, MinLength(1)]
+    [Required(ErrorMessage = "At least one author is required."), MinLength(1)]
     public List<string> Authors { get; set; } = [];
 
     [Required, MinLength(1)]
@@ -26,6 +26,6 @@ public class UpdateBookMetadataRequest : IValidatableObject
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (Authors.Count > 0 && Authors.All(string.IsNullOrWhiteSpace))
-            yield return new ValidationResult("At least one author must be non-empty.", [nameof(Authors)]);
+            yield return new ValidationResult("At least one author is required.", [nameof(Authors)]);
     }
 }

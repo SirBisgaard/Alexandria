@@ -6,5 +6,5 @@ public interface IAlexandriaSettingsService
 {
     Task<AppSettings> Get();
     Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp);
-    Task UpdateSyncBatchSize(int batchSize);
+    Task UpdateSettings(int syncBatchSize, bool proxyLoggingEnabled);
 }

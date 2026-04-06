@@ -84,7 +84,8 @@ public static class ApiMapper
     public static SettingsResponse ToSettingsResponse(AppSettings settings) => new()
     {
         LastIndexedTimestamp = settings.LastIndexedTimestamp,
-        SyncBatchSize = settings.SyncBatchSize
+        SyncBatchSize = settings.SyncBatchSize,
+        ProxyLoggingEnabled = settings.ProxyLoggingEnabled
     };
 
     public static Book ToBook(UpdateBookMetadataRequest request) => new()

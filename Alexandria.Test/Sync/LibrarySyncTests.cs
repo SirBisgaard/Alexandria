@@ -339,7 +339,7 @@ public sealed class LibrarySyncTests
     {
         public Task<AppSettings> Get() => Task.FromResult(new AppSettings { SyncBatchSize = syncBatchSize });
         public Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp) => Task.CompletedTask;
-        public Task UpdateSyncBatchSize(int batchSize) => Task.CompletedTask;
+        public Task UpdateSettings(int syncBatchSize, bool proxyLoggingEnabled) => Task.CompletedTask;
     }
 
 }

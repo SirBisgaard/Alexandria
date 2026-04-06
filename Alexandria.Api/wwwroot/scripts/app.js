@@ -209,9 +209,17 @@ $(function () {
     $(document).on("change", "#bm-edit-cover-file", function () {
         var file = this.files[0];
         if (file && currentModalUuid) {
-            $("#bm-edit-cover-img").attr("src", URL.createObjectURL(file)).show().next().hide();
-            uploadBookCover(currentModalUuid, file);
+            var $img = $("#bm-edit-cover-img");
+            var previousSrc = $img.is(":visible") ? $img.attr("src") : null;
+            $img.attr("src", URL.createObjectURL(file)).show().next().hide();
+            uploadBookCover(currentModalUuid, file, previousSrc);
         }
+    });
+
+    $(document).on("input change", ".bm-edit-input, .bm-edit-textarea", function () {
+        $(this).removeClass("bm-edit-input-invalid");
+        $(this).closest(".bm-edit-field").find(".bm-edit-error").remove();
+        $("#bm-edit-error-banner").hide();
     });
 
     $(document).on("click", "#bm-edit-cover-remove", function (e) {
