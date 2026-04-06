@@ -61,7 +61,7 @@ function openEditModal(uuid) {
                 '<textarea class="bm-edit-textarea" id="bm-edit-description">' + escapeHtml(book.description || "") + '</textarea>' +
             '</div>' +
             '<div class="bm-edit-footer">' +
-                '<div class="bm-edit-warning">Changing title or authors will change the book\'s unique ID. Sync reading status before editing if the book is already on your device. Removing a series from a book will not remove it from the Kobo device — this requires a factory reset or a reindex with a new ID seed.</div>' +
+                '<div class="bm-edit-warning">Editing metadata or covers will trigger a re-sync to the device on next sync. The book will need to be re-downloaded on the device, but reading progress is preserved. A device reboot may be needed to refresh the cover in Currently Reading.</div>' +
                 '<div class="bm-edit-buttons"><button class="bm-edit-btn" id="bm-edit-cancel">Cancel</button>' +
                 '<button class="bm-edit-btn bm-edit-btn-primary" id="bm-edit-save">Save</button></div>' +
             '</div>'
