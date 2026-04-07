@@ -109,6 +109,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
             return NotFound();
 
         var author = ApiMapper.ToAuthor(request);
+        author.AuthorUuid = uuid;
         if (!string.Equals(existing.Name, author.Name, StringComparison.OrdinalIgnoreCase))
         {
             var conflict = await alexandriaLibraryService.GetAuthorByName(author.Name);
@@ -116,7 +117,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
                 return Conflict(new { errors = new Dictionary<string, string[]> { ["Name"] = ["An author with this name already exists."] } });
         }
 
-        var result = await alexandriaLibraryService.UpdateAuthor(uuid, author);
+        var result = await alexandriaLibraryService.UpdateAuthor(author);
         return Ok(ApiMapper.ToAuthorDetailResponse(result!));
     }
 
@@ -128,6 +129,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
             return NotFound();
 
         var series = ApiMapper.ToSeries(request);
+        series.SeriesUuid = uuid;
         if (!string.Equals(existing.Name, series.Name, StringComparison.OrdinalIgnoreCase))
         {
             var conflict = await alexandriaLibraryService.GetSeriesByName(series.Name);
@@ -135,7 +137,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
                 return Conflict(new { errors = new Dictionary<string, string[]> { ["Name"] = ["A series with this name already exists."] } });
         }
 
-        var result = await alexandriaLibraryService.UpdateSeries(uuid, series);
+        var result = await alexandriaLibraryService.UpdateSeries(series);
         return Ok(ApiMapper.ToSeriesDetailResponse(result!));
     }
 
@@ -168,7 +170,9 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
             return NotFound();
         }
 
-        var result = await alexandriaLibraryService.UpdateBookMetadata(uuid, ApiMapper.ToBook(request));
+        var book = ApiMapper.ToBook(request);
+        book.BookUuid = uuid;
+        var result = await alexandriaLibraryService.UpdateBookMetadata(book);
         return Ok(ApiMapper.ToBookResponse(result!));
     }
 
@@ -219,7 +223,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("settings")]
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
     {
-        await settingsService.UpdateSettings(request.SyncBatchSize, request.ProxyLoggingEnabled);
+        await settingsService.UpdateSettings(ApiMapper.ToAppSettings(request));
         return NoContent();
     }
 

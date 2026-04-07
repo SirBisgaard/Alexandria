@@ -11,5 +11,5 @@ public interface IAuthorRepository
     Task SetBookAuthors(Guid bookUuid, List<string> authorNames);
     Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid);
     Task RemoveOrphanedAuthors();
-    Task Update(Guid authorUuid, string newName);
+    Task Update(Author author);
 }

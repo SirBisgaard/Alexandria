@@ -169,15 +169,15 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         return newUuid;
     }
 
-    public async Task Update(Guid authorUuid, string newName)
+    public async Task Update(Author author)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Authors SET Name = @name WHERE AuthorUuid = @uuid";
-        cmd.Parameters.AddWithValue("@name", newName);
-        cmd.Parameters.AddWithValue("@uuid", authorUuid.ToString());
+        cmd.Parameters.AddWithValue("@name", author.Name);
+        cmd.Parameters.AddWithValue("@uuid", author.AuthorUuid.ToString());
         await cmd.ExecuteNonQueryAsync();
     }
 

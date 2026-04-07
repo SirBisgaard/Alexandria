@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Alexandria.Business.Extensions;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Middleware;
@@ -46,7 +47,8 @@ builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
 builder.Services.AddTransient<IAlexandriaSettingsService, AlexandriaSettingsService>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var app = builder.Build();
 

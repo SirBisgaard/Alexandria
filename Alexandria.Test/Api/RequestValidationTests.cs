@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Alexandria.Api.Models.Requests;
+using Alexandria.Business.Models;
 
 namespace Alexandria.Tests.Api;
 
@@ -134,22 +135,12 @@ public sealed class RequestValidationTests
     }
 
     [TestMethod]
-    [DataRow("ReadyToRead")]
-    [DataRow("Reading")]
-    [DataRow("Finished")]
-    public void UpdateStatus_ValidStatus_PassesValidation(string status)
+    [DataRow(ReadingStatus.ReadyToRead)]
+    [DataRow(ReadingStatus.Reading)]
+    [DataRow(ReadingStatus.Finished)]
+    public void UpdateStatus_ValidStatus_PassesValidation(ReadingStatus status)
     {
         var results = Validate(new UpdateStatusRequest { Status = status });
         Assert.IsEmpty(results);
-    }
-
-    [TestMethod]
-    [DataRow("invalid")]
-    [DataRow("")]
-    [DataRow("finished")]
-    public void UpdateStatus_InvalidStatus_FailsValidation(string status)
-    {
-        var results = Validate(new UpdateStatusRequest { Status = status });
-        Assert.IsNotEmpty(results);
     }
 }

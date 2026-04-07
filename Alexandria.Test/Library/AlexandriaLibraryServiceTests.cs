@@ -80,9 +80,9 @@ public sealed class AlexandriaLibraryServiceTests
         Assert.IsNotNull(original, "Life and Fate should be indexed with the expected UUID.");
         Assert.AreEqual("Life and Fate", original.Title);
 
-        var updateBook = new Book { Title = "Life and Fate (Updated)", Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = "Life and Fate (Updated)", Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
 
-        var result = await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+        var result = await service.UpdateBookMetadata(updateBook);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(LifeAndFateUuid, result.BookUuid, "UUID should be preserved after metadata edit.");
@@ -98,9 +98,9 @@ public sealed class AlexandriaLibraryServiceTests
         var original = await bookRepository.FindByUuid(LifeAndFateUuid);
         Assert.IsNotNull(original);
 
-        var updateBook = new Book { Title = "New Title", Authors = [new Author { Name = "Author A" }, new Author { Name = "Author B" }], Language = "da", Publisher = "Test Publisher", Series = new Series { Name = "Test Series", Index = 5 }, PublicationDate = "2025-01-01", Description = "A new description" };
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = "New Title", Authors = [new Author { Name = "Author A" }, new Author { Name = "Author B" }], Language = "da", Publisher = "Test Publisher", Series = new Series { Name = "Test Series", Index = 5 }, PublicationDate = "2025-01-01", Description = "A new description" };
 
-        var result = await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+        var result = await service.UpdateBookMetadata(updateBook);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(LifeAndFateUuid, result.BookUuid);
@@ -124,9 +124,9 @@ public sealed class AlexandriaLibraryServiceTests
         var original = await bookRepository.FindByUuid(LifeAndFateUuid);
         Assert.IsNotNull(original);
 
-        var updateBook = new Book { Title = "Roundtrip Title", Authors = [new Author { Name = "Roundtrip Author" }], Language = "fr", Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = "Roundtrip Title", Authors = [new Author { Name = "Roundtrip Author" }], Language = "fr", Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
 
-        await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+        await service.UpdateBookMetadata(updateBook);
 
         // Verify the EPUB file itself was modified by re-extracting metadata directly.
         var handler = new EpubMetadataHandler();
@@ -145,9 +145,9 @@ public sealed class AlexandriaLibraryServiceTests
         var original = await bookRepository.FindByUuid(LifeAndFateUuid);
         Assert.IsNotNull(original);
 
-        var updateBook = new Book { Title = "Lock Test", Authors = original.Authors, Language = original.Language };
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = "Lock Test", Authors = original.Authors, Language = original.Language };
 
-        await service.UpdateBookMetadata(LifeAndFateUuid, updateBook);
+        await service.UpdateBookMetadata(updateBook);
 
         // The EPUB, KEPUB, and cover files should all be writable after the operation completes.
         Assert.IsTrue(CanWriteFile(original.SourcePath), "EPUB file should not be locked after metadata update.");
@@ -202,7 +202,7 @@ public sealed class AlexandriaLibraryServiceTests
     {
         var (service, _) = await CreateService();
 
-        var result = await service.UpdateBookMetadata(Guid.NewGuid(), new Book { Title = "x", Authors = [new Author { Name = "a" }], Language = "en" });
+        var result = await service.UpdateBookMetadata(new Book { BookUuid = Guid.NewGuid(), Title = "x", Authors = [new Author { Name = "a" }], Language = "en" });
 
         Assert.IsNull(result);
     }

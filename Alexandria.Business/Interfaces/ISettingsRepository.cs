@@ -6,5 +6,5 @@ public interface ISettingsRepository
 {
     Task<AppSettings> Get();
     Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp);
-    Task UpdateSettings(int syncBatchSize, bool proxyLoggingEnabled);
+    Task UpdateSettings(AppSettings settings);
 }

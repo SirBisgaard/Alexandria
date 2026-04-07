@@ -12,5 +12,5 @@ public interface ISeriesRepository
     Task<Series?> GetSeriesByBookUuid(Guid bookUuid);
     Task RemoveOrphanedSeries();
     Task<Series?> FindByName(string name);
-    Task Update(Guid seriesUuid, string newName);
+    Task Update(Series series);
 }

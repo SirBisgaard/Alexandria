@@ -153,7 +153,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
     public async Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => await collectionRepository.GetModifiedSince(since);
 
-    public async Task UpdateReadingStatus(Guid uuid, string status)
+    public async Task UpdateReadingStatus(Guid uuid, ReadingStatus status)
     {
         var existing = await readingStateRepository.GetByBookUuid(uuid);
         var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -167,7 +167,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             StatusInfo = new Models.KoboStore.StatusInfo
             {
                 LastModified = now,
-                Status = status,
+                Status = status.ToString(),
                 TimesStartedReading = existing?.StatusInfo.TimesStartedReading ?? 0,
                 LastTimeStartedReading = existing?.StatusInfo.LastTimeStartedReading
             },
@@ -180,18 +180,18 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             CurrentBookmark = new Models.KoboStore.Bookmark
             {
                 LastModified = now,
-                ProgressPercent = status == "Finished" ? 100 : status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ProgressPercent,
-                ContentSourceProgressPercent = status == "ReadyToRead" ? 0 : existing?.CurrentBookmark.ContentSourceProgressPercent,
-                Location = status == "ReadyToRead" ? null : existing?.CurrentBookmark.Location
+                ProgressPercent = status == ReadingStatus.Finished ? 100 : status == ReadingStatus.ReadyToRead ? 0 : existing?.CurrentBookmark.ProgressPercent,
+                ContentSourceProgressPercent = status == ReadingStatus.ReadyToRead ? 0 : existing?.CurrentBookmark.ContentSourceProgressPercent,
+                Location = status == ReadingStatus.ReadyToRead ? null : existing?.CurrentBookmark.Location
             }
         };
 
         await readingStateRepository.Upsert(uuid, state, "{}");
     }
 
-    public async Task<Book?> UpdateBookMetadata(Guid uuid, Book book)
+    public async Task<Book?> UpdateBookMetadata(Book book)
     {
-        var existing = await bookRepository.FindByUuid(uuid);
+        var existing = await bookRepository.FindByUuid(book.BookUuid);
         if (existing is null)
         {
             return null;
@@ -201,9 +201,9 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         metadata.AlexandriaUuid = existing.BookUuid;
         epubMetadataHandler.EmbedMetadata(existing.SourcePath, metadata);
 
-        await libraryIndexerService.ReindexBook(uuid);
+        await libraryIndexerService.ReindexBook(book.BookUuid);
 
-        return await bookRepository.FindByUuid(uuid);
+        return await bookRepository.FindByUuid(book.BookUuid);
     }
 
     public async Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType)
@@ -239,16 +239,16 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return await libraryIndexerService.Index(progress);
     }
 
-    public async Task<Author?> UpdateAuthor(Guid authorUuid, Author author)
+    public async Task<Author?> UpdateAuthor(Author author)
     {
-        var existing = await authorRepository.FindByUuid(authorUuid);
+        var existing = await authorRepository.FindByUuid(author.AuthorUuid);
         if (existing is null)
             return null;
 
-        await authorRepository.Update(authorUuid, author.Name);
+        await authorRepository.Update(author);
 
         var books = await GetBooks();
-        var authorBooks = books.Where(b => b.Authors.Any(a => a.AuthorUuid == authorUuid)).ToList();
+        var authorBooks = books.Where(b => b.Authors.Any(a => a.AuthorUuid == author.AuthorUuid)).ToList();
 
         foreach (var book in authorBooks)
         {
@@ -258,19 +258,19 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             await libraryIndexerService.ReindexBook(book.BookUuid);
         }
 
-        return await GetAuthorByUuid(authorUuid);
+        return await GetAuthorByUuid(author.AuthorUuid);
     }
 
-    public async Task<Series?> UpdateSeries(Guid seriesUuid, Series series)
+    public async Task<Series?> UpdateSeries(Series series)
     {
-        var existing = await seriesRepository.FindByUuid(seriesUuid);
+        var existing = await seriesRepository.FindByUuid(series.SeriesUuid);
         if (existing is null)
             return null;
 
-        await seriesRepository.Update(seriesUuid, series.Name);
+        await seriesRepository.Update(series);
 
         var books = await GetBooks();
-        var seriesBooks = books.Where(b => b.Series?.SeriesUuid == seriesUuid).ToList();
+        var seriesBooks = books.Where(b => b.Series?.SeriesUuid == series.SeriesUuid).ToList();
 
         foreach (var book in seriesBooks)
         {
@@ -280,7 +280,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             await libraryIndexerService.ReindexBook(book.BookUuid);
         }
 
-        return await GetSeriesByUuid(seriesUuid);
+        return await GetSeriesByUuid(series.SeriesUuid);
     }
 
     public async Task<Series?> GetSeriesByName(string name)

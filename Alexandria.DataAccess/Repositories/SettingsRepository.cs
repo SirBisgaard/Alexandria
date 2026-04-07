@@ -39,15 +39,15 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await cmd.ExecuteNonQueryAsync();
     }
 
-    public async Task UpdateSettings(int syncBatchSize, bool proxyLoggingEnabled)
+    public async Task UpdateSettings(AppSettings settings)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled WHERE Id = 1";
-        cmd.Parameters.AddWithValue("@syncBatchSize", syncBatchSize);
-        cmd.Parameters.AddWithValue("@proxyLoggingEnabled", proxyLoggingEnabled ? 1 : 0);
+        cmd.Parameters.AddWithValue("@syncBatchSize", settings.SyncBatchSize);
+        cmd.Parameters.AddWithValue("@proxyLoggingEnabled", settings.ProxyLoggingEnabled ? 1 : 0);
         await cmd.ExecuteNonQueryAsync();
     }
 }

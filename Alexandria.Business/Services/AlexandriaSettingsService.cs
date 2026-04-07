@@ -9,5 +9,5 @@ public class AlexandriaSettingsService(ISettingsRepository settingsRepository) :
 
     public async Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp) => await settingsRepository.UpdateLastIndexedTimestamp(timestamp);
 
-    public async Task UpdateSettings(int syncBatchSize, bool proxyLoggingEnabled) => await settingsRepository.UpdateSettings(syncBatchSize, proxyLoggingEnabled);
+    public async Task UpdateSettings(AppSettings settings) => await settingsRepository.UpdateSettings(settings);
 }

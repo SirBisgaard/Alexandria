@@ -45,7 +45,7 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
 
         return new ReadingProgress
         {
-            Status = reader.GetString(reader.GetOrdinal("StatusInfoStatus")),
+            Status = Enum.Parse<ReadingStatus>(reader.GetString(reader.GetOrdinal("StatusInfoStatus"))),
             ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : reader.GetDouble(reader.GetOrdinal("ProgressPercent")),
             SpentReadingMinutes = reader.IsDBNull(reader.GetOrdinal("SpentReadingMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("SpentReadingMinutes")),
             RemainingTimeMinutes = reader.IsDBNull(reader.GetOrdinal("RemainingTimeMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("RemainingTimeMinutes")),

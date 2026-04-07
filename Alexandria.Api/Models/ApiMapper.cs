@@ -98,6 +98,12 @@ public static class ApiMapper
         Name = request.Name.Trim()
     };
 
+    public static AppSettings ToAppSettings(UpdateSettingsRequest request) => new()
+    {
+        SyncBatchSize = request.SyncBatchSize,
+        ProxyLoggingEnabled = request.ProxyLoggingEnabled
+    };
+
     public static Book ToBook(UpdateBookMetadataRequest request) => new()
     {
         Title = request.Title,

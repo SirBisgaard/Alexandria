@@ -18,13 +18,13 @@ public interface IAlexandriaLibraryService
     Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null);
     Task UpsertCollection(BookCollection collection);
     Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since);
-    Task UpdateReadingStatus(Guid uuid, string status);
-    Task<Book?> UpdateBookMetadata(Guid uuid, Book book);
+    Task UpdateReadingStatus(Guid uuid, ReadingStatus status);
+    Task<Book?> UpdateBookMetadata(Book book);
     Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType);
     Task<Book?> RemoveBookCover(Guid uuid);
     Task<int> Sync(IProgress<(int current, int total)>? progress = null);
     Task<Author?> GetAuthorByUuid(Guid uuid, BookSortOptions? sortOptions = null);
-    Task<Author?> UpdateAuthor(Guid authorUuid, Author author);
-    Task<Series?> UpdateSeries(Guid seriesUuid, Series series);
+    Task<Author?> UpdateAuthor(Author author);
+    Task<Series?> UpdateSeries(Series series);
     Task<Series?> GetSeriesByName(string name);
 }

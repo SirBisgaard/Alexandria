@@ -157,15 +157,15 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         return null;
     }
 
-    public async Task Update(Guid seriesUuid, string newName)
+    public async Task Update(Series series)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Series SET Name = @name WHERE SeriesUuid = @uuid";
-        cmd.Parameters.AddWithValue("@name", newName);
-        cmd.Parameters.AddWithValue("@uuid", seriesUuid.ToString());
+        cmd.Parameters.AddWithValue("@name", series.Name);
+        cmd.Parameters.AddWithValue("@uuid", series.SeriesUuid.ToString());
         await cmd.ExecuteNonQueryAsync();
     }
 
