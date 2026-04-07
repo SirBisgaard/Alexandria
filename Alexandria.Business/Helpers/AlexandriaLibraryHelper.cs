@@ -15,7 +15,7 @@ public static class AlexandriaLibraryHelper
             BookSortField.Series => desc ? books.OrderBy(b => b.Series is null ? 1 : 0).ThenByDescending(b => b.Series?.Name).ThenByDescending(b => b.Series?.Index ?? 0).ToList() : books.OrderBy(b => b.Series is null ? 1 : 0).ThenBy(b => b.Series?.Name).ThenBy(b => b.Series?.Index ?? 0).ToList(),
             BookSortField.FileSize => desc ? books.OrderByDescending(b => b.KepubFileSize).ToList() : books.OrderBy(b => b.KepubFileSize).ToList(),
             BookSortField.BookNumber => desc ? books.OrderByDescending(b => b.Series?.Index ?? 0).ToList() : books.OrderBy(b => b.Series?.Index ?? 0).ToList(),
-            _ => desc ? books.OrderByDescending(b => b.LastModified).ToList() : books.OrderBy(b => b.LastModified).ToList()
+            _ => desc ? books.OrderByDescending(b => b.ModifiedAt).ToList() : books.OrderBy(b => b.ModifiedAt).ToList()
         };
     }
 
@@ -25,7 +25,7 @@ public static class AlexandriaLibraryHelper
         return options.Sort switch
         {
             AuthorSortField.FirstName => desc ? authors.OrderByDescending(a => a.Name.Split(' ').First()).ToList() : authors.OrderBy(a => a.Name.Split(' ').First()).ToList(),
-            AuthorSortField.Recent => desc ? authors.OrderByDescending(a => a.Books.Max(b => b.LastModified)).ToList() : authors.OrderBy(a => a.Books.Max(b => b.LastModified)).ToList(),
+            AuthorSortField.Recent => desc ? authors.OrderByDescending(a => a.Books.Max(b => b.ModifiedAt)).ToList() : authors.OrderBy(a => a.Books.Max(b => b.ModifiedAt)).ToList(),
             AuthorSortField.NumberOfBooks => desc ? authors.OrderByDescending(a => a.Books.Count).ThenBy(a => a.Name).ToList() : authors.OrderBy(a => a.Books.Count).ThenBy(a => a.Name).ToList(),
             _ => desc ? authors.OrderByDescending(a => a.Name).ToList() : authors.OrderBy(a => a.Name).ToList()
         };
@@ -36,7 +36,7 @@ public static class AlexandriaLibraryHelper
         var desc = options.Order == SortOrder.Desc;
         return options.Sort switch
         {
-            SeriesSortField.Recent => desc ? series.OrderByDescending(s => s.Books.Max(b => b.LastModified)).ToList() : series.OrderBy(s => s.Books.Max(b => b.LastModified)).ToList(),
+            SeriesSortField.Recent => desc ? series.OrderByDescending(s => s.Books.Max(b => b.ModifiedAt)).ToList() : series.OrderBy(s => s.Books.Max(b => b.ModifiedAt)).ToList(),
             SeriesSortField.NumberOfBooks => desc ? series.OrderByDescending(s => s.Books.Count).ThenBy(s => s.Name).ToList() : series.OrderBy(s => s.Books.Count).ThenBy(s => s.Name).ToList(),
             _ => desc ? series.OrderByDescending(s => s.Name).ToList() : series.OrderBy(s => s.Name).ToList()
         };

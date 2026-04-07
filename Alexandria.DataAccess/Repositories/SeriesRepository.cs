@@ -16,7 +16,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT SeriesUuid, Name FROM Series ORDER BY Name";
+        cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series ORDER BY Name";
 
         await using var reader = await cmd.ExecuteReaderAsync();
         var series = new List<Series>();
@@ -34,7 +34,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT SeriesUuid, Name FROM Series WHERE SeriesUuid = @uuid";
+        cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series WHERE SeriesUuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", seriesUuid.ToString());
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -61,11 +61,14 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
             return Guid.Parse(uuidStr);
         }
 
+        var now = DateTimeOffset.UtcNow.ToString("O");
         var newUuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
         await using var insertCmd = connection.CreateCommand();
-        insertCmd.CommandText = "INSERT INTO Series (SeriesUuid, Name) VALUES (@uuid, @name)";
+        insertCmd.CommandText = "INSERT INTO Series (SeriesUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
         insertCmd.Parameters.AddWithValue("@uuid", newUuid.ToString());
         insertCmd.Parameters.AddWithValue("@name", name);
+        insertCmd.Parameters.AddWithValue("@createdAt", now);
+        insertCmd.Parameters.AddWithValue("@modifiedAt", now);
         await insertCmd.ExecuteNonQueryAsync();
 
         return newUuid;
@@ -82,10 +85,13 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         await deleteCmd.ExecuteNonQueryAsync();
 
         await using var insertCmd = connection.CreateCommand();
-        insertCmd.CommandText = "INSERT INTO BookSeries (BookUuid, SeriesUuid, [Index]) VALUES (@bookUuid, @seriesUuid, @index)";
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        insertCmd.CommandText = "INSERT INTO BookSeries (BookUuid, SeriesUuid, [Index], CreatedAt, ModifiedAt) VALUES (@bookUuid, @seriesUuid, @index, @createdAt, @modifiedAt)";
         insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
         insertCmd.Parameters.AddWithValue("@seriesUuid", seriesUuid.ToString());
         insertCmd.Parameters.AddWithValue("@index", (object?)index ?? DBNull.Value);
+        insertCmd.Parameters.AddWithValue("@createdAt", now);
+        insertCmd.Parameters.AddWithValue("@modifiedAt", now);
         await insertCmd.ExecuteNonQueryAsync();
     }
 
@@ -107,7 +113,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT s.SeriesUuid, s.Name, bs.[Index]
+            SELECT s.SeriesUuid, s.Name, bs.[Index], s.CreatedAt, s.ModifiedAt
             FROM Series s
             JOIN BookSeries bs ON s.SeriesUuid = bs.SeriesUuid
             WHERE bs.BookUuid = @bookUuid
@@ -121,7 +127,9 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
             {
                 SeriesUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("SeriesUuid"))),
                 Name = reader.GetString(reader.GetOrdinal("Name")),
-                Index = reader.IsDBNull(reader.GetOrdinal("Index")) ? null : reader.GetDecimal(reader.GetOrdinal("Index"))
+                Index = reader.IsDBNull(reader.GetOrdinal("Index")) ? null : reader.GetDecimal(reader.GetOrdinal("Index")),
+                CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+                ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt")))
             };
         }
 
@@ -147,7 +155,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT SeriesUuid, Name FROM Series WHERE Name = @name COLLATE NOCASE";
+        cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series WHERE Name = @name COLLATE NOCASE";
         cmd.Parameters.AddWithValue("@name", name);
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -163,9 +171,10 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "UPDATE Series SET Name = @name WHERE SeriesUuid = @uuid";
+        cmd.CommandText = "UPDATE Series SET Name = @name, ModifiedAt = @modifiedAt WHERE SeriesUuid = @uuid";
         cmd.Parameters.AddWithValue("@name", series.Name);
         cmd.Parameters.AddWithValue("@uuid", series.SeriesUuid.ToString());
+        cmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -174,7 +183,9 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         return new Series
         {
             SeriesUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("SeriesUuid"))),
-            Name = reader.GetString(reader.GetOrdinal("Name"))
+            Name = reader.GetString(reader.GetOrdinal("Name")),
+            CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+            ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt")))
         };
     }
 }

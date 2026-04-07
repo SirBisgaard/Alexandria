@@ -23,7 +23,7 @@ public static class ApiMapper
         FileName = book.FileName,
         KepubFileSize = book.KepubFileSize,
         CreatedAt = book.CreatedAt,
-        LastModified = book.LastModified,
+        ModifiedAt = book.ModifiedAt,
         IsArchived = book.IsArchived,
         ReadingProgress = book.ReadingProgress is not null ? ToReadingProgressResponse(book.ReadingProgress) : null
     };
@@ -31,13 +31,17 @@ public static class ApiMapper
     public static AuthorResponse ToAuthorResponse(Author author) => new()
     {
         AuthorUuid = author.AuthorUuid,
-        Name = author.Name
+        Name = author.Name,
+        CreatedAt = author.CreatedAt,
+        ModifiedAt = author.ModifiedAt
     };
 
     public static AuthorDetailResponse ToAuthorDetailResponse(Author author) => new()
     {
         AuthorUuid = author.AuthorUuid,
         Name = author.Name,
+        CreatedAt = author.CreatedAt,
+        ModifiedAt = author.ModifiedAt,
         Books = author.Books.Select(ToBookResponse).ToList()
     };
 
@@ -45,13 +49,17 @@ public static class ApiMapper
     {
         SeriesUuid = series.SeriesUuid,
         Name = series.Name,
-        Index = series.Index
+        Index = series.Index,
+        CreatedAt = series.CreatedAt,
+        ModifiedAt = series.ModifiedAt
     };
 
     public static SeriesDetailResponse ToSeriesDetailResponse(Series series) => new()
     {
         SeriesUuid = series.SeriesUuid,
         Name = series.Name,
+        CreatedAt = series.CreatedAt,
+        ModifiedAt = series.ModifiedAt,
         Books = series.Books.Select(ToBookResponse).ToList()
     };
 
@@ -61,7 +69,7 @@ public static class ApiMapper
         Name = collection.Name,
         BookCount = collection.BookUuids.Count,
         CreatedAt = collection.CreatedAt,
-        LastModified = collection.LastModified
+        ModifiedAt = collection.ModifiedAt
     };
 
     public static CollectionDetailResponse ToCollectionDetailResponse(CollectionWithBooks collection) => new()
@@ -70,7 +78,7 @@ public static class ApiMapper
         Name = collection.Name,
         Books = collection.Books.Select(ToBookResponse).ToList(),
         CreatedAt = collection.CreatedAt,
-        LastModified = collection.LastModified
+        ModifiedAt = collection.ModifiedAt
     };
 
     public static ReadingProgressResponse ToReadingProgressResponse(ReadingProgress progress) => new()
@@ -79,7 +87,8 @@ public static class ApiMapper
         ProgressPercent = progress.ProgressPercent,
         SpentReadingMinutes = progress.SpentReadingMinutes,
         RemainingTimeMinutes = progress.RemainingTimeMinutes,
-        LastModified = progress.LastModified
+        CreatedAt = progress.CreatedAt,
+        ModifiedAt = progress.ModifiedAt
     };
 
     public static SettingsResponse ToSettingsResponse(AppSettings settings) => new()

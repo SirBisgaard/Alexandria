@@ -18,7 +18,7 @@ public class Book
     public string? KepubFilePath { get; set; }
     public long KepubFileSize { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset LastModified { get; set; }
+    public DateTimeOffset ModifiedAt { get; set; }
     public Guid? CoverImageUuid { get; set; }
     public bool IsArchived { get; set; }
 

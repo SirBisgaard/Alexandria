@@ -39,8 +39,6 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             logger.LogInformation("Migration V{Version} applied successfully", migration.Version);
         }
 
-        await EnsureSettingsColumns(connection);
-
         logger.LogInformation("Database initialization complete");
     }
 
@@ -74,7 +72,9 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         seriesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Series (
                 SeriesUuid TEXT PRIMARY KEY,
-                Name TEXT NOT NULL UNIQUE
+                Name TEXT NOT NULL UNIQUE,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL
             )
             """;
         await seriesCmd.ExecuteNonQueryAsync();
@@ -83,7 +83,9 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         authorsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Authors (
                 AuthorUuid TEXT PRIMARY KEY,
-                Name TEXT NOT NULL UNIQUE
+                Name TEXT NOT NULL UNIQUE,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL
             )
             """;
         await authorsCmd.ExecuteNonQueryAsync();
@@ -105,7 +107,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 KepubFileSize INTEGER NOT NULL DEFAULT 0,
                 CoverImageUuid TEXT,
                 CreatedAt TEXT NOT NULL,
-                LastModified TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
                 IsArchived INTEGER NOT NULL DEFAULT 0
             )
             """;
@@ -117,6 +119,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 BookUuid TEXT NOT NULL,
                 SeriesUuid TEXT NOT NULL,
                 [Index] REAL,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
                 PRIMARY KEY (BookUuid, SeriesUuid),
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid),
                 FOREIGN KEY (SeriesUuid) REFERENCES Series(SeriesUuid)
@@ -129,6 +133,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             CREATE TABLE IF NOT EXISTS BookAuthors (
                 BookUuid TEXT NOT NULL,
                 AuthorUuid TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
                 PRIMARY KEY (BookUuid, AuthorUuid),
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid),
                 FOREIGN KEY (AuthorUuid) REFERENCES Authors(AuthorUuid)
@@ -156,7 +162,9 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 LastModified TEXT NOT NULL,
                 PriorityTimestamp TEXT NOT NULL,
                 Created TEXT NOT NULL,
-                RawPutBody TEXT
+                RawPutBody TEXT,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL
             )
             """;
         await readingStatesCmd.ExecuteNonQueryAsync();
@@ -167,7 +175,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 CollectionUuid TEXT PRIMARY KEY,
                 Name TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL,
-                LastModified TEXT NOT NULL
+                ModifiedAt TEXT NOT NULL
             )
             """;
         await collectionsCmd.ExecuteNonQueryAsync();
@@ -177,12 +185,27 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             CREATE TABLE IF NOT EXISTS CollectionBooks (
                 CollectionUuid TEXT NOT NULL,
                 BookUuid TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
                 PRIMARY KEY (CollectionUuid, BookUuid),
                 FOREIGN KEY (CollectionUuid) REFERENCES Collections(CollectionUuid),
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
         await collectionBooksCmd.ExecuteNonQueryAsync();
+
+        await using var syncedFilesCmd = connection.CreateCommand();
+        syncedFilesCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS KoboDeviceSyncedFiles (
+                DeviceId TEXT NOT NULL,
+                BookUuid TEXT NOT NULL,
+                FileHash TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
+                PRIMARY KEY (DeviceId, BookUuid)
+            )
+            """;
+        await syncedFilesCmd.ExecuteNonQueryAsync();
 
         await using var logsCmd = connection.CreateCommand();
         logsCmd.CommandText = """
@@ -216,32 +239,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled)
-            VALUES (1, '00000000-0000-0000-0000-000000000003', NULL, 60, 1)
+            VALUES (1, '00000000-0000-0000-0000-000000000004', NULL, 60, 1)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
-    }
-
-    private static async Task EnsureSettingsColumns(SqliteConnection connection)
-    {
-        await using var pragmaCmd = connection.CreateCommand();
-        pragmaCmd.CommandText = "PRAGMA table_info(Settings)";
-        var columns = new HashSet<string>();
-        await using var reader = await pragmaCmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-            columns.Add(reader.GetString(1));
-
-        if (!columns.Contains("SyncBatchSize"))
-        {
-            await using var alterCmd = connection.CreateCommand();
-            alterCmd.CommandText = "ALTER TABLE Settings ADD COLUMN SyncBatchSize INTEGER NOT NULL DEFAULT 60";
-            await alterCmd.ExecuteNonQueryAsync();
-        }
-
-        if (!columns.Contains("ProxyLoggingEnabled"))
-        {
-            await using var alterCmd = connection.CreateCommand();
-            alterCmd.CommandText = "ALTER TABLE Settings ADD COLUMN ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1";
-            await alterCmd.ExecuteNonQueryAsync();
-        }
     }
 }

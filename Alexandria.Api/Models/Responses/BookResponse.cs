@@ -16,7 +16,7 @@ public class BookResponse
     public string FileName { get; set; } = string.Empty;
     public long KepubFileSize { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset LastModified { get; set; }
+    public DateTimeOffset ModifiedAt { get; set; }
     public bool IsArchived { get; set; }
     public ReadingProgressResponse? ReadingProgress { get; set; }
 }

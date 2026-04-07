@@ -124,8 +124,8 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO Books (BookUuid, EntitlementUuid, FileHash, SourcePath, Title, Language, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, KepubFileSize, CoverImageUuid, CreatedAt, LastModified, IsArchived)
-            VALUES (@bookUuid, @entitlementUuid, @fileHash, @sourcePath, @title, @language, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @kepubFileSize, @coverImageUuid, @createdAt, @lastModified, @isArchived)
+            INSERT INTO Books (BookUuid, EntitlementUuid, FileHash, SourcePath, Title, Language, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, KepubFileSize, CoverImageUuid, CreatedAt, ModifiedAt, IsArchived)
+            VALUES (@bookUuid, @entitlementUuid, @fileHash, @sourcePath, @title, @language, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @kepubFileSize, @coverImageUuid, @createdAt, @modifiedAt, @isArchived)
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
@@ -138,7 +138,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE Books SET EntitlementUuid = @entitlementUuid, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Language = @language, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, KepubFileSize = @kepubFileSize, CoverImageUuid = @coverImageUuid, CreatedAt = @createdAt, LastModified = @lastModified, IsArchived = @isArchived
+            UPDATE Books SET EntitlementUuid = @entitlementUuid, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Language = @language, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, KepubFileSize = @kepubFileSize, CoverImageUuid = @coverImageUuid, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived
             WHERE BookUuid = @bookUuid
             """;
         AddBookParameters(cmd, book);
@@ -192,7 +192,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         cmd.Parameters.AddWithValue("@kepubFileSize", book.KepubFileSize);
         cmd.Parameters.AddWithValue("@coverImageUuid", (object?)book.CoverImageUuid?.ToString() ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@createdAt", book.CreatedAt.ToString("O"));
-        cmd.Parameters.AddWithValue("@lastModified", book.LastModified.ToString("O"));
+        cmd.Parameters.AddWithValue("@modifiedAt", book.ModifiedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@isArchived", book.IsArchived ? 1 : 0);
     }
 
@@ -214,7 +214,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             KepubFileSize = reader.GetInt64(reader.GetOrdinal("KepubFileSize")),
             CoverImageUuid = reader.IsDBNull(reader.GetOrdinal("CoverImageUuid")) ? null : Guid.Parse(reader.GetString(reader.GetOrdinal("CoverImageUuid"))),
             CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
-            LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified"))),
+            ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt"))),
             IsArchived = reader.GetInt32(reader.GetOrdinal("IsArchived")) == 1
         };
     }

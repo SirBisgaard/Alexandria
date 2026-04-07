@@ -41,11 +41,11 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
         await using var transaction = await connection.BeginTransactionAsync();
 
         await using var upsertCmd = connection.CreateCommand();
-        upsertCmd.CommandText = "INSERT OR REPLACE INTO Collections (CollectionUuid, Name, CreatedAt, LastModified) VALUES (@uuid, @name, @createdAt, @lastModified)";
+        upsertCmd.CommandText = "INSERT OR REPLACE INTO Collections (CollectionUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
         upsertCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
         upsertCmd.Parameters.AddWithValue("@name", collection.Name);
         upsertCmd.Parameters.AddWithValue("@createdAt", collection.CreatedAt.ToString("O"));
-        upsertCmd.Parameters.AddWithValue("@lastModified", collection.LastModified.ToString("O"));
+        upsertCmd.Parameters.AddWithValue("@modifiedAt", collection.ModifiedAt.ToString("O"));
         await upsertCmd.ExecuteNonQueryAsync();
 
         await using var deleteCmd = connection.CreateCommand();
@@ -56,9 +56,12 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
         foreach (var bookUuid in collection.BookUuids)
         {
             await using var insertCmd = connection.CreateCommand();
-            insertCmd.CommandText = "INSERT INTO CollectionBooks (CollectionUuid, BookUuid) VALUES (@collectionUuid, @bookUuid)";
+            var now = DateTimeOffset.UtcNow.ToString("O");
+            insertCmd.CommandText = "INSERT INTO CollectionBooks (CollectionUuid, BookUuid, CreatedAt, ModifiedAt) VALUES (@collectionUuid, @bookUuid, @createdAt, @modifiedAt)";
             insertCmd.Parameters.AddWithValue("@collectionUuid", collection.CollectionUuid.ToString());
             insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+            insertCmd.Parameters.AddWithValue("@createdAt", now);
+            insertCmd.Parameters.AddWithValue("@modifiedAt", now);
             await insertCmd.ExecuteNonQueryAsync();
         }
 
@@ -89,7 +92,7 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
-        var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE LastModified > @since", ("@since", since.ToString("O")));
+        var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE ModifiedAt > @since", ("@since", since.ToString("O")));
         await HydrateBookUuids(connection, collections);
         return collections;
     }
@@ -112,7 +115,7 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
                 CollectionUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("CollectionUuid"))),
                 Name = reader.GetString(reader.GetOrdinal("Name")),
                 CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
-                LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
+                ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt")))
             });
         }
 

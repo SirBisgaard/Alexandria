@@ -6,5 +6,6 @@ public class ReadingProgress
     public decimal? ProgressPercent { get; set; }
     public int? SpentReadingMinutes { get; set; }
     public int? RemainingTimeMinutes { get; set; }
-    public DateTimeOffset LastModified { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset ModifiedAt { get; set; }
 }

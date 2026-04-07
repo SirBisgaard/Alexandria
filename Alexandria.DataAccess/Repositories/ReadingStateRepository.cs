@@ -34,7 +34,7 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT StatusInfoStatus, ProgressPercent, SpentReadingMinutes, RemainingTimeMinutes, LastModified FROM ReadingStates WHERE BookUuid = @bookUuid";
+        cmd.CommandText = "SELECT StatusInfoStatus, ProgressPercent, SpentReadingMinutes, RemainingTimeMinutes, CreatedAt, ModifiedAt FROM ReadingStates WHERE BookUuid = @bookUuid";
         cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -49,7 +49,8 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
             ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : reader.GetDecimal(reader.GetOrdinal("ProgressPercent")),
             SpentReadingMinutes = reader.IsDBNull(reader.GetOrdinal("SpentReadingMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("SpentReadingMinutes")),
             RemainingTimeMinutes = reader.IsDBNull(reader.GetOrdinal("RemainingTimeMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("RemainingTimeMinutes")),
-            LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
+            CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+            ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt")))
         };
     }
 
@@ -60,8 +61,9 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT OR REPLACE INTO ReadingStates (BookUuid, StatusInfoStatus, StatusInfoLastModified, TimesStartedReading, LastTimeStartedReading, SpentReadingMinutes, RemainingTimeMinutes, StatisticsLastModified, ProgressPercent, ContentSourceProgressPercent, LocationValue, LocationType, LocationSource, BookmarkLastModified, LastModified, PriorityTimestamp, Created, RawPutBody)
-            VALUES (@bookUuid, @statusInfoStatus, @statusInfoLastModified, @timesStartedReading, @lastTimeStartedReading, @spentReadingMinutes, @remainingTimeMinutes, @statisticsLastModified, @progressPercent, @contentSourceProgressPercent, @locationValue, @locationType, @locationSource, @bookmarkLastModified, @lastModified, @priorityTimestamp, @created, @rawPutBody)
+            INSERT INTO ReadingStates (BookUuid, StatusInfoStatus, StatusInfoLastModified, TimesStartedReading, LastTimeStartedReading, SpentReadingMinutes, RemainingTimeMinutes, StatisticsLastModified, ProgressPercent, ContentSourceProgressPercent, LocationValue, LocationType, LocationSource, BookmarkLastModified, LastModified, PriorityTimestamp, Created, RawPutBody, CreatedAt, ModifiedAt)
+            VALUES (@bookUuid, @statusInfoStatus, @statusInfoLastModified, @timesStartedReading, @lastTimeStartedReading, @spentReadingMinutes, @remainingTimeMinutes, @statisticsLastModified, @progressPercent, @contentSourceProgressPercent, @locationValue, @locationType, @locationSource, @bookmarkLastModified, @lastModified, @priorityTimestamp, @created, @rawPutBody, @createdAt, @modifiedAt)
+            ON CONFLICT (BookUuid) DO UPDATE SET StatusInfoStatus = @statusInfoStatus, StatusInfoLastModified = @statusInfoLastModified, TimesStartedReading = @timesStartedReading, LastTimeStartedReading = @lastTimeStartedReading, SpentReadingMinutes = @spentReadingMinutes, RemainingTimeMinutes = @remainingTimeMinutes, StatisticsLastModified = @statisticsLastModified, ProgressPercent = @progressPercent, ContentSourceProgressPercent = @contentSourceProgressPercent, LocationValue = @locationValue, LocationType = @locationType, LocationSource = @locationSource, BookmarkLastModified = @bookmarkLastModified, LastModified = @lastModified, PriorityTimestamp = @priorityTimestamp, Created = @created, RawPutBody = @rawPutBody, ModifiedAt = @modifiedAt
             """;
 
         cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
@@ -82,6 +84,9 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         cmd.Parameters.AddWithValue("@priorityTimestamp", state.PriorityTimestamp);
         cmd.Parameters.AddWithValue("@created", state.Created);
         cmd.Parameters.AddWithValue("@rawPutBody", rawPutBody);
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        cmd.Parameters.AddWithValue("@createdAt", now);
+        cmd.Parameters.AddWithValue("@modifiedAt", now);
 
         await cmd.ExecuteNonQueryAsync();
     }

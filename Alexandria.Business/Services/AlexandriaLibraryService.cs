@@ -55,6 +55,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             return;
         }
         book.IsArchived = isArchived;
+        book.ModifiedAt = DateTimeOffset.UtcNow;
         await bookRepository.Update(book);
     }
 
@@ -146,7 +147,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         var allBooks = await GetBooks();
         var uuidSet = new HashSet<Guid>(collection.BookUuids);
         var books = allBooks.Where(b => uuidSet.Contains(b.BookUuid)).ToList();
-        return new CollectionWithBooks { CollectionUuid = collection.CollectionUuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, LastModified = collection.LastModified };
+        return new CollectionWithBooks { CollectionUuid = collection.CollectionUuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, ModifiedAt = collection.ModifiedAt };
     }
 
     public async Task UpsertCollection(BookCollection collection) => await collectionRepository.Upsert(collection);
@@ -187,6 +188,13 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         };
 
         await readingStateRepository.Upsert(uuid, state, "{}");
+
+        var book = await bookRepository.FindByUuid(uuid);
+        if (book is not null)
+        {
+            book.ModifiedAt = DateTimeOffset.UtcNow;
+            await bookRepository.Update(book);
+        }
     }
 
     public async Task<Book?> UpdateBookMetadata(Book book)

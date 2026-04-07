@@ -16,7 +16,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name FROM Authors ORDER BY Name";
+        cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors ORDER BY Name";
 
         await using var reader = await cmd.ExecuteReaderAsync();
         var authors = new List<Author>();
@@ -34,7 +34,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name FROM Authors WHERE AuthorUuid = @uuid";
+        cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE AuthorUuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", authorUuid.ToString());
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -50,7 +50,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name FROM Authors WHERE Name = @name COLLATE NOCASE";
+        cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE Name = @name COLLATE NOCASE";
         cmd.Parameters.AddWithValue("@name", name);
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -77,11 +77,14 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
             return Guid.Parse(uuidStr);
         }
 
+        var now = DateTimeOffset.UtcNow.ToString("O");
         var newUuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
         await using var insertCmd = connection.CreateCommand();
-        insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name) VALUES (@uuid, @name)";
+        insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
         insertCmd.Parameters.AddWithValue("@uuid", newUuid.ToString());
         insertCmd.Parameters.AddWithValue("@name", name);
+        insertCmd.Parameters.AddWithValue("@createdAt", now);
+        insertCmd.Parameters.AddWithValue("@modifiedAt", now);
         await insertCmd.ExecuteNonQueryAsync();
 
         return newUuid;
@@ -97,14 +100,17 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         deleteCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
         await deleteCmd.ExecuteNonQueryAsync();
 
+        var now = DateTimeOffset.UtcNow.ToString("O");
         for (var i = 0; i < authorNames.Count; i++)
         {
             var authorUuid = await GetOrCreateWithConnection(connection, authorNames[i]);
 
             await using var insertCmd = connection.CreateCommand();
-            insertCmd.CommandText = "INSERT INTO BookAuthors (BookUuid, AuthorUuid) VALUES (@bookUuid, @authorUuid)";
+            insertCmd.CommandText = "INSERT INTO BookAuthors (BookUuid, AuthorUuid, CreatedAt, ModifiedAt) VALUES (@bookUuid, @authorUuid, @createdAt, @modifiedAt)";
             insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
             insertCmd.Parameters.AddWithValue("@authorUuid", authorUuid.ToString());
+            insertCmd.Parameters.AddWithValue("@createdAt", now);
+            insertCmd.Parameters.AddWithValue("@modifiedAt", now);
             await insertCmd.ExecuteNonQueryAsync();
         }
     }
@@ -116,7 +122,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT a.AuthorUuid, a.Name
+            SELECT a.AuthorUuid, a.Name, a.CreatedAt, a.ModifiedAt
             FROM Authors a
             JOIN BookAuthors ba ON a.AuthorUuid = ba.AuthorUuid
             WHERE ba.BookUuid = @bookUuid
@@ -159,11 +165,14 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
             return Guid.Parse(uuidStr);
         }
 
+        var now = DateTimeOffset.UtcNow.ToString("O");
         var newUuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
         await using var insertCmd = connection.CreateCommand();
-        insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name) VALUES (@uuid, @name)";
+        insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
         insertCmd.Parameters.AddWithValue("@uuid", newUuid.ToString());
         insertCmd.Parameters.AddWithValue("@name", name);
+        insertCmd.Parameters.AddWithValue("@createdAt", now);
+        insertCmd.Parameters.AddWithValue("@modifiedAt", now);
         await insertCmd.ExecuteNonQueryAsync();
 
         return newUuid;
@@ -175,9 +184,10 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "UPDATE Authors SET Name = @name WHERE AuthorUuid = @uuid";
+        cmd.CommandText = "UPDATE Authors SET Name = @name, ModifiedAt = @modifiedAt WHERE AuthorUuid = @uuid";
         cmd.Parameters.AddWithValue("@name", author.Name);
         cmd.Parameters.AddWithValue("@uuid", author.AuthorUuid.ToString());
+        cmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -186,7 +196,9 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
         return new Author
         {
             AuthorUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("AuthorUuid"))),
-            Name = reader.GetString(reader.GetOrdinal("Name"))
+            Name = reader.GetString(reader.GetOrdinal("Name")),
+            CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+            ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt")))
         };
     }
 }

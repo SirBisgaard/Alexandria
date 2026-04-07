@@ -83,8 +83,8 @@ public sealed class LibraryIndexerServiceTests
             Assert.IsTrue(File.Exists(book.KepubFilePath), $"KEPUB should exist for {book.Title}");
             Assert.IsGreaterThan(0, book.KepubFileSize, $"KepubFileSize should be positive for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt, $"CreatedAt should be set for {book.Title}");
-            Assert.AreNotEqual(default(DateTimeOffset), book.LastModified, $"LastModified should be set for {book.Title}");
-            Assert.AreEqual(book.CreatedAt, book.LastModified, $"CreatedAt and LastModified should match on first index for {book.Title}");
+            Assert.AreNotEqual(default(DateTimeOffset), book.ModifiedAt, $"LastModified should be set for {book.Title}");
+            Assert.AreEqual(book.CreatedAt, book.ModifiedAt, $"CreatedAt and LastModified should match on first index for {book.Title}");
         }
     }
 
@@ -98,7 +98,7 @@ public sealed class LibraryIndexerServiceTests
         await indexer.Index();
         var firstRunBooks = await bookRepository.GetAll();
         var firstRunCount = firstRunBooks.Count;
-        var timestamps = firstRunBooks.ToDictionary(b => b.BookUuid, b => (b.CreatedAt, b.LastModified));
+        var timestamps = firstRunBooks.ToDictionary(b => b.BookUuid, b => (b.CreatedAt, b.ModifiedAt));
 
         await indexer.Index();
 
@@ -107,7 +107,7 @@ public sealed class LibraryIndexerServiceTests
         foreach (var book in secondRunBooks)
         {
             Assert.AreEqual(timestamps[book.BookUuid].CreatedAt, book.CreatedAt, $"CreatedAt should not change for {book.Title}");
-            Assert.AreEqual(timestamps[book.BookUuid].LastModified, book.LastModified, $"LastModified should not change for unchanged {book.Title}");
+            Assert.AreEqual(timestamps[book.BookUuid].ModifiedAt, book.ModifiedAt, $"LastModified should not change for unchanged {book.Title}");
         }
     }
 
@@ -178,7 +178,7 @@ public sealed class LibraryIndexerServiceTests
         Assert.HasCount(1, books);
 
         var originalCreatedAt = books[0].CreatedAt;
-        var originalLastModified = books[0].LastModified;
+        var originalModifiedAt = books[0].ModifiedAt;
         var originalHash = books[0].FileHash;
 
         // Simulate a file change by tampering with the stored hash.
@@ -194,7 +194,7 @@ public sealed class LibraryIndexerServiceTests
         Assert.HasCount(1, books);
         var book = books[0];
         Assert.AreEqual(originalCreatedAt, book.CreatedAt, "CreatedAt must be preserved.");
-        Assert.IsTrue(book.LastModified > originalLastModified, "LastModified must be updated.");
+        Assert.IsTrue(book.ModifiedAt > originalModifiedAt, "LastModified must be updated.");
         Assert.AreEqual(originalHash, book.FileHash, "FileHash should be the real hash again.");
         Assert.IsGreaterThan(0, book.KepubFileSize, "KepubFileSize must be set.");
     }

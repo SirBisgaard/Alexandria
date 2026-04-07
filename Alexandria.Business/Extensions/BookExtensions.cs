@@ -10,10 +10,10 @@ public static class BookExtensions
 
     extension(Book book)
     {
-        public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTimeOffset createdAt, DateTimeOffset lastModified)
+        public static Book FromMetadata(EpubMetadata metadata, string fileHash, string sourcePath, DateTimeOffset createdAt, DateTimeOffset modifiedAt)
         {
             var bookUuid = metadata.AlexandriaUuid ?? metadata.DeterministicUuid;
-            var entitlementUuid = bookUuid; // Can be changed later on in the frontend.
+            var entitlementUuid = metadata.DeterministicUuid; // Can be changed later on in the frontend.
             var coverImageUuid = Guid.GenerateUuidV5("cover:" + fileHash);
 
             return new Book
@@ -30,7 +30,7 @@ public static class BookExtensions
                 Publisher = metadata.Publisher,
                 CoverFilePath = metadata.CoverFilePath,
                 CreatedAt = createdAt,
-                LastModified = lastModified
+                ModifiedAt = modifiedAt
             };
         }
 
@@ -54,7 +54,7 @@ public static class BookExtensions
             CrossRevisionId = book.EntitlementUuid.ToString(),
             Id = book.EntitlementUuid.ToString(),
             IsRemoved = false,
-            LastModified = ToKoboTimestamp(book.LastModified),
+            LastModified = ToKoboTimestamp(book.ModifiedAt),
             RevisionId = book.EntitlementUuid.ToString()
         };
 

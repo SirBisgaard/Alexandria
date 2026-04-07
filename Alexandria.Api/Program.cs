@@ -35,6 +35,7 @@ builder.Services.AddTransient<ICollectionRepository, CollectionRepository>();
 builder.Services.AddTransient<IAuthorRepository, AuthorRepository>();
 builder.Services.AddTransient<ISeriesRepository, SeriesRepository>();
 builder.Services.AddTransient<ISettingsRepository, SettingsRepository>();
+builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepository>();
 builder.Services.AddTransient<IEpubMetadataHandler, EpubMetadataHandler>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();

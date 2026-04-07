@@ -84,7 +84,7 @@ $(function () {
             }
         }
         readingBooks.sort(function (a, b) {
-            return new Date(b.readingProgress.lastModified) - new Date(a.readingProgress.lastModified);
+            return new Date(b.readingProgress.modifiedAt) - new Date(a.readingProgress.modifiedAt);
         });
         readingBooks = readingBooks.slice(0, 6);
         if (readingBooks.length > 0) {

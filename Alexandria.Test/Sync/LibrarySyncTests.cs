@@ -24,10 +24,10 @@ public sealed class LibrarySyncTests
 
     private static readonly KoboProxySettings Settings = new() { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi };
 
-    private static Book MakeBook(string title, DateTimeOffset createdAt, DateTimeOffset? lastModified = null)
+    private static Book MakeBook(string title, DateTimeOffset createdAt, DateTimeOffset? modifiedAt = null, string fileHash = "sha256:abc")
     {
         var uuid = Guid.NewGuid();
-        return new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", FileHash = "sha256:abc", SourcePath = "/test.epub", KepubFileSize = 1000, CreatedAt = createdAt, LastModified = lastModified ?? createdAt };
+        return new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", FileHash = fileHash, SourcePath = "/test.epub", KepubFileSize = 1000, CreatedAt = createdAt, ModifiedAt = modifiedAt ?? createdAt };
     }
 
     private static KoboProxyRequest MakeRequest(string? syncToken = null)
@@ -41,14 +41,12 @@ public sealed class LibrarySyncTests
         return new KoboProxyRequest { Method = "GET", Path = "/v1/library/sync", QueryString = "", Headers = headers, Body = [] };
     }
 
-    private KoboStoreProxyService CreateService(List<Book> books, HttpResponseMessage? upstreamResponse = null)
+    private KoboStoreProxyService CreateService(List<Book> books, HttpResponseMessage? upstreamResponse = null, FakeKoboDeviceSyncRepository? syncRepo = null, int syncBatchSize = 60)
     {
         var libraryService = new FakeLibraryService(books);
-        var fileRepository = new FakeFileRepository();
-        var readingStateRepository = new FakeReadingStateRepository();
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
-        return new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(), fileRepository, readingStateRepository, syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        return new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(syncBatchSize), new FakeFileRepository(), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
     }
 
     private static HttpResponseMessage MakeEmptyStoreResponse(string? syncToken = null)
@@ -82,6 +80,16 @@ public sealed class LibrarySyncTests
         return syncTokenService.Parse(tokenHeader);
     }
 
+    private static FakeKoboDeviceSyncRepository SeedSyncRepo(params Book[] books)
+    {
+        var repo = new FakeKoboDeviceSyncRepository();
+        foreach (var book in books)
+            repo.Seed(DeviceId, book.BookUuid, book.FileHash);
+        return repo;
+    }
+
+    // --- First sync tests ---
+
     [TestMethod]
     public async Task FirstSync_RawKoboToken_SendsAllBooksAsNewEntitlement()
     {
@@ -98,12 +106,40 @@ public sealed class LibrarySyncTests
     }
 
     [TestMethod]
+    public async Task FirstSync_NoSyncTokenHeader_TreatedAsFullSync()
+    {
+        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+
+        var response = await service.LibrarySync(MakeRequest(syncToken: null));
+
+        var items = DeserializeBody(response);
+        Assert.HasCount(1, items, "Missing token should trigger full sync");
+        Assert.IsNotNull(items[0].NewEntitlement);
+    }
+
+    [TestMethod]
+    public async Task FirstSync_ResponseTokenWrapsKoboToken()
+    {
+        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+
+        var response = await service.LibrarySync(MakeRequest(KoboStoreToken));
+
+        var parsedToken = ParseResponseToken(response);
+        Assert.AreEqual(KoboStoreToken, parsedToken.KoboToken, "Wrapped token should preserve the Kobo store token");
+    }
+
+    // --- Subsequent sync tests ---
+
+    [TestMethod]
     public async Task SubsequentSync_NothingChanged_ReturnsZeroLocalBooks()
     {
         var lastSync = DateTimeOffset.UtcNow;
         var oldTime = lastSync.AddHours(-1);
         var books = new List<Book> { MakeBook("Book A", oldTime), MakeBook("Book B", oldTime) };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+        var syncRepo = SeedSyncRepo(books.ToArray());
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
 
         var response = await service.LibrarySync(MakeRequest(token));
@@ -119,7 +155,8 @@ public sealed class LibrarySyncTests
         var oldBook = MakeBook("Old Book", lastSync.AddHours(-1));
         var newBook = MakeBook("New Book", DateTimeOffset.UtcNow);
         var books = new List<Book> { oldBook, newBook };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+        var syncRepo = SeedSyncRepo(oldBook);
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
 
         var response = await service.LibrarySync(MakeRequest(token));
@@ -130,28 +167,10 @@ public sealed class LibrarySyncTests
         Assert.AreEqual("New Book", items[0].NewEntitlement!.BookMetadata!.Title);
     }
 
-    [TestMethod]
-    public async Task SubsequentSync_BookUpdated_SendsRemovalAndNewEntitlement()
-    {
-        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
-        var unchangedBook = MakeBook("Unchanged", lastSync.AddHours(-1));
-        var updatedBook = MakeBook("Updated", lastSync.AddHours(-1), lastModified: DateTimeOffset.UtcNow);
-        var books = new List<Book> { unchangedBook, updatedBook };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
-        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
-
-        var response = await service.LibrarySync(MakeRequest(token));
-
-        var items = DeserializeBody(response);
-        Assert.HasCount(2, items, "Updated book should produce a removal + re-add");
-        Assert.IsNotNull(items[0].ChangedEntitlement, "First item should be a ChangedEntitlement removal");
-        Assert.IsTrue(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved);
-        Assert.IsNotNull(items[1].NewEntitlement, "Second item should be a NewEntitlement re-add");
-        Assert.AreEqual("Updated", items[1].NewEntitlement!.BookMetadata!.Title);
-    }
+    // --- Archive tests ---
 
     [TestMethod]
-    public async Task SubsequentSync_ArchivedBookIgnored()
+    public async Task ArchivedBook_NeverSynced_Skipped()
     {
         var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
         var archivedBook = MakeBook("Archived", DateTimeOffset.UtcNow);
@@ -163,20 +182,119 @@ public sealed class LibrarySyncTests
         var response = await service.LibrarySync(MakeRequest(token));
 
         var items = DeserializeBody(response);
-        Assert.IsEmpty(items, "Archived books should not be sent");
+        Assert.IsEmpty(items, "Never-synced archived book should be skipped");
     }
 
     [TestMethod]
-    public async Task FirstSync_ResponseTokenWrapsKoboToken()
+    public async Task ArchivedBook_PreviouslySynced_SentAsRemoved()
     {
-        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var archivedBook = MakeBook("Archived", lastSync.AddHours(-1), modifiedAt: DateTimeOffset.UtcNow);
+        archivedBook.IsArchived = true;
+        var books = new List<Book> { archivedBook };
+        var syncRepo = SeedSyncRepo(archivedBook);
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
+        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
 
-        var response = await service.LibrarySync(MakeRequest(KoboStoreToken));
+        var response = await service.LibrarySync(MakeRequest(token));
 
-        var parsedToken = ParseResponseToken(response);
-        Assert.AreEqual(KoboStoreToken, parsedToken.KoboToken, "Wrapped token should preserve the Kobo store token");
+        var items = DeserializeBody(response);
+        Assert.HasCount(1, items, "Archived book should produce a removal");
+        Assert.IsNotNull(items[0].ChangedEntitlement);
+        Assert.IsTrue(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved, "Archived book should be sent with IsRemoved=true");
+
+        var syncedHashes = await syncRepo.GetSyncedFileHashes(DeviceId);
+        Assert.IsFalse(syncedHashes.ContainsKey(archivedBook.BookUuid), "Archived book should be removed from synced files");
     }
+
+    [TestMethod]
+    public async Task UnArchivedBook_ReappearsAsNew()
+    {
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var book = MakeBook("Unarchived", DateTimeOffset.UtcNow);
+        var books = new List<Book> { book };
+        // Not in sync repo (was removed when archived) → treated as new.
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
+
+        var response = await service.LibrarySync(MakeRequest(token));
+
+        var items = DeserializeBody(response);
+        Assert.HasCount(1, items);
+        Assert.IsNotNull(items[0].NewEntitlement, "Un-archived book should appear as NewEntitlement");
+    }
+
+    // --- Metadata / file hash change tests ---
+
+    [TestMethod]
+    public async Task MetadataChanged_FileHashDiffers_ForceDeleteAndReAdd()
+    {
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var book = MakeBook("Updated", lastSync.AddHours(-1), modifiedAt: DateTimeOffset.UtcNow, fileHash: "sha256:new");
+        var books = new List<Book> { book };
+        // Seed with old hash — simulates metadata change.
+        var syncRepo = new FakeKoboDeviceSyncRepository();
+        syncRepo.Seed(DeviceId, book.BookUuid, "sha256:old");
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
+        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
+
+        var response = await service.LibrarySync(MakeRequest(token));
+
+        var items = DeserializeBody(response);
+        Assert.HasCount(2, items, "Metadata change should produce removal + re-add");
+        Assert.IsNotNull(items[0].ChangedEntitlement, "First item should be removal");
+        Assert.IsTrue(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved);
+        Assert.IsNotNull(items[1].NewEntitlement, "Second item should be re-add");
+
+        var syncedHashes = await syncRepo.GetSyncedFileHashes(DeviceId);
+        Assert.AreEqual("sha256:new", syncedHashes[book.BookUuid], "Synced file hash should be updated");
+    }
+
+    [TestMethod]
+    public async Task GeneralUpdate_SameHash_SendsChangedEntitlement()
+    {
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var book = MakeBook("Updated", lastSync.AddHours(-1), modifiedAt: DateTimeOffset.UtcNow, fileHash: "sha256:same");
+        var books = new List<Book> { book };
+        var syncRepo = new FakeKoboDeviceSyncRepository();
+        syncRepo.Seed(DeviceId, book.BookUuid, "sha256:same");
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
+        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
+
+        var response = await service.LibrarySync(MakeRequest(token));
+
+        var items = DeserializeBody(response);
+        Assert.HasCount(1, items, "General update should produce a single ChangedEntitlement");
+        Assert.IsNotNull(items[0].ChangedEntitlement);
+        Assert.IsFalse(items[0].ChangedEntitlement!.BookEntitlement!.IsRemoved, "General update should NOT be a removal");
+    }
+
+    [TestMethod]
+    public async Task MixedNewAndChanged_CorrectEntitlementTypes()
+    {
+        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var newBook = MakeBook("New Book", DateTimeOffset.UtcNow);
+        var changedBook = MakeBook("Changed Book", lastSync.AddHours(-1), modifiedAt: DateTimeOffset.UtcNow, fileHash: "sha256:new");
+        var oldBook = MakeBook("Old Book", lastSync.AddHours(-1));
+        var books = new List<Book> { newBook, changedBook, oldBook };
+        var syncRepo = new FakeKoboDeviceSyncRepository();
+        syncRepo.Seed(DeviceId, changedBook.BookUuid, "sha256:old");
+        syncRepo.Seed(DeviceId, oldBook.BookUuid, oldBook.FileHash);
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
+        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
+
+        var response = await service.LibrarySync(MakeRequest(token));
+
+        var items = DeserializeBody(response);
+        Assert.HasCount(3, items, "New book (1 item) + changed book (removal + re-add = 2 items)");
+        var newItems = items.Where(i => i.NewEntitlement is not null).ToList();
+        var changedItems = items.Where(i => i.ChangedEntitlement is not null).ToList();
+        Assert.HasCount(2, newItems, "New book + changed book re-add");
+        Assert.HasCount(1, changedItems, "Changed book removal");
+        Assert.IsTrue(changedItems[0].ChangedEntitlement!.BookEntitlement!.IsRemoved);
+    }
+
+    // --- Token / pagination tests ---
 
     [TestMethod]
     public async Task CompletedSync_AdvancesLastSync()
@@ -196,7 +314,8 @@ public sealed class LibrarySyncTests
     {
         var oldLastSync = DateTimeOffset.UtcNow.AddHours(-1);
         var books = new List<Book> { MakeBook("Old Book", oldLastSync.AddHours(-1)) };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
+        var syncRepo = SeedSyncRepo(books.ToArray());
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = oldLastSync });
         var before = DateTimeOffset.UtcNow;
 
@@ -211,10 +330,7 @@ public sealed class LibrarySyncTests
     {
         var now = DateTimeOffset.UtcNow;
         var books = Enumerable.Range(0, 150).Select(i => MakeBook($"Book {i}", now)).ToList();
-        var libraryService = new FakeLibraryService(books);
-        var handler = new FakeHttpMessageHandler(MakeEmptyStoreResponse(KoboStoreToken));
-        var httpClient = new HttpClient(handler);
-        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(100), new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncBatchSize: 100);
 
         // First page — should have continue header and lastSync NOT advanced.
         var response1 = await service.LibrarySync(MakeRequest(KoboStoreToken));
@@ -239,10 +355,7 @@ public sealed class LibrarySyncTests
     {
         var lastSync = DateTimeOffset.UtcNow.AddHours(-1);
         var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
-        var libraryService = new FakeLibraryService(books);
-        var handler = new FakeHttpMessageHandler(MakeContinuationStoreResponse());
-        var httpClient = new HttpClient(handler);
-        var service = new KoboStoreProxyService(Settings, httpClient, libraryService, new FakeSettingsService(), new FakeFileRepository(), new FakeReadingStateRepository(), syncSessionService, syncTokenService, NullLogger<KoboStoreProxyService>.Instance);
+        var service = CreateService(books, MakeContinuationStoreResponse());
         var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
 
         var response = await service.LibrarySync(MakeRequest(token));
@@ -252,39 +365,21 @@ public sealed class LibrarySyncTests
         Assert.AreEqual(lastSync, parsedToken.LastSync, "LastSync should NOT be advanced during Kobo continuation");
     }
 
-    [TestMethod]
-    public async Task FirstSync_NoSyncTokenHeader_TreatedAsFullSync()
-    {
-        var books = new List<Book> { MakeBook("Book A", DateTimeOffset.UtcNow) };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
-
-        var response = await service.LibrarySync(MakeRequest(syncToken: null));
-
-        var items = DeserializeBody(response);
-        Assert.HasCount(1, items, "Missing token should trigger full sync");
-        Assert.IsNotNull(items[0].NewEntitlement);
-    }
+    // --- Sync state persistence tests ---
 
     [TestMethod]
-    public async Task MixedNewAndChanged_CorrectEntitlementTypes()
+    public async Task NewBook_Synced_PersistsToSyncRepo()
     {
-        var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
-        var newBook = MakeBook("New Book", DateTimeOffset.UtcNow);
-        var changedBook = MakeBook("Changed Book", lastSync.AddHours(-1), lastModified: DateTimeOffset.UtcNow);
-        var oldBook = MakeBook("Old Book", lastSync.AddHours(-1));
-        var books = new List<Book> { newBook, changedBook, oldBook };
-        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken));
-        var token = syncTokenService.Generate(new KoboDeviceSyncToken { KoboToken = KoboStoreToken, LastSync = lastSync });
+        var book = MakeBook("New Book", DateTimeOffset.UtcNow);
+        var books = new List<Book> { book };
+        var syncRepo = new FakeKoboDeviceSyncRepository();
+        var service = CreateService(books, MakeEmptyStoreResponse(KoboStoreToken), syncRepo);
 
-        var response = await service.LibrarySync(MakeRequest(token));
+        await service.LibrarySync(MakeRequest(KoboStoreToken));
 
-        var items = DeserializeBody(response);
-        Assert.HasCount(3, items, "New book (1 item) + changed book (removal + re-add = 2 items)");
-        var newItems = items.Where(i => i.NewEntitlement is not null).ToList();
-        var changedItems = items.Where(i => i.ChangedEntitlement is not null).ToList();
-        Assert.HasCount(2, newItems, "New book + changed book re-add");
-        Assert.HasCount(1, changedItems, "Changed book removal");
-        Assert.IsTrue(changedItems[0].ChangedEntitlement!.BookEntitlement!.IsRemoved);
+        var syncedHashes = await syncRepo.GetSyncedFileHashes(DeviceId);
+        Assert.IsTrue(syncedHashes.ContainsKey(book.BookUuid), "Synced book should be persisted to device sync repo");
+        Assert.AreEqual(book.FileHash, syncedHashes[book.BookUuid]);
     }
 
     // --- Test doubles ---
@@ -339,11 +434,48 @@ public sealed class LibrarySyncTests
         public Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody) => Task.CompletedTask;
     }
 
+    internal class FakeKoboDeviceSyncRepository : IKoboDeviceSyncRepository
+    {
+        private readonly Dictionary<string, Dictionary<Guid, string>> store = new();
+
+        public void Seed(string deviceId, Guid bookUuid, string fileHash)
+        {
+            if (!store.TryGetValue(deviceId, out var device))
+            {
+                device = new Dictionary<Guid, string>();
+                store[deviceId] = device;
+            }
+            device[bookUuid] = fileHash;
+        }
+
+        public Task<Dictionary<Guid, string>> GetSyncedFileHashes(string deviceId)
+        {
+            return Task.FromResult(store.TryGetValue(deviceId, out var device) ? new Dictionary<Guid, string>(device) : new Dictionary<Guid, string>());
+        }
+
+        public Task UpsertSyncedFile(string deviceId, Guid bookUuid, string fileHash)
+        {
+            if (!store.TryGetValue(deviceId, out var device))
+            {
+                device = new Dictionary<Guid, string>();
+                store[deviceId] = device;
+            }
+            device[bookUuid] = fileHash;
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveSyncedFile(string deviceId, Guid bookUuid)
+        {
+            if (store.TryGetValue(deviceId, out var device))
+                device.Remove(bookUuid);
+            return Task.CompletedTask;
+        }
+    }
+
     private class FakeSettingsService(int syncBatchSize = 60) : IAlexandriaSettingsService
     {
         public Task<AppSettings> Get() => Task.FromResult(new AppSettings { SyncBatchSize = syncBatchSize });
         public Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp) => Task.CompletedTask;
         public Task UpdateSettings(AppSettings settings) => Task.CompletedTask;
     }
-
 }

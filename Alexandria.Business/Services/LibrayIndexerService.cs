@@ -138,7 +138,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         existingBook.CoverFilePath = freshMetadata.CoverFilePath;
         existingBook.KepubFilePath = kepubPath;
         existingBook.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);
-        existingBook.LastModified = DateTimeOffset.UtcNow;
+        existingBook.ModifiedAt = DateTimeOffset.UtcNow;
 
         await PersistBook(freshMetadata, existingBook, false);
 
