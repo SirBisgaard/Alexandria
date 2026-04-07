@@ -24,6 +24,20 @@ public class EpubMetadata
     public string? Description { get; set; }
     public string? Publisher { get; set; }
     public string? SeriesName { get; set; }
-    public double? SeriesIndex { get; set; }
+    public decimal? SeriesIndex { get; set; }
     public string? CoverFilePath { get; set; }
+
+    public bool MetadataEquals(EpubMetadata other)
+    {
+        return Title == other.Title
+            && Language == other.Language
+            && Normalize(PublicationDate) == Normalize(other.PublicationDate)
+            && Normalize(Description) == Normalize(other.Description)
+            && Normalize(Publisher) == Normalize(other.Publisher)
+            && Normalize(SeriesName) == Normalize(other.SeriesName)
+            && SeriesIndex == other.SeriesIndex
+            && Authors.SequenceEqual(other.Authors, StringComparer.Ordinal);
+    }
+
+    private static string? Normalize(string? value) => string.IsNullOrEmpty(value) ? null : value;
 }

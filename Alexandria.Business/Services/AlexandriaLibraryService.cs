@@ -199,6 +199,11 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
         var metadata = book.ToEpubMetadata();
         metadata.AlexandriaUuid = existing.BookUuid;
+
+        var currentMetadata = epubMetadataHandler.ExtractMetadata(existing.SourcePath);
+        if (metadata.MetadataEquals(currentMetadata))
+            return existing;
+
         epubMetadataHandler.EmbedMetadata(existing.SourcePath, metadata);
 
         await libraryIndexerService.ReindexBook(book.BookUuid);

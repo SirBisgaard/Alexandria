@@ -71,7 +71,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         return newUuid;
     }
 
-    public async Task SetBookSeries(Guid bookUuid, Guid seriesUuid, double? index)
+    public async Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
@@ -121,7 +121,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
             {
                 SeriesUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("SeriesUuid"))),
                 Name = reader.GetString(reader.GetOrdinal("Name")),
-                Index = reader.IsDBNull(reader.GetOrdinal("Index")) ? null : reader.GetDouble(reader.GetOrdinal("Index"))
+                Index = reader.IsDBNull(reader.GetOrdinal("Index")) ? null : reader.GetDecimal(reader.GetOrdinal("Index"))
             };
         }
 

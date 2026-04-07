@@ -46,7 +46,7 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         return new ReadingProgress
         {
             Status = Enum.Parse<ReadingStatus>(reader.GetString(reader.GetOrdinal("StatusInfoStatus"))),
-            ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : reader.GetDouble(reader.GetOrdinal("ProgressPercent")),
+            ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : reader.GetDecimal(reader.GetOrdinal("ProgressPercent")),
             SpentReadingMinutes = reader.IsDBNull(reader.GetOrdinal("SpentReadingMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("SpentReadingMinutes")),
             RemainingTimeMinutes = reader.IsDBNull(reader.GetOrdinal("RemainingTimeMinutes")) ? null : reader.GetInt32(reader.GetOrdinal("RemainingTimeMinutes")),
             LastModified = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastModified")))
@@ -72,8 +72,8 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         cmd.Parameters.AddWithValue("@spentReadingMinutes", (object?)state.Statistics.SpentReadingMinutes ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@remainingTimeMinutes", (object?)state.Statistics.RemainingTimeMinutes ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@statisticsLastModified", state.Statistics.LastModified);
-        cmd.Parameters.AddWithValue("@progressPercent", ToDoubleOrNull(state.CurrentBookmark.ProgressPercent));
-        cmd.Parameters.AddWithValue("@contentSourceProgressPercent", ToDoubleOrNull(state.CurrentBookmark.ContentSourceProgressPercent));
+        cmd.Parameters.AddWithValue("@progressPercent", ToDecimalOrNull(state.CurrentBookmark.ProgressPercent));
+        cmd.Parameters.AddWithValue("@contentSourceProgressPercent", ToDecimalOrNull(state.CurrentBookmark.ContentSourceProgressPercent));
         cmd.Parameters.AddWithValue("@locationValue", (object?)state.CurrentBookmark.Location?.Value ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@locationType", (object?)state.CurrentBookmark.Location?.Type ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@locationSource", (object?)state.CurrentBookmark.Location?.Source ?? DBNull.Value);
@@ -122,14 +122,14 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
             CurrentBookmark = new Bookmark
             {
                 LastModified = reader.GetString(reader.GetOrdinal("BookmarkLastModified")),
-                ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : CleanProgress(reader.GetDouble(reader.GetOrdinal("ProgressPercent"))),
-                ContentSourceProgressPercent = reader.IsDBNull(reader.GetOrdinal("ContentSourceProgressPercent")) ? null : CleanProgress(reader.GetDouble(reader.GetOrdinal("ContentSourceProgressPercent"))),
+                ProgressPercent = reader.IsDBNull(reader.GetOrdinal("ProgressPercent")) ? null : CleanProgress(reader.GetDecimal(reader.GetOrdinal("ProgressPercent"))),
+                ContentSourceProgressPercent = reader.IsDBNull(reader.GetOrdinal("ContentSourceProgressPercent")) ? null : CleanProgress(reader.GetDecimal(reader.GetOrdinal("ContentSourceProgressPercent"))),
                 Location = location
             }
         };
     }
 
-    private static object ToDoubleOrNull(object? value)
+    private static object ToDecimalOrNull(object? value)
     {
         if (value is null)
         {
@@ -138,15 +138,15 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
 
         if (value is System.Text.Json.JsonElement jsonElement)
         {
-            return jsonElement.TryGetDouble(out var d) ? d : DBNull.Value;
+            return jsonElement.TryGetDecimal(out var d) ? d : DBNull.Value;
         }
 
-        return Convert.ToDouble(value);
+        return Convert.ToDecimal(value);
     }
 
-    private static object CleanProgress(double value)
+    private static object CleanProgress(decimal value)
     {
-        if (Math.Abs(value - Math.Floor(value)) < 0.0001)
+        if (value == Math.Floor(value))
         {
             return (int)value;
         }

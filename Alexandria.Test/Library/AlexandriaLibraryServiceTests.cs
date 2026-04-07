@@ -198,6 +198,41 @@ public sealed class AlexandriaLibraryServiceTests
     }
 
     [TestMethod]
+    public async Task UpdateBookMetadata_LifeAndFate_UnchangedMetadata_SkipsWrite()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original);
+
+        var lastWriteTime = File.GetLastWriteTimeUtc(original.SourcePath);
+
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = original.Title, Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
+
+        var result = await service.UpdateBookMetadata(updateBook);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(LifeAndFateUuid, result.BookUuid);
+        Assert.AreEqual(lastWriteTime, File.GetLastWriteTimeUtc(original.SourcePath), "EPUB file should not have been modified.");
+    }
+
+    [TestMethod]
+    public async Task UpdateBookMetadata_LifeAndFate_ChangedTitle_WritesAndReindexes()
+    {
+        var (service, bookRepository) = await CreateService();
+
+        var original = await bookRepository.FindByUuid(LifeAndFateUuid);
+        Assert.IsNotNull(original);
+
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = "Changed Title", Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
+
+        var result = await service.UpdateBookMetadata(updateBook);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Changed Title", result.Title);
+    }
+
+    [TestMethod]
     public async Task UpdateBookMetadata_NonExistentUuid_ReturnsNull()
     {
         var (service, _) = await CreateService();

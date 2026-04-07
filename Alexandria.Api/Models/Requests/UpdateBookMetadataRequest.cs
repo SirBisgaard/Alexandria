@@ -20,8 +20,8 @@ public class UpdateBookMetadataRequest : IValidatableObject
     public string? Publisher { get; set; }
     public string? SeriesName { get; set; }
 
-    [Range(0, double.MaxValue, ErrorMessage = "Index must be zero or positive.")]
-    public double? Index { get; set; }
+    [Range(0, (double)decimal.MaxValue, ErrorMessage = "Index must be zero or positive.")]
+    public decimal? Index { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

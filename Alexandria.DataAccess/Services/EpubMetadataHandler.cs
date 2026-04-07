@@ -11,6 +11,25 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
     private static readonly XNamespace Container = "urn:oasis:names:tc:opendocument:xmlns:container";
 
+    public EpubMetadata ExtractMetadata(string epubPath)
+    {
+        if (!File.Exists(epubPath))
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        using var opfStream = opfEntry.Open();
+        var opfDoc = XDocument.Load(opfStream);
+
+        var (metadata, _) = ParseMetadata(opfDoc);
+        return metadata;
+    }
+
     /// <summary>
     /// Extracts metadata and cover from an EPUB in a single ZIP open.
     /// </summary>
@@ -391,7 +410,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         {
             result.SeriesName = calibreSeries;
             var indexStr = FindMetaByName(metadataEl, "calibre:series_index");
-            if (double.TryParse(indexStr, System.Globalization.CultureInfo.InvariantCulture, out var idx))
+            if (decimal.TryParse(indexStr, System.Globalization.CultureInfo.InvariantCulture, out var idx))
                 result.SeriesIndex = idx;
             return;
         }
@@ -427,7 +446,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
                     "group-position",
                     StringComparison.OrdinalIgnoreCase));
 
-        if (positionMeta is not null && double.TryParse(positionMeta.Value.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var pos))
+        if (positionMeta is not null && decimal.TryParse(positionMeta.Value.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var pos))
             result.SeriesIndex = pos;
     }
 

@@ -91,12 +91,12 @@ public static class BookExtensions
 
             if (book.Series is not null)
             {
-                var seriesIndex = (int)(book.Series.Index ?? 1);
+                var seriesIndex = (int)(book.Series.Index ?? 1m);
                 metadata.Series = new SeriesInfo
                 {
                     Name = book.Series.Name,
                     Number = seriesIndex,
-                    NumberFloat = (float)(book.Series.Index ?? 1),
+                    NumberFloat = (float)(book.Series.Index ?? 1m),
                     Id = book.Series.SeriesUuid.ToString()
                 };
             }
