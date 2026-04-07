@@ -141,6 +141,34 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
         await cmd.ExecuteNonQueryAsync();
     }
 
+    public async Task<Series?> FindByName(string name)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT SeriesUuid, Name FROM Series WHERE Name = @name COLLATE NOCASE";
+        cmd.Parameters.AddWithValue("@name", name);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+            return MapSeries(reader);
+
+        return null;
+    }
+
+    public async Task Update(Guid seriesUuid, string newName)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "UPDATE Series SET Name = @name WHERE SeriesUuid = @uuid";
+        cmd.Parameters.AddWithValue("@name", newName);
+        cmd.Parameters.AddWithValue("@uuid", seriesUuid.ToString());
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     private static Series MapSeries(SqliteDataReader reader)
     {
         return new Series

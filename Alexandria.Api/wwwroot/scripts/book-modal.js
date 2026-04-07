@@ -32,7 +32,7 @@ function openBookModal(uuid) {
         var seriesHtml = seriesName ? ('<a href="series-detail.html?uuid=' + book.series.seriesUuid + '">' + escapeHtml(series) + '</a>') : "";
         $("#bm-series").html(seriesHtml).toggle(!!seriesName);
         var authorLinks = (book.authors || []).map(function(a) {
-            return '<a href="author-detail.html?name=' + encodeURIComponent(a.name) + '">' + escapeHtml(a.name) + '</a>';
+            return '<a href="author-detail.html?uuid=' + a.authorUuid + '">' + escapeHtml(a.name) + '</a>';
         }).join(", ");
         $("#bm-author").html(authorLinks);
         var modalStatusItems = statusMenuItems(book.bookUuid, rawStatus, book.isArchived);

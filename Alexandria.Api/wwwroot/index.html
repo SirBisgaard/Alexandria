@@ -109,29 +109,30 @@ $(function () {
         var authorMap = {};
         $.each(books, function (i, b) {
             $.each(b.authors || [], function (j, a) {
-                if (!authorMap[a.name]) { authorMap[a.name] = []; }
-                authorMap[a.name].push(b);
+                if (!authorMap[a.authorUuid]) { authorMap[a.authorUuid] = { name: a.name, books: [] }; }
+                authorMap[a.authorUuid].books.push(b);
             });
         });
-        var topAuthor = null;
+        var topAuthorUuid = null;
+        var topAuthorName = null;
         var topCount = 0;
-        $.each(authorMap, function (name, authorBooks) {
+        $.each(authorMap, function (uuid, data) {
             var unread = 0;
-            $.each(authorBooks, function (i, b) {
+            $.each(data.books, function (i, b) {
                 if (!b.readingProgress || b.readingProgress.status === "ReadyToRead") { unread++; }
             });
-            if (unread > topCount) { topCount = unread; topAuthor = name; }
+            if (unread > topCount) { topCount = unread; topAuthorUuid = uuid; topAuthorName = data.name; }
         });
-        if (topAuthor) {
-            var aBooks = authorMap[topAuthor].slice(0, 3);
+        if (topAuthorUuid) {
+            var aBooks = authorMap[topAuthorUuid].books.slice(0, 3);
             var stackHtml = '<div class="home-card-covers"><div class="home-card-cover-stack">';
             $.each(aBooks, function (i, b) {
                 stackHtml += homeStackCoverHtml(b);
             });
             stackHtml += '</div></div>';
             $grid.append(
-                '<div class="col-12 col-md-6"><a href="author-detail.html?name=' + encodeURIComponent(topAuthor) + '" class="home-card">' + stackHtml +
-                    '<div class="home-card-title">' + escapeHtml(topAuthor) + '</div>' +
+                '<div class="col-12 col-md-6"><a href="author-detail.html?uuid=' + topAuthorUuid + '" class="home-card">' + stackHtml +
+                    '<div class="home-card-title">' + escapeHtml(topAuthorName) + '</div>' +
                     '<div class="home-card-sub">' + topCount + ' unread books</div>' +
                 '</a></div>'
             );

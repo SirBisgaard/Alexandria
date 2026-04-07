@@ -64,6 +64,7 @@
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm rounded-circle" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>
             <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" id="edit-entity-btn">Edit Author</a></li>
                 <li><a class="dropdown-item" href="#" data-view-toggle="grid">Cover view</a></li>
                 <li><a class="dropdown-item" href="#" data-view-toggle="list">List view</a></li>
             </ul>
@@ -103,23 +104,27 @@
 <script src="scripts/render-books.js"></script>
 <script src="scripts/book-modal.js"></script>
 <script src="scripts/edit-modal.js"></script>
+<script src="scripts/entity-edit-modal.js"></script>
 <script src="scripts/sync.js"></script>
 <script src="scripts/search.js"></script>
 <script src="scripts/app.js"></script>
 <script>
 $(function () {
-    var authorName = new URLSearchParams(window.location.search).get("name");
-    if (!authorName) { window.location.href = "authors.html"; return; }
+    var authorUuid = new URLSearchParams(window.location.search).get("uuid");
+    if (!authorUuid) { window.location.href = "authors.html"; return; }
 
     var sortPrefs = getSortPrefs("author-detail", "Title", "Asc");
     var filterPref = getFilterPref("author-detail", "all");
     restoreSortDropdown($("#detail-sort-dropdown"), sortPrefs.sort, sortPrefs.order);
     restoreFilterDropdown($("[data-page-key='author-detail']").first(), filterPref);
 
+    var currentAuthor = null;
+
     function loadAuthor() {
         var prefs = getSortPrefs("author-detail", "Title", "Asc");
         var filter = getFilterPref("author-detail", "all");
-        $.get("/api/alexandria/authors/" + encodeURIComponent(authorName) + "?sort=" + prefs.sort + "&order=" + prefs.order, function (author) {
+        $.get("/api/alexandria/authors/" + authorUuid + "?sort=" + prefs.sort + "&order=" + prefs.order, function (author) {
+            currentAuthor = author;
             $("#detail-name").text(author.name);
             document.title = "Alexandria - " + author.name;
 
@@ -134,6 +139,12 @@ $(function () {
             renderBooks(books);
         });
     }
+
+    $("#edit-entity-btn").on("click", function (e) {
+        e.preventDefault();
+        if (currentAuthor)
+            openEntityEditModal("author", currentAuthor);
+    });
 
     pageReload = loadAuthor;
     loadAuthor();

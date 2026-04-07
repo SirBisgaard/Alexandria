@@ -65,6 +65,7 @@
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm rounded-circle" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>
             <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" id="edit-entity-btn">Edit Series</a></li>
                 <li><a class="dropdown-item" href="#" data-view-toggle="grid">Cover view</a></li>
                 <li><a class="dropdown-item" href="#" data-view-toggle="list">List view</a></li>
             </ul>
@@ -104,6 +105,7 @@
 <script src="scripts/render-books.js"></script>
 <script src="scripts/book-modal.js"></script>
 <script src="scripts/edit-modal.js"></script>
+<script src="scripts/entity-edit-modal.js"></script>
 <script src="scripts/sync.js"></script>
 <script src="scripts/search.js"></script>
 <script src="scripts/app.js"></script>
@@ -117,10 +119,13 @@ $(function () {
     restoreSortDropdown($("#series-detail-sort-dropdown"), sortPrefs.sort, sortPrefs.order);
     restoreFilterDropdown($("[data-page-key='series-detail']").first(), filterPref);
 
+    var currentSeries = null;
+
     function loadSeries() {
         var prefs = getSortPrefs("series-detail", "BookNumber", "Asc");
         var filter = getFilterPref("series-detail", "all");
         $.get("/api/alexandria/series/" + uuid + "?sort=" + prefs.sort + "&order=" + prefs.order, function (series) {
+            currentSeries = series;
             $("#series-name").text(series.name);
             document.title = "Alexandria - " + series.name;
 
@@ -135,6 +140,12 @@ $(function () {
             renderBooks(books);
         });
     }
+
+    $("#edit-entity-btn").on("click", function (e) {
+        e.preventDefault();
+        if (currentSeries)
+            openEntityEditModal("series", currentSeries);
+    });
 
     pageReload = loadSeries;
     loadSeries();

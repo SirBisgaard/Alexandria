@@ -69,11 +69,11 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(authors.Select(ApiMapper.ToAuthorDetailResponse));
     }
 
-    [HttpGet("authors/{name}")]
-    public async Task<IActionResult> GetAuthor(string name, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
+    [HttpGet("authors/{uuid:guid}")]
+    public async Task<IActionResult> GetAuthor(Guid uuid, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
         var options = new BookSortOptions(sort ?? BookSortField.Title, order ?? SortOrder.Asc);
-        var author = await alexandriaLibraryService.GetAuthorByName(name, options);
+        var author = await alexandriaLibraryService.GetAuthorByUuid(uuid, options);
         if (author is null)
         {
             return NotFound();
@@ -99,6 +99,44 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
             return NotFound();
         }
         return Ok(ApiMapper.ToSeriesDetailResponse(series));
+    }
+
+    [HttpPut("authors/{uuid:guid}")]
+    public async Task<IActionResult> UpdateAuthor(Guid uuid, [FromBody] UpdateAuthorRequest request)
+    {
+        var existing = await alexandriaLibraryService.GetAuthorByUuid(uuid);
+        if (existing is null)
+            return NotFound();
+
+        var author = ApiMapper.ToAuthor(request);
+        if (!string.Equals(existing.Name, author.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            var conflict = await alexandriaLibraryService.GetAuthorByName(author.Name);
+            if (conflict is not null)
+                return Conflict(new { errors = new Dictionary<string, string[]> { ["Name"] = ["An author with this name already exists."] } });
+        }
+
+        var result = await alexandriaLibraryService.UpdateAuthor(uuid, author);
+        return Ok(ApiMapper.ToAuthorDetailResponse(result!));
+    }
+
+    [HttpPut("series/{uuid:guid}")]
+    public async Task<IActionResult> UpdateSeries(Guid uuid, [FromBody] UpdateSeriesRequest request)
+    {
+        var existing = await alexandriaLibraryService.GetSeriesByUuid(uuid);
+        if (existing is null)
+            return NotFound();
+
+        var series = ApiMapper.ToSeries(request);
+        if (!string.Equals(existing.Name, series.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            var conflict = await alexandriaLibraryService.GetSeriesByName(series.Name);
+            if (conflict is not null)
+                return Conflict(new { errors = new Dictionary<string, string[]> { ["Name"] = ["A series with this name already exists."] } });
+        }
+
+        var result = await alexandriaLibraryService.UpdateSeries(uuid, series);
+        return Ok(ApiMapper.ToSeriesDetailResponse(result!));
     }
 
     [HttpGet("collections")]

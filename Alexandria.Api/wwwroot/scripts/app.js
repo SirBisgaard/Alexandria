@@ -102,6 +102,7 @@ $(function () {
         if (e.key === "Escape" && $("#search-modal-backdrop").hasClass("open")) { closeSearchModal(); }
         if (e.key === "Escape" && $("#about-modal-backdrop").hasClass("open")) { $("#about-modal-backdrop").removeClass("open"); }
         if (e.key === "Escape" && $("#settings-modal-backdrop").hasClass("open")) { $("#settings-modal-backdrop").removeClass("open"); }
+        if (e.key === "Escape" && $("#entity-edit-modal-backdrop").hasClass("open")) { closeEntityEditModal(); }
     });
 
     // ===== Modal Close =====

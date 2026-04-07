@@ -23,4 +23,8 @@ public interface IAlexandriaLibraryService
     Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType);
     Task<Book?> RemoveBookCover(Guid uuid);
     Task<int> Sync(IProgress<(int current, int total)>? progress = null);
+    Task<Author?> GetAuthorByUuid(Guid uuid, BookSortOptions? sortOptions = null);
+    Task<Author?> UpdateAuthor(Guid authorUuid, Author author);
+    Task<Series?> UpdateSeries(Guid seriesUuid, Series series);
+    Task<Series?> GetSeriesByName(string name);
 }

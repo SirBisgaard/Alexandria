@@ -70,6 +70,18 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return AlexandriaLibraryHelper.SortAuthors(populatedAuthors, sortOptions ?? new AuthorSortOptions());
     }
 
+    public async Task<Author?> GetAuthorByUuid(Guid uuid, BookSortOptions? sortOptions = null)
+    {
+        var author = await authorRepository.FindByUuid(uuid);
+        if (author is null)
+            return null;
+
+        var books = await GetBooks();
+        author.Books = books.Where(b => b.Authors.Any(a => a.AuthorUuid == author.AuthorUuid)).ToList();
+        author.Books = AlexandriaLibraryHelper.SortBooks(author.Books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc));
+        return author;
+    }
+
     public async Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null)
     {
         var author = await authorRepository.FindByName(name);
@@ -225,5 +237,54 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
     public async Task<int> Sync(IProgress<(int current, int total)>? progress = null)
     {
         return await libraryIndexerService.Index(progress);
+    }
+
+    public async Task<Author?> UpdateAuthor(Guid authorUuid, Author author)
+    {
+        var existing = await authorRepository.FindByUuid(authorUuid);
+        if (existing is null)
+            return null;
+
+        await authorRepository.Update(authorUuid, author.Name);
+
+        var books = await GetBooks();
+        var authorBooks = books.Where(b => b.Authors.Any(a => a.AuthorUuid == authorUuid)).ToList();
+
+        foreach (var book in authorBooks)
+        {
+            var metadata = book.ToEpubMetadata();
+            metadata.AlexandriaUuid = book.BookUuid;
+            epubMetadataHandler.EmbedMetadata(book.SourcePath, metadata);
+            await libraryIndexerService.ReindexBook(book.BookUuid);
+        }
+
+        return await GetAuthorByUuid(authorUuid);
+    }
+
+    public async Task<Series?> UpdateSeries(Guid seriesUuid, Series series)
+    {
+        var existing = await seriesRepository.FindByUuid(seriesUuid);
+        if (existing is null)
+            return null;
+
+        await seriesRepository.Update(seriesUuid, series.Name);
+
+        var books = await GetBooks();
+        var seriesBooks = books.Where(b => b.Series?.SeriesUuid == seriesUuid).ToList();
+
+        foreach (var book in seriesBooks)
+        {
+            var metadata = book.ToEpubMetadata();
+            metadata.AlexandriaUuid = book.BookUuid;
+            epubMetadataHandler.EmbedMetadata(book.SourcePath, metadata);
+            await libraryIndexerService.ReindexBook(book.BookUuid);
+        }
+
+        return await GetSeriesByUuid(seriesUuid);
+    }
+
+    public async Task<Series?> GetSeriesByName(string name)
+    {
+        return await seriesRepository.FindByName(name);
     }
 }

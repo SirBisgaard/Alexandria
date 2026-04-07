@@ -88,6 +88,16 @@ public static class ApiMapper
         ProxyLoggingEnabled = settings.ProxyLoggingEnabled
     };
 
+    public static Author ToAuthor(UpdateAuthorRequest request) => new()
+    {
+        Name = request.Name.Trim()
+    };
+
+    public static Series ToSeries(UpdateSeriesRequest request) => new()
+    {
+        Name = request.Name.Trim()
+    };
+
     public static Book ToBook(UpdateBookMetadataRequest request) => new()
     {
         Title = request.Title,
