@@ -95,8 +95,8 @@ public sealed class EpubMetadataHandlerTests
         var first = extractor.ExtractAll(inputPath, outputDir);
         var second = extractor.ExtractAll(inputPath, outputDir);
 
-        Assert.AreEqual(first.DeterministicUuid, second.DeterministicUuid, "UUID should be deterministic for the same title and authors.");
-        Assert.AreNotEqual(Guid.Empty, first.DeterministicUuid);
+        Assert.AreEqual(first.GenerateDeterministicUuid(), second.GenerateDeterministicUuid(), "UUID should be deterministic for the same title and authors.");
+        Assert.AreNotEqual(Guid.Empty, first.GenerateDeterministicUuid());
     }
 
     [TestMethod]
@@ -109,7 +109,7 @@ public sealed class EpubMetadataHandlerTests
         foreach (var epub in epubs)
         {
             var metadata = extractor.ExtractAll(epub, outputDir);
-            Assert.IsTrue(uuids.Add(metadata.DeterministicUuid), $"UUID collision for {Path.GetFileName(epub)}.");
+            Assert.IsTrue(uuids.Add(metadata.GenerateDeterministicUuid()), $"UUID collision for {Path.GetFileName(epub)}.");
         }
     }
 
@@ -221,7 +221,7 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
-    public void EmbedMetadata_ClearsSeries_ExtractsCorrectly()
+    public void EmbedMetadata_ClearsSeries_RemovesEpub3ButCalibreFallbackRemains()
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
@@ -241,8 +241,10 @@ public sealed class EpubMetadataHandlerTests
         handler.EmbedMetadata(epubPath, modified);
         var result = handler.ExtractAll(epubPath, outputDir);
 
-        Assert.IsNull(result.SeriesName);
-        Assert.IsNull(result.SeriesIndex);
+        // EPUB3 series tags are cleared, but calibre tags are preserved (we don't touch other tools' data).
+        // The calibre fallback kicks in on re-read.
+        Assert.AreEqual("The Last Kingdom", result.SeriesName);
+        Assert.AreEqual(1, result.SeriesIndex);
     }
 
     [TestMethod]
@@ -494,32 +496,28 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
-    public void Extract_EpubWithEmptyGuidUuid_IgnoresItAndReturnsNull()
+    public void Extract_EpubWithEmptyGuidIdentifier_IgnoresItAndReturnsNull()
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        // Directly inject Guid.Empty into the EPUB's OPF (simulates a previous bug).
-        InjectAlexandriaUuid(epubPath, Guid.Empty.ToString());
+        InjectDcIdentifier(epubPath, $"alexandria:{Guid.Empty}");
 
-        // Re-extract: the Guid.Empty should be rejected, so AlexandriaUuid comes back null.
         var result = handler.ExtractAll(epubPath, outputDir);
 
-        Assert.IsNull(result.AlexandriaUuid, "Guid.Empty in EPUB should be treated as unset.");
-        Assert.AreNotEqual(Guid.Empty, result.DeterministicUuid, "DeterministicUuid should never be Guid.Empty.");
+        Assert.IsNull(result.AlexandriaUuid, "Guid.Empty in dc:identifier should be treated as unset.");
+        Assert.AreNotEqual(Guid.Empty, result.GenerateDeterministicUuid());
     }
 
     [TestMethod]
-    public void EmbedMetadata_ExistingUuid_DoesNotOverwrite()
+    public void EmbedMetadata_ExistingUuidIdentifier_DoesNotOverwrite()
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        // Stamp a known UUID directly into the EPUB.
         var originalUuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-        InjectAlexandriaUuid(epubPath, originalUuid.ToString());
+        InjectDcIdentifier(epubPath, $"alexandria:{originalUuid}");
 
-        // Now embed metadata with a different UUID.
         var original = handler.ExtractAll(epubPath, outputDir);
         var modified = new EpubMetadata
         {
@@ -532,14 +530,252 @@ public sealed class EpubMetadataHandlerTests
         };
         handler.EmbedMetadata(epubPath, modified);
 
-        // The original UUID should be preserved, title should be updated.
         var result = handler.ExtractAll(epubPath, outputDir);
 
-        Assert.AreEqual(originalUuid, result.AlexandriaUuid, "Existing UUID in EPUB should not be overwritten.");
+        Assert.AreEqual(originalUuid, result.AlexandriaUuid, "Existing UUID identifier should not be overwritten.");
         Assert.AreEqual("Changed Title", result.Title);
     }
 
-    private static void InjectAlexandriaUuid(string epubPath, string uuid)
+    [TestMethod]
+    public void EmbedMetadata_WritesAlexandriaUuidAsIdentifier()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        var modified = new EpubMetadata
+        {
+            AlexandriaUuid = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+            Title = "Test",
+            Authors = ["Author"],
+            Language = "en"
+        };
+
+        handler.EmbedMetadata(epubPath, modified);
+
+        // Verify via extraction.
+        var result = handler.ExtractAll(epubPath, outputDir);
+        Assert.AreEqual(Guid.Parse("11111111-2222-3333-4444-555555555555"), result.AlexandriaUuid);
+        Assert.IsTrue(result.Identifiers.Any(i => i.StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [TestMethod]
+    public void Extract_ReadsAlexandriaUuidFromIdentifier()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        var expectedUuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        InjectDcIdentifier(epubPath, $"alexandria:{expectedUuid}");
+
+        var result = handler.ExtractAll(epubPath, outputDir);
+
+        Assert.AreEqual(expectedUuid, result.AlexandriaUuid);
+    }
+
+    [TestMethod]
+    public void Extract_ReturnsSubjects()
+    {
+        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        Assert.IsNotEmpty(metadata.Subjects);
+        Assert.Contains("Fantasy", metadata.Subjects);
+        Assert.Contains("Fiction", metadata.Subjects);
+        Assert.Contains("Historical", metadata.Subjects);
+    }
+
+    [TestMethod]
+    public void Extract_ReturnsContributors()
+    {
+        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        Assert.IsNotEmpty(metadata.Contributors);
+        Assert.StartsWith("calibre", metadata.Contributors[0]);
+    }
+
+    [TestMethod]
+    public void Extract_ReturnsIdentifiers()
+    {
+        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        Assert.IsNotEmpty(metadata.Identifiers);
+        Assert.IsTrue(metadata.Identifiers.Any(i => i.Contains("9788711291702")));
+    }
+
+    [TestMethod]
+    public void Extract_ReturnsRightsAndSource()
+    {
+        var metadata = ExtractBook("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        Assert.IsNotNull(metadata.Rights);
+        Assert.StartsWith("All rights reserved", metadata.Rights);
+        Assert.IsNotNull(metadata.Source);
+        Assert.Contains("9788711291702", metadata.Source);
+    }
+
+    [TestMethod]
+    public void EmbedMetadata_WritesEpub3SeriesOnly()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        var modified = new EpubMetadata
+        {
+            Title = "Test",
+            Authors = ["Author"],
+            Language = "en",
+            SeriesName = "My Series",
+            SeriesIndex = 5
+        };
+
+        handler.EmbedMetadata(epubPath, modified);
+
+        var opfXml = ReadOpfXml(epubPath);
+        Assert.Contains("belongs-to-collection", opfXml);
+        Assert.Contains("group-position", opfXml);
+        Assert.Contains("collection-type", opfXml);
+        Assert.DoesNotContain("alexandria:series", opfXml);
+    }
+
+    [TestMethod]
+    public void EmbedMetadata_PreservesCalibreTags()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        var original = handler.ExtractAll(epubPath, outputDir);
+        var modified = new EpubMetadata
+        {
+            Title = original.Title,
+            Authors = original.Authors,
+            Language = original.Language,
+            SeriesName = original.SeriesName,
+            SeriesIndex = original.SeriesIndex
+        };
+
+        handler.EmbedMetadata(epubPath, modified);
+
+        var opfXml = ReadOpfXml(epubPath);
+        Assert.Contains("calibre:series", opfXml);
+        Assert.Contains("calibre:series_index", opfXml);
+        Assert.Contains("calibre:timestamp", opfXml);
+    }
+
+    [TestMethod]
+    public void Extract_Epub3SeriesWinsOverCalibre()
+    {
+        // The test EPUB has both calibre:series="The Last Kingdom" and
+        // belongs-to-collection="The Last Kingdom". EPUB3 standard is read first.
+        // Verify the EPUB3 value is used (same value here, but the priority path is EPUB3 first).
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Embed with a different series name — this writes EPUB3 only.
+        var modified = new EpubMetadata
+        {
+            Title = "Test",
+            Authors = ["Author"],
+            Language = "en",
+            SeriesName = "EPUB3 Wins",
+            SeriesIndex = 99
+        };
+        handler.EmbedMetadata(epubPath, modified);
+
+        // Now the EPUB has calibre:series="The Last Kingdom" + belongs-to-collection="EPUB3 Wins".
+        var result = handler.ExtractAll(epubPath, outputDir);
+
+        Assert.AreEqual("EPUB3 Wins", result.SeriesName);
+        Assert.AreEqual(99, result.SeriesIndex);
+    }
+
+    [TestMethod]
+    public void Extract_CalibreFallsBackWhenNoEpub3Series()
+    {
+        // The test EPUBs have both calibre and EPUB3 series. After removing EPUB3 tags,
+        // the calibre fallback should kick in.
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Remove EPUB3 series tags, leaving only calibre.
+        RemoveEpub3SeriesFromEpub(epubPath);
+
+        var result = handler.ExtractAll(epubPath, outputDir);
+
+        Assert.AreEqual("The Last Kingdom", result.SeriesName);
+        Assert.AreEqual(1, result.SeriesIndex);
+    }
+
+    [TestMethod]
+    public void EmbedMetadata_PreservesPassThroughDcElements()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        var original = handler.ExtractAll(epubPath, outputDir);
+        Assert.IsNotEmpty(original.Subjects);
+        Assert.IsNotNull(original.Rights);
+
+        var modified = new EpubMetadata
+        {
+            Title = "New Title",
+            Authors = original.Authors,
+            Language = original.Language,
+            SeriesName = original.SeriesName,
+            SeriesIndex = original.SeriesIndex
+        };
+
+        handler.EmbedMetadata(epubPath, modified);
+
+        var result = handler.ExtractAll(epubPath, outputDir);
+        Assert.IsNotEmpty(result.Subjects);
+        Assert.Contains("Fantasy", result.Subjects);
+        Assert.IsNotNull(result.Rights);
+    }
+
+    private EpubMetadata ExtractBook(string fileName)
+    {
+        var extractor = new EpubMetadataHandler();
+        var inputPath = Path.Combine(ContentBooksDir, fileName);
+        return extractor.ExtractAll(inputPath, outputDir);
+    }
+
+    private static string ReadOpfXml(string epubPath)
+    {
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+        var opfEntry = zip.Entries.First(e => e.FullName.EndsWith(".opf"));
+        using var opfStream = opfEntry.Open();
+        using var reader = new StreamReader(opfStream);
+        return reader.ReadToEnd();
+    }
+
+    private static void InjectDcIdentifier(string epubPath, string value)
+    {
+        var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
+        var dcNs = (System.Xml.Linq.XNamespace)"http://purl.org/dc/elements/1.1/";
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update);
+
+        var opfEntry = zip.Entries.First(e => e.FullName.EndsWith(".opf"));
+        System.Xml.Linq.XDocument opfDoc;
+        using (var opfStream = opfEntry.Open())
+            opfDoc = System.Xml.Linq.XDocument.Load(opfStream);
+
+        var metadataEl = opfDoc.Descendants(opfNs + "metadata").First();
+
+        // Remove any existing alexandria identifier.
+        foreach (var el in metadataEl.Elements(dcNs + "identifier").Where(e => e.Value.Trim().StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase)).ToList())
+            el.Remove();
+
+        metadataEl.Add(new System.Xml.Linq.XElement(dcNs + "identifier", value));
+
+        opfEntry.Delete();
+        var newEntry = zip.CreateEntry(opfEntry.FullName);
+        using var writeStream = newEntry.Open();
+        opfDoc.Save(writeStream);
+    }
+
+    private static void RemoveEpub3SeriesFromEpub(string epubPath)
     {
         var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
 
@@ -553,25 +789,27 @@ public sealed class EpubMetadataHandlerTests
 
         var metadataEl = opfDoc.Descendants(opfNs + "metadata").First();
 
-        // Remove any existing alexandria:uuid meta.
-        foreach (var el in metadataEl.Elements(opfNs + "meta").Where(m => m.Attribute("name")?.Value == "alexandria:uuid").ToList())
-            el.Remove();
+        // Remove belongs-to-collection and its refines.
+        var collectionMetas = metadataEl.Elements(opfNs + "meta").Concat(metadataEl.Elements("meta"))
+            .Where(m => string.Equals(m.Attribute("property")?.Value, "belongs-to-collection", StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
-        // Add the tainted one.
-        metadataEl.Add(new System.Xml.Linq.XElement(opfNs + "meta",
-            new System.Xml.Linq.XAttribute("name", "alexandria:uuid"),
-            new System.Xml.Linq.XAttribute("content", uuid)));
+        foreach (var meta in collectionMetas)
+        {
+            var refineId = meta.Attribute("id")?.Value;
+            if (refineId is not null)
+            {
+                metadataEl.Elements(opfNs + "meta").Concat(metadataEl.Elements("meta"))
+                    .Where(m => m.Attribute("refines")?.Value == $"#{refineId}")
+                    .ToList()
+                    .ForEach(m => m.Remove());
+            }
+            meta.Remove();
+        }
 
         opfEntry.Delete();
         var newEntry = zip.CreateEntry(opfEntry.FullName);
         using var writeStream = newEntry.Open();
         opfDoc.Save(writeStream);
-    }
-
-    private EpubMetadata ExtractBook(string fileName)
-    {
-        var extractor = new EpubMetadataHandler();
-        var inputPath = Path.Combine(ContentBooksDir, fileName);
-        return extractor.ExtractAll(inputPath, outputDir);
     }
 }

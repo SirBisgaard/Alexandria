@@ -51,7 +51,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         var opfDoc = XDocument.Load(opfStream);
 
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
-        metadata.CoverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.AlexandriaUuid ?? metadata.DeterministicUuid);
+        metadata.CoverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.AlexandriaUuid ?? metadata.GenerateDeterministicUuid());
 
         return metadata;
     }
@@ -93,20 +93,20 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             metadataEl.Add(new XElement(Dc + "creator", author));
         }
 
-        // Update Calibre series meta tags.
-        SetMetaByName(metadataEl, "calibre:series", metadata.SeriesName);
-        SetMetaByName(metadataEl, "calibre:series_index", metadata.SeriesIndex?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        // TODO: Remove once all EPUBs have been re-indexed without legacy alexandria: meta tags.
+        RemoveLegacyAlexandriaMeta(metadataEl);
 
-        // Remove EPUB 3 series metadata to avoid conflicts with Calibre tags.
+        // Write series as standard EPUB3 (belongs-to-collection). Custom tags (calibre, etc.) are preserved.
         RemoveEpub3SeriesMeta(metadataEl);
+        WriteEpub3SeriesMeta(metadataEl, metadata.SeriesName, metadata.SeriesIndex);
 
-        // Stamp Alexandria UUID only if the file doesn't already have one.
-        var existingUuid = FindMetaByName(metadataEl, "alexandria:uuid");
-        Guid.TryParse(existingUuid?.Trim() ?? string.Empty, out var existingAlexandriaUuid);
-        if (existingAlexandriaUuid == Guid.Empty)
+        // Stamp Alexandria UUID as dc:identifier if not already present.
+        var existingAlexandriaId = metadataEl.Elements(Dc + "identifier")
+            .FirstOrDefault(e => e.Value.Trim().StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase));
+        if (existingAlexandriaId is null)
         {
-            var alexandriaUuid = metadata.AlexandriaUuid ?? metadata.DeterministicUuid;
-            SetMetaByName(metadataEl, "alexandria:uuid", alexandriaUuid.ToString());
+            var alexandriaUuid = metadata.AlexandriaUuid ?? metadata.GenerateDeterministicUuid();
+            metadataEl.Add(new XElement(Dc + "identifier", $"alexandria:{alexandriaUuid}"));
         }
 
         ReplaceOpfEntry(zip, opfPath, opfDoc);
@@ -385,13 +385,37 @@ public class EpubMetadataHandler : IEpubMetadataHandler
                 .Elements(Dc + "creator")
                 .Select(e => e.Value.Trim())
                 .Where(v => !string.IsNullOrEmpty(v))
-                .ToList()
+                .ToList(),
+            Identifiers = metadataEl
+                .Elements(Dc + "identifier")
+                .Select(e => e.Value.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .ToList(),
+            Subjects = metadataEl
+                .Elements(Dc + "subject")
+                .Select(e => e.Value.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .ToList(),
+            Contributors = metadataEl
+                .Elements(Dc + "contributor")
+                .Select(e => e.Value.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .ToList(),
+            Rights = metadataEl.Elements(Dc + "rights").FirstOrDefault()?.Value.Trim(),
+            Source = metadataEl.Elements(Dc + "source").FirstOrDefault()?.Value.Trim(),
+            Type = metadataEl.Elements(Dc + "type").FirstOrDefault()?.Value.Trim(),
+            Relation = metadataEl.Elements(Dc + "relation").FirstOrDefault()?.Value.Trim(),
+            Coverage = metadataEl.Elements(Dc + "coverage").FirstOrDefault()?.Value.Trim(),
+            Format = metadataEl.Elements(Dc + "format").FirstOrDefault()?.Value.Trim()
         };
 
-        ParseSeries(metadataEl, result);
+        ParseSeriesAndCustomProperties(metadataEl, result);
 
-        var alexandriaUuid = FindMetaByName(metadataEl, "alexandria:uuid");
-        if (alexandriaUuid is not null && Guid.TryParse(alexandriaUuid, out var parsedUuid) && parsedUuid != Guid.Empty)
+        // Read Alexandria UUID from dc:identifier (format: "alexandria:{guid}").
+        var alexandriaId = metadataEl.Elements(Dc + "identifier")
+            .Select(e => e.Value.Trim())
+            .FirstOrDefault(v => v.StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase));
+        if (alexandriaId is not null && Guid.TryParse(alexandriaId.AsSpan("alexandria:".Length), out var parsedUuid) && parsedUuid != Guid.Empty)
         {
             result.AlexandriaUuid = parsedUuid;
         }
@@ -400,11 +424,16 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     }
 
     /// <summary>
-    /// Attempts to read Calibre-style and EPUB 3 series metadata.
+    /// Reads series using priority: EPUB3 standard > calibre fallback.
     /// </summary>
-    private static void ParseSeries(XElement metadataEl, EpubMetadata result)
+    private static void ParseSeriesAndCustomProperties(XElement metadataEl, EpubMetadata result)
     {
-        // ── Strategy 1: Calibre meta tags ──
+        // ── Strategy 1: EPUB3 standard (belongs-to-collection) ──
+        ParseEpub3Series(metadataEl, result);
+        if (!string.IsNullOrWhiteSpace(result.SeriesName))
+            return;
+
+        // ── Strategy 2: Calibre meta tags (fallback) ──
         var calibreSeries = FindMetaByName(metadataEl, "calibre:series");
         if (!string.IsNullOrWhiteSpace(calibreSeries))
         {
@@ -412,10 +441,11 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             var indexStr = FindMetaByName(metadataEl, "calibre:series_index");
             if (decimal.TryParse(indexStr, System.Globalization.CultureInfo.InvariantCulture, out var idx))
                 result.SeriesIndex = idx;
-            return;
         }
+    }
 
-        // ── Strategy 2: EPUB 3 <meta property="belongs-to-collection"> ──
+    private static void ParseEpub3Series(XElement metadataEl, EpubMetadata result)
+    {
         var collectionMeta = MetaElements(metadataEl)
             .FirstOrDefault(m =>
                 string.Equals(
@@ -428,9 +458,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
         var collectionName = collectionMeta.Value.Trim();
         if (string.IsNullOrWhiteSpace(collectionName))
-        {
             return;
-        }
 
         result.SeriesName = collectionName;
 
@@ -516,6 +544,46 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         if (!string.IsNullOrEmpty(value))
         {
             metadataEl.Add(new XElement(Opf + "meta", new XAttribute("name", name), new XAttribute("content", value)));
+        }
+    }
+
+    /// <summary>
+    /// Removes legacy alexandria: meta tags from before the switch to dc:identifier and EPUB3 series.
+    /// TODO: Remove this method once all EPUBs have been re-indexed.
+    /// </summary>
+    private static void RemoveLegacyAlexandriaMeta(XElement metadataEl)
+    {
+        string[] legacyNames = ["alexandria:uuid", "alexandria:series", "alexandria:series_index", "alexandria:series_total"];
+        foreach (var name in legacyNames)
+        {
+            MetaElements(metadataEl)
+                .Where(m => string.Equals(m.Attribute("name")?.Value, name, StringComparison.OrdinalIgnoreCase))
+                .ToList()
+                .ForEach(m => m.Remove());
+        }
+    }
+
+    private static void WriteEpub3SeriesMeta(XElement metadataEl, string? seriesName, decimal? seriesIndex)
+    {
+        if (string.IsNullOrWhiteSpace(seriesName))
+            return;
+
+        var collectionEl = new XElement(Opf + "meta", seriesName);
+        collectionEl.SetAttributeValue("property", "belongs-to-collection");
+        collectionEl.SetAttributeValue("id", "series01");
+        metadataEl.Add(collectionEl);
+
+        var typeEl = new XElement(Opf + "meta", "series");
+        typeEl.SetAttributeValue("property", "collection-type");
+        typeEl.SetAttributeValue("refines", "#series01");
+        metadataEl.Add(typeEl);
+
+        if (seriesIndex is not null)
+        {
+            var posEl = new XElement(Opf + "meta", seriesIndex.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            posEl.SetAttributeValue("property", "group-position");
+            posEl.SetAttributeValue("refines", "#series01");
+            metadataEl.Add(posEl);
         }
     }
 

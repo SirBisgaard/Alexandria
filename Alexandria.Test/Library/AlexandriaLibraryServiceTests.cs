@@ -15,7 +15,7 @@ namespace Alexandria.Tests.Library;
 public sealed class AlexandriaLibraryServiceTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
-    private static readonly Guid LifeAndFateUuid = Guid.Parse("1f4245ed-f39f-59cb-8150-3af095b6d470");
+    private static readonly Guid LifeAndFateUuid = Guid.Parse("c69e7700-1155-55f8-a127-ea9e02faca2d");
 
     private string testDir = null!;
     private string booksDir = null!;

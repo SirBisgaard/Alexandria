@@ -40,16 +40,16 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 var metadata = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
                 metadata.CoverFilePath = ConvertCoverToJpeg(metadata.CoverFilePath);
 
-                // Stamp with alexandria:uuid if not already present.
+                // Stamp with alexandria identifier if not already present.
                 if (metadata.AlexandriaUuid is null)
                 {
-                    metadata.AlexandriaUuid = metadata.DeterministicUuid;
-                    logger.LogInformation("Stamping EPUB with alexandria:uuid: {Uuid}", metadata.AlexandriaUuid);
+                    metadata.AlexandriaUuid = metadata.GenerateDeterministicUuid();
+                    logger.LogInformation("Stamping EPUB with alexandria identifier: {Uuid}", metadata.AlexandriaUuid);
                     epubMetadataHandler.EmbedMetadata(epubPath, metadata);
                     fileHash = await fileRepository.ComputeFileHash(epubPath);
                 }
 
-                var bookUuid = metadata.AlexandriaUuid ?? metadata.DeterministicUuid;
+                var bookUuid = metadata.AlexandriaUuid ?? metadata.GenerateDeterministicUuid();
                 var existingBook = await bookRepository.FindByUuid(bookUuid);
 
                 if (existingBook is not null)
