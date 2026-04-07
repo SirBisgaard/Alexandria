@@ -51,6 +51,7 @@ function openBookModal(uuid) {
         var details = "";
         if (book.publisher) { details += "<div class='detail-row'>Publisher: " + escapeHtml(book.publisher) + (book.publicationDate ? " (" + escapeHtml(book.publicationDate) + ")" : "") + "</div>"; }
         if (book.language) { details += "<div class='detail-row'>Language: " + escapeHtml(languageName(book.language)) + "</div>"; }
+        if (book.fileName) { details += "<div class='detail-row'>File Name: " + escapeHtml(book.fileName) + "</div>"; }
         if (book.kepubFileSize) { details += "<div class='detail-row'>File Size: " + formatFileSize(book.kepubFileSize) + "</div>"; }
         details += "<div class='detail-row'>File Format: KOBO EPUB</div>";
         $("#bm-details").html(details || "No details available.");

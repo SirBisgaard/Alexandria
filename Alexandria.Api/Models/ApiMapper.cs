@@ -20,6 +20,7 @@ public static class ApiMapper
         Publisher = book.Publisher,
         Series = book.Series is not null ? ToSeriesResponse(book.Series) : null,
         HasCover = book.CoverFilePath is not null,
+        FileName = book.FileName,
         KepubFileSize = book.KepubFileSize,
         CreatedAt = book.CreatedAt,
         LastModified = book.LastModified,

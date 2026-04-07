@@ -13,6 +13,7 @@ public class BookResponse
     public string? Publisher { get; set; }
     public SeriesResponse? Series { get; set; }
     public bool HasCover { get; set; }
+    public string FileName { get; set; } = string.Empty;
     public long KepubFileSize { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset LastModified { get; set; }

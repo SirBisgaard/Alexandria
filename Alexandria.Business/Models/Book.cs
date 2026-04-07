@@ -6,6 +6,7 @@ public class Book
     public Guid EntitlementUuid { get; set; }
     public string FileHash { get; set; } = string.Empty;
     public string SourcePath { get; set; } = string.Empty;
+    public string FileName => Path.GetFileName(SourcePath);
     public string Title { get; set; } = string.Empty;
     public List<Author> Authors { get; set; } = [];
     public string Language { get; set; } = string.Empty;
