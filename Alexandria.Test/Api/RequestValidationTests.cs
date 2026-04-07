@@ -139,7 +139,7 @@ public sealed class RequestValidationTests
     [DataRow("Finished")]
     public void UpdateStatus_ValidStatus_PassesValidation(string status)
     {
-        var results = Validate(new UpdateStatusRequest(status));
+        var results = Validate(new UpdateStatusRequest { Status = status });
         Assert.IsEmpty(results);
     }
 
@@ -149,7 +149,7 @@ public sealed class RequestValidationTests
     [DataRow("finished")]
     public void UpdateStatus_InvalidStatus_FailsValidation(string status)
     {
-        var results = Validate(new UpdateStatusRequest(status));
+        var results = Validate(new UpdateStatusRequest { Status = status });
         Assert.IsNotEmpty(results);
     }
 }
