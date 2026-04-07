@@ -431,7 +431,7 @@ public sealed class LibrarySyncTests
     {
         public Task<ReadingState?> GetByBookUuid(Guid bookUuid) => Task.FromResult<ReadingState?>(null);
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult<ReadingProgress?>(null);
-        public Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody) => Task.CompletedTask;
+        public Task Upsert(Guid bookUuid, ReadingState state) => Task.CompletedTask;
     }
 
     internal class FakeKoboDeviceSyncRepository : IKoboDeviceSyncRepository

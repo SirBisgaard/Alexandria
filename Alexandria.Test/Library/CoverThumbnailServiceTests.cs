@@ -37,9 +37,9 @@ public sealed class CoverThumbnailServiceTests
     {
         var extractor = new EpubMetadataHandler();
         var epub = Directory.GetFiles(ContentBooksDir, "*.epub").First();
-        var metadata = extractor.ExtractAll(epub, coversDir);
-        Assert.IsNotNull(metadata.CoverFilePath, "Test EPUB should have a cover.");
-        return metadata.CoverFilePath;
+        var (_, coverFilePath) = extractor.ExtractAll(epub, coversDir);
+        Assert.IsNotNull(coverFilePath, "Test EPUB should have a cover.");
+        return coverFilePath;
     }
 
     [TestMethod]

@@ -41,8 +41,6 @@ public class EpubMetadata
     /// <summary>dc:format — MIME type or resource format.</summary>
     public string? Format { get; set; }
 
-    /// <summary>Path to the extracted cover image on disk.</summary>
-    public string? CoverFilePath { get; set; }
     /// <summary>Generates a deterministic UUID v5 from title, authors, and series.</summary>
     public Guid GenerateDeterministicUuid()
     {

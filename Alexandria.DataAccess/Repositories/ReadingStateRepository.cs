@@ -54,16 +54,16 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         };
     }
 
-    public async Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody)
+    public async Task Upsert(Guid bookUuid, ReadingState state)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO ReadingStates (BookUuid, StatusInfoStatus, StatusInfoLastModified, TimesStartedReading, LastTimeStartedReading, SpentReadingMinutes, RemainingTimeMinutes, StatisticsLastModified, ProgressPercent, ContentSourceProgressPercent, LocationValue, LocationType, LocationSource, BookmarkLastModified, LastModified, PriorityTimestamp, Created, RawPutBody, CreatedAt, ModifiedAt)
-            VALUES (@bookUuid, @statusInfoStatus, @statusInfoLastModified, @timesStartedReading, @lastTimeStartedReading, @spentReadingMinutes, @remainingTimeMinutes, @statisticsLastModified, @progressPercent, @contentSourceProgressPercent, @locationValue, @locationType, @locationSource, @bookmarkLastModified, @lastModified, @priorityTimestamp, @created, @rawPutBody, @createdAt, @modifiedAt)
-            ON CONFLICT (BookUuid) DO UPDATE SET StatusInfoStatus = @statusInfoStatus, StatusInfoLastModified = @statusInfoLastModified, TimesStartedReading = @timesStartedReading, LastTimeStartedReading = @lastTimeStartedReading, SpentReadingMinutes = @spentReadingMinutes, RemainingTimeMinutes = @remainingTimeMinutes, StatisticsLastModified = @statisticsLastModified, ProgressPercent = @progressPercent, ContentSourceProgressPercent = @contentSourceProgressPercent, LocationValue = @locationValue, LocationType = @locationType, LocationSource = @locationSource, BookmarkLastModified = @bookmarkLastModified, LastModified = @lastModified, PriorityTimestamp = @priorityTimestamp, Created = @created, RawPutBody = @rawPutBody, ModifiedAt = @modifiedAt
+            INSERT INTO ReadingStates (BookUuid, StatusInfoStatus, StatusInfoLastModified, TimesStartedReading, LastTimeStartedReading, SpentReadingMinutes, RemainingTimeMinutes, StatisticsLastModified, ProgressPercent, ContentSourceProgressPercent, LocationValue, LocationType, LocationSource, BookmarkLastModified, LastModified, PriorityTimestamp, Created, CreatedAt, ModifiedAt)
+            VALUES (@bookUuid, @statusInfoStatus, @statusInfoLastModified, @timesStartedReading, @lastTimeStartedReading, @spentReadingMinutes, @remainingTimeMinutes, @statisticsLastModified, @progressPercent, @contentSourceProgressPercent, @locationValue, @locationType, @locationSource, @bookmarkLastModified, @lastModified, @priorityTimestamp, @created, @createdAt, @modifiedAt)
+            ON CONFLICT (BookUuid) DO UPDATE SET StatusInfoStatus = @statusInfoStatus, StatusInfoLastModified = @statusInfoLastModified, TimesStartedReading = @timesStartedReading, LastTimeStartedReading = @lastTimeStartedReading, SpentReadingMinutes = @spentReadingMinutes, RemainingTimeMinutes = @remainingTimeMinutes, StatisticsLastModified = @statisticsLastModified, ProgressPercent = @progressPercent, ContentSourceProgressPercent = @contentSourceProgressPercent, LocationValue = @locationValue, LocationType = @locationType, LocationSource = @locationSource, BookmarkLastModified = @bookmarkLastModified, LastModified = @lastModified, PriorityTimestamp = @priorityTimestamp, Created = @created, ModifiedAt = @modifiedAt
             """;
 
         cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
@@ -83,7 +83,6 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
         cmd.Parameters.AddWithValue("@lastModified", state.LastModified);
         cmd.Parameters.AddWithValue("@priorityTimestamp", state.PriorityTimestamp);
         cmd.Parameters.AddWithValue("@created", state.Created);
-        cmd.Parameters.AddWithValue("@rawPutBody", rawPutBody);
         var now = DateTimeOffset.UtcNow.ToString("O");
         cmd.Parameters.AddWithValue("@createdAt", now);
         cmd.Parameters.AddWithValue("@modifiedAt", now);

@@ -596,7 +596,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
                 }
             };
 
-            await readingStateRepository.Upsert(book.BookUuid, state, rawBody);
+            await readingStateRepository.Upsert(book.BookUuid, state);
         }
 
         return JsonResponse(StatusCodes.Status200OK, putResponse);

@@ -187,7 +187,7 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
             }
         };
 
-        await readingStateRepository.Upsert(uuid, state, "{}");
+        await readingStateRepository.Upsert(uuid, state);
 
         var book = await bookRepository.FindByUuid(uuid);
         if (book is not null)

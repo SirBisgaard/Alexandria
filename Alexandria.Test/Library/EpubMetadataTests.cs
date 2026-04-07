@@ -77,18 +77,6 @@ public sealed class EpubMetadataTests
     }
 
     [TestMethod]
-    public void MetadataEquals_DifferentCoverFilePath_ReturnsTrue()
-    {
-        var a = CreateMetadata();
-        a.CoverFilePath = "/covers/a.jpg";
-
-        var b = CreateMetadata();
-        b.CoverFilePath = "/covers/b.jpg";
-
-        Assert.IsTrue(a.MetadataEquals(b));
-    }
-
-    [TestMethod]
     public void MetadataEquals_DifferentAlexandriaUuid_ReturnsTrue()
     {
         var a = CreateMetadata();

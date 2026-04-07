@@ -37,8 +37,8 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
                 }
 
                 // Slow path: extract metadata + cover in a single ZIP read.
-                var metadata = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
-                metadata.CoverFilePath = ConvertCoverToJpeg(metadata.CoverFilePath);
+                var (metadata, coverFilePath) = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
+                coverFilePath = ConvertCoverToJpeg(coverFilePath);
 
                 // Stamp with alexandria identifier if not already present.
                 if (metadata.AlexandriaUuid is null)
@@ -54,11 +54,11 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
 
                 if (existingBook is not null)
                 {
-                    await HandleExistingEpub(metadata, epubPath, fileHash, existingBook);
+                    await HandleExistingEpub(metadata, coverFilePath, epubPath, fileHash, existingBook);
                 }
                 else
                 {
-                    await HandleNewEpub(epubPath, metadata, fileHash);
+                    await HandleNewEpub(epubPath, metadata, coverFilePath, fileHash);
                 }
             }
 
@@ -84,7 +84,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
 
             var fileHash = await fileRepository.ComputeFileHash(book.SourcePath);
 
-            await HandleExistingEpub(book.ToEpubMetadata(), book.SourcePath, fileHash, book);
+            await HandleExistingEpub(book.ToEpubMetadata(), book.CoverFilePath, book.SourcePath, fileHash, book);
 
             logger.LogInformation("Reindexed: {Title} by {Authors}", book.Title, string.Join(", ", book.Authors.Select(a => a.Name)));
         }
@@ -94,7 +94,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         }
     }
 
-    private async Task HandleNewEpub(string epubPath, EpubMetadata metadata, string fileHash)
+    private async Task HandleNewEpub(string epubPath, EpubMetadata metadata, string? coverFilePath, string fileHash)
     {
         logger.LogInformation("Indexing new book: {FileName}", Path.GetFileName(epubPath));
         var now = DateTimeOffset.UtcNow;
@@ -103,7 +103,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{book.BookUuid}.kepub.epub");
         await kepubifyConverter.Convert(epubPath, kepubPath);
 
-        book.CoverFilePath = metadata.CoverFilePath;
+        book.CoverFilePath = coverFilePath;
         book.KepubFilePath = kepubPath;
         book.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);
 
@@ -112,7 +112,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         logger.LogInformation("Indexed: {Title} by {Authors}", book.Title, string.Join(", ", metadata.Authors));
     }
 
-    private async Task HandleExistingEpub(EpubMetadata metadata, string epubPath, string fileHash, Book existingBook)
+    private async Task HandleExistingEpub(EpubMetadata metadata, string? coverFilePath, string epubPath, string fileHash, Book existingBook)
     {
         logger.LogInformation("Updating changed book: {Title}", metadata.Title);
 
@@ -121,8 +121,8 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         fileRepository.DeleteKepub(existingBook);
 
         // Re-extract metadata + cover now that old files are gone.
-        var freshMetadata = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
-        freshMetadata.CoverFilePath = ConvertCoverToJpeg(freshMetadata.CoverFilePath);
+        var (freshMetadata, freshCoverFilePath) = epubMetadataHandler.ExtractAll(epubPath, settings.CoversFolder);
+        freshCoverFilePath = ConvertCoverToJpeg(freshCoverFilePath);
 
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{existingBook.BookUuid}.kepub.epub");
         await kepubifyConverter.Convert(epubPath, kepubPath);
@@ -135,7 +135,7 @@ public class LibraryIndexerService(AlexandriaSettings settings, IBookRepository 
         existingBook.PublicationDate = freshMetadata.PublicationDate;
         existingBook.Description = freshMetadata.Description;
         existingBook.Publisher = freshMetadata.Publisher;
-        existingBook.CoverFilePath = freshMetadata.CoverFilePath;
+        existingBook.CoverFilePath = freshCoverFilePath;
         existingBook.KepubFilePath = kepubPath;
         existingBook.KepubFileSize = fileRepository.GetKepubFileSize(kepubPath);
         existingBook.ModifiedAt = DateTimeOffset.UtcNow;

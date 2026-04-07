@@ -33,7 +33,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     /// <summary>
     /// Extracts metadata and cover from an EPUB in a single ZIP open.
     /// </summary>
-    public EpubMetadata ExtractAll(string epubPath, string coverOutputDirectory)
+    public (EpubMetadata Metadata, string? CoverFilePath) ExtractAll(string epubPath, string coverOutputDirectory)
     {
         if (!File.Exists(epubPath))
         {
@@ -51,9 +51,9 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         var opfDoc = XDocument.Load(opfStream);
 
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
-        metadata.CoverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.AlexandriaUuid ?? metadata.GenerateDeterministicUuid());
+        var coverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, metadata.AlexandriaUuid ?? metadata.GenerateDeterministicUuid());
 
-        return metadata;
+        return (metadata, coverFilePath);
     }
 
     public void EmbedMetadata(string epubPath, EpubMetadata metadata)

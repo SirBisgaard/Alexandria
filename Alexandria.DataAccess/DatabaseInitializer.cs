@@ -108,10 +108,49 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 CoverImageUuid TEXT,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL,
-                IsArchived INTEGER NOT NULL DEFAULT 0
+                IsArchived INTEGER NOT NULL DEFAULT 0,
+                Rights TEXT,
+                Source TEXT,
+                Type TEXT,
+                Relation TEXT,
+                Coverage TEXT,
+                Format TEXT
             )
             """;
         await booksCmd.ExecuteNonQueryAsync();
+
+        await using var bookIdentifiersCmd = connection.CreateCommand();
+        bookIdentifiersCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookIdentifiers (
+                BookUuid TEXT NOT NULL,
+                Value TEXT NOT NULL,
+                PRIMARY KEY (BookUuid, Value),
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
+            )
+            """;
+        await bookIdentifiersCmd.ExecuteNonQueryAsync();
+
+        await using var bookSubjectsCmd = connection.CreateCommand();
+        bookSubjectsCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookSubjects (
+                BookUuid TEXT NOT NULL,
+                Value TEXT NOT NULL,
+                PRIMARY KEY (BookUuid, Value),
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
+            )
+            """;
+        await bookSubjectsCmd.ExecuteNonQueryAsync();
+
+        await using var bookContributorsCmd = connection.CreateCommand();
+        bookContributorsCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookContributors (
+                BookUuid TEXT NOT NULL,
+                Value TEXT NOT NULL,
+                PRIMARY KEY (BookUuid, Value),
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
+            )
+            """;
+        await bookContributorsCmd.ExecuteNonQueryAsync();
 
         await using var bookSeriesCmd = connection.CreateCommand();
         bookSeriesCmd.CommandText = """
@@ -162,7 +201,6 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 LastModified TEXT NOT NULL,
                 PriorityTimestamp TEXT NOT NULL,
                 Created TEXT NOT NULL,
-                RawPutBody TEXT,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL
             )

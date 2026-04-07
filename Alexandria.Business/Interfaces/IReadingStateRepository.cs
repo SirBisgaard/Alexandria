@@ -7,5 +7,5 @@ public interface IReadingStateRepository
 {
     Task<ReadingState?> GetByBookUuid(Guid bookUuid);
     Task<ReadingProgress?> GetReadingProgress(Guid bookUuid);
-    Task Upsert(Guid bookUuid, ReadingState state, string rawPutBody);
+    Task Upsert(Guid bookUuid, ReadingState state);
 }

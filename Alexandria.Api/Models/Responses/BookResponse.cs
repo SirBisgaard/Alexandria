@@ -11,6 +11,15 @@ public class BookResponse
     public string? PublicationDate { get; set; }
     public string? Description { get; set; }
     public string? Publisher { get; set; }
+    public List<string> Identifiers { get; set; } = [];
+    public List<string> Subjects { get; set; } = [];
+    public List<string> Contributors { get; set; } = [];
+    public string? Rights { get; set; }
+    public string? Source { get; set; }
+    public string? Type { get; set; }
+    public string? Relation { get; set; }
+    public string? Coverage { get; set; }
+    public string? Format { get; set; }
     public SeriesResponse? Series { get; set; }
     public bool HasCover { get; set; }
     public string FileName { get; set; } = string.Empty;

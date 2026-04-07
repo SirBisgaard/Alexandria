@@ -15,7 +15,7 @@ public record BookMetadata
 
     public required List<DownloadUrl> DownloadUrls { get; set; }
     public required string EntitlementId { get; set; }
-    public object[] ExternalIds { get; set; } = [];
+    public ExternalId[] ExternalIds { get; set; } = [];
     public string Genre { get; set; } = "00000000-0000-0000-0000-000000000001";
     public bool IsEligibleForKoboLove { get; set; }
     public bool IsInternetArchive { get; set; }

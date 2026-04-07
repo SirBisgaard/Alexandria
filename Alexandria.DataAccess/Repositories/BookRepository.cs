@@ -28,6 +28,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         {
             book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
             book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            await LoadSubTableData(connection, book);
         }
 
         return books;
@@ -48,6 +49,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             var book = MapBook(reader);
             book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
             book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            await LoadSubTableData(connection, book);
             return book;
         }
 
@@ -69,6 +71,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             var book = MapBook(reader);
             book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
             book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            await LoadSubTableData(connection, book);
             return book;
         }
 
@@ -90,6 +93,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             var book = MapBook(reader);
             book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
             book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            await LoadSubTableData(connection, book);
             return book;
         }
 
@@ -111,6 +115,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             var book = MapBook(reader);
             book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
             book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            await LoadSubTableData(connection, book);
             return book;
         }
 
@@ -124,11 +129,12 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO Books (BookUuid, EntitlementUuid, FileHash, SourcePath, Title, Language, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, KepubFileSize, CoverImageUuid, CreatedAt, ModifiedAt, IsArchived)
-            VALUES (@bookUuid, @entitlementUuid, @fileHash, @sourcePath, @title, @language, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @kepubFileSize, @coverImageUuid, @createdAt, @modifiedAt, @isArchived)
+            INSERT INTO Books (BookUuid, EntitlementUuid, FileHash, SourcePath, Title, Language, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, KepubFileSize, CoverImageUuid, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
+            VALUES (@bookUuid, @entitlementUuid, @fileHash, @sourcePath, @title, @language, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @kepubFileSize, @coverImageUuid, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
+        await SaveSubTableData(connection, book);
     }
 
     public async Task Update(Book book)
@@ -138,17 +144,21 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE Books SET EntitlementUuid = @entitlementUuid, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Language = @language, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, KepubFileSize = @kepubFileSize, CoverImageUuid = @coverImageUuid, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived
+            UPDATE Books SET EntitlementUuid = @entitlementUuid, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Language = @language, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, KepubFileSize = @kepubFileSize, CoverImageUuid = @coverImageUuid, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
             WHERE BookUuid = @bookUuid
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
+        await DeleteSubTableData(connection, book.BookUuid);
+        await SaveSubTableData(connection, book);
     }
 
     public async Task Remove(Guid uuid)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
+
+        await DeleteSubTableData(connection, uuid);
 
         await using var deleteBookSeries = connection.CreateCommand();
         deleteBookSeries.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @uuid";
@@ -194,6 +204,12 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         cmd.Parameters.AddWithValue("@createdAt", book.CreatedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@modifiedAt", book.ModifiedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@isArchived", book.IsArchived ? 1 : 0);
+        cmd.Parameters.AddWithValue("@rights", (object?)book.Rights ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@source", (object?)book.Source ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@type", (object?)book.Type ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@relation", (object?)book.Relation ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@coverage", (object?)book.Coverage ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@format", (object?)book.Format ?? DBNull.Value);
     }
 
     private static Book MapBook(SqliteDataReader reader)
@@ -215,7 +231,63 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             CoverImageUuid = reader.IsDBNull(reader.GetOrdinal("CoverImageUuid")) ? null : Guid.Parse(reader.GetString(reader.GetOrdinal("CoverImageUuid"))),
             CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
             ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt"))),
-            IsArchived = reader.GetInt32(reader.GetOrdinal("IsArchived")) == 1
+            IsArchived = reader.GetInt32(reader.GetOrdinal("IsArchived")) == 1,
+            Rights = reader.IsDBNull(reader.GetOrdinal("Rights")) ? null : reader.GetString(reader.GetOrdinal("Rights")),
+            Source = reader.IsDBNull(reader.GetOrdinal("Source")) ? null : reader.GetString(reader.GetOrdinal("Source")),
+            Type = reader.IsDBNull(reader.GetOrdinal("Type")) ? null : reader.GetString(reader.GetOrdinal("Type")),
+            Relation = reader.IsDBNull(reader.GetOrdinal("Relation")) ? null : reader.GetString(reader.GetOrdinal("Relation")),
+            Coverage = reader.IsDBNull(reader.GetOrdinal("Coverage")) ? null : reader.GetString(reader.GetOrdinal("Coverage")),
+            Format = reader.IsDBNull(reader.GetOrdinal("Format")) ? null : reader.GetString(reader.GetOrdinal("Format"))
         };
+    }
+
+    private static async Task LoadSubTableData(SqliteConnection connection, Book book)
+    {
+        book.Identifiers = await LoadSubTable(connection, "BookIdentifiers", book.BookUuid);
+        book.Subjects = await LoadSubTable(connection, "BookSubjects", book.BookUuid);
+        book.Contributors = await LoadSubTable(connection, "BookContributors", book.BookUuid);
+    }
+
+    private static async Task<List<string>> LoadSubTable(SqliteConnection connection, string tableName, Guid bookUuid)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = $"SELECT Value FROM {tableName} WHERE BookUuid = @uuid";
+        cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var values = new List<string>();
+        while (await reader.ReadAsync())
+            values.Add(reader.GetString(0));
+        return values;
+    }
+
+    private static async Task SaveSubTableData(SqliteConnection connection, Book book)
+    {
+        await SaveSubTable(connection, "BookIdentifiers", book.BookUuid, book.Identifiers);
+        await SaveSubTable(connection, "BookSubjects", book.BookUuid, book.Subjects);
+        await SaveSubTable(connection, "BookContributors", book.BookUuid, book.Contributors);
+    }
+
+    private static async Task SaveSubTable(SqliteConnection connection, string tableName, Guid bookUuid, List<string> values)
+    {
+        foreach (var value in values)
+        {
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"INSERT OR IGNORE INTO {tableName} (BookUuid, Value) VALUES (@uuid, @value)";
+            cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
+            cmd.Parameters.AddWithValue("@value", value);
+            await cmd.ExecuteNonQueryAsync();
+        }
+    }
+
+    private static async Task DeleteSubTableData(SqliteConnection connection, Guid bookUuid)
+    {
+        foreach (var table in new[] { "BookIdentifiers", "BookSubjects", "BookContributors" })
+        {
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"DELETE FROM {table} WHERE BookUuid = @uuid";
+            cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }

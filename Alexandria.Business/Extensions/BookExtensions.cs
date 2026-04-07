@@ -28,7 +28,15 @@ public static class BookExtensions
                 PublicationDate = metadata.PublicationDate,
                 Description = metadata.Description,
                 Publisher = metadata.Publisher,
-                CoverFilePath = metadata.CoverFilePath,
+                Identifiers = metadata.Identifiers,
+                Subjects = metadata.Subjects,
+                Contributors = metadata.Contributors,
+                Rights = metadata.Rights,
+                Source = metadata.Source,
+                Type = metadata.Type,
+                Relation = metadata.Relation,
+                Coverage = metadata.Coverage,
+                Format = metadata.Format,
                 CreatedAt = createdAt,
                 ModifiedAt = modifiedAt
             };
@@ -43,6 +51,15 @@ public static class BookExtensions
             PublicationDate = book.PublicationDate,
             Description = book.Description,
             Publisher = book.Publisher,
+            Identifiers = book.Identifiers,
+            Subjects = book.Subjects,
+            Contributors = book.Contributors,
+            Rights = book.Rights,
+            Source = book.Source,
+            Type = book.Type,
+            Relation = book.Relation,
+            Coverage = book.Coverage,
+            Format = book.Format,
             SeriesName = book.Series?.Name,
             SeriesIndex = book.Series?.Index
         };
@@ -85,6 +102,7 @@ public static class BookExtensions
                 RevisionId = book.EntitlementUuid.ToString(),
                 Title = book.Title,
                 WorkId = entitlementUuid,
+                ExternalIds = book.Identifiers.Select(id => new ExternalId { Id = id }).ToArray(),
                 ContributorRoles = book.Authors.Select(a => new ContributorRole { Name = a.Name }).ToList(),
                 Contributors = book.Authors.Select(a => a.Name).ToList()
             };
