@@ -67,6 +67,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             }
 
             var refreshed = await contentManager.GetBook(existing);
+            refreshed.BookUuid = existing.BookUuid;
             refreshed.EntitlementUuid = existing.EntitlementUuid;
             refreshed.CoverImageUuid = Guid.GenerateUuidV5("cover:" + refreshed.FileHash);
             refreshed.CreatedAt = existing.CreatedAt;
