@@ -1,4 +1,5 @@
 using ATL;
+using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -106,11 +107,15 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return await ffmpegHandler.ExtractChapterAsMp3ToMemory(sourcePath, chapter.StartTime, chapter.EndTime);
     }
 
-    public Task EmbedMetadata(string filePath, Book book)
+    public async Task EmbedMetadata(string filePath, Book book)
     {
+        var existing = ExtractMetadata(filePath).GetAwaiter().GetResult();
+        if (existing.MetadataEquals(book))
+            return;
+
         var track = new Track(filePath);
 
-        if (book.Title is not null)
+        if (!string.IsNullOrWhiteSpace(book.Title))
             track.Title = book.Title;
 
         if (book.Authors.Count > 0)
@@ -157,7 +162,8 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
             track.Group = grouping;
         }
 
-        if (book.BookUuid != Guid.Empty)
+        var existingUuid = GetAdditionalField(track, "ALEXANDRIA_UUID");
+        if (existingUuid is null && book.BookUuid != Guid.Empty)
             track.AdditionalFields["ALEXANDRIA_UUID"] = book.BookUuid.ToString();
 
         if (book.Subtitle is not null)
@@ -170,8 +176,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         if (asin is not null)
             track.AdditionalFields["AUDIBLE_ASIN"] = asin["asin:".Length..];
 
-        track.Save();
-        return Task.CompletedTask;
+        await track.SaveAsync();
     }
 
     public Task EmbedCover(string filePath, byte[] coverData, string mediaType)

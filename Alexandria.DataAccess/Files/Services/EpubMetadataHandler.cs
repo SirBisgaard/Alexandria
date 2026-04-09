@@ -67,9 +67,11 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     public void EmbedMetadata(string epubPath, Book book)
     {
         if (!File.Exists(epubPath))
-        {
             throw new FileNotFoundException("EPUB file not found.", epubPath);
-        }
+
+        var existing = ExtractMetadata(epubPath);
+        if (existing.MetadataEquals(book))
+            return;
 
         var metadata = ToEpubMetadata(book);
 
@@ -469,7 +471,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             Identifiers = metadataEl
                 .Elements(Dc + "identifier")
                 .Select(e => e.Value.Trim())
-                .Where(v => !string.IsNullOrEmpty(v))
+                .Where(v => !string.IsNullOrEmpty(v) && !v.StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase))
                 .ToList(),
             Subjects = metadataEl
                 .Elements(Dc + "subject")

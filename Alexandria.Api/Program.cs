@@ -13,6 +13,7 @@ using Alexandria.DataAccess.Database.Repositories;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Files;
 using Alexandria.DataAccess.Files.Books.Audiobooks;
+using Alexandria.DataAccess.Database.Cache;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
@@ -36,15 +37,24 @@ builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimary
 
 // Add repositories to the container.
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
-builder.Services.AddTransient<IBookRepository, BookRepository>();
-builder.Services.AddTransient<IFileRepository, FileRepository>();
-builder.Services.AddTransient<IReadingStateRepository, ReadingStateRepository>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
-builder.Services.AddTransient<ICollectionRepository, CollectionRepository>();
-builder.Services.AddTransient<IAuthorRepository, AuthorRepository>();
-builder.Services.AddTransient<ISeriesRepository, SeriesRepository>();
-builder.Services.AddTransient<ISettingsRepository, SettingsRepository>();
 builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepository>();
+builder.Services.AddTransient<ISettingsRepository, SettingsRepository>();
+builder.Services.AddTransient<IFileRepository, FileRepository>();
+
+builder.Services.AddSingleton<BookRepository>();
+builder.Services.AddSingleton<ReadingStateRepository>();
+builder.Services.AddSingleton<CollectionRepository>();
+builder.Services.AddSingleton<AuthorRepository>();
+builder.Services.AddSingleton<SeriesRepository>();
+// Cache layer — decorators wrap the concrete repositories above.
+builder.Services.AddSingleton<CacheInvalidator>();
+builder.Services.AddSingleton<IAuthorRepository>(sp => new CachingAuthorRepository(sp.GetRequiredService<AuthorRepository>(), sp.GetRequiredService<CacheInvalidator>()).Init());
+builder.Services.AddSingleton<ISeriesRepository>(sp => new CachingSeriesRepository(sp.GetRequiredService<SeriesRepository>(), sp.GetRequiredService<CacheInvalidator>()).Init());
+builder.Services.AddSingleton<IBookRepository>(sp => new CachingBookRepository(sp.GetRequiredService<BookRepository>(), sp.GetRequiredService<CacheInvalidator>()).Init());
+builder.Services.AddSingleton<ICollectionRepository>(sp => new CachingCollectionRepository(sp.GetRequiredService<CollectionRepository>(), sp.GetRequiredService<CacheInvalidator>()).Init());
+builder.Services.AddSingleton<IReadingStateRepository>(sp => new CachingReadingStateRepository(sp.GetRequiredService<ReadingStateRepository>(), sp.GetRequiredService<CacheInvalidator>()).Init());
+
 builder.Services.AddTransient<IEpubMetadataHandler, EpubMetadataHandler>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();

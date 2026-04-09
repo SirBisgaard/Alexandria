@@ -219,7 +219,7 @@ public sealed class AlexandriaLibraryServiceTests
 
         var lastWriteTime = File.GetLastWriteTimeUtc(original.SourcePath);
 
-        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = original.Title, Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description };
+        var updateBook = new Book { BookUuid = LifeAndFateUuid, Title = original.Title, Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description, Subtitle = original.Subtitle, Rights = original.Rights, IsAbridged = original.IsAbridged, Contributors = original.Contributors, Subjects = original.Subjects, Identifiers = original.Identifiers };
 
         var result = await service.UpdateBookMetadata(updateBook);
 

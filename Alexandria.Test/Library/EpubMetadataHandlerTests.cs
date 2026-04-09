@@ -552,7 +552,6 @@ public sealed class EpubMetadataHandlerTests
         // Verify via extraction.
         var (result, _) = handler.ExtractAll(epubPath, outputDir);
         Assert.AreEqual(Guid.Parse("11111111-2222-3333-4444-555555555555"), result.BookUuid);
-        Assert.IsTrue(result.Identifiers.Any(i => i.StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase)));
     }
 
     [TestMethod]

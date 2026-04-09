@@ -27,6 +27,8 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
             var fileHash = await indexer.ComputeFileHash(filePath);
             var (book, coverFilePath) = indexer.ExtractAll(filePath);
+            book.FileHash = fileHash;
+            
 
             if (book.BookUuid == Guid.Empty)
             {

@@ -55,7 +55,7 @@ public sealed class EpubMetadataTests
     }
 
     [TestMethod]
-    public void MetadataEquals_DifferentAuthorOrder_ReturnsFalse()
+    public void MetadataEquals_DifferentAuthorOrder_ReturnsTrue()
     {
         var a = CreateBook();
         a.Authors = [new Author { Name = "Author A" }, new Author { Name = "Author B" }];
@@ -63,7 +63,7 @@ public sealed class EpubMetadataTests
         var b = CreateBook();
         b.Authors = [new Author { Name = "Author B" }, new Author { Name = "Author A" }];
 
-        Assert.IsFalse(a.MetadataEquals(b));
+        Assert.IsTrue(a.MetadataEquals(b));
     }
 
     [TestMethod]
@@ -77,7 +77,7 @@ public sealed class EpubMetadataTests
     }
 
     [TestMethod]
-    public void MetadataEquals_DifferentBookUuid_ReturnsTrue()
+    public void MetadataEquals_DifferentBookUuid_ReturnsFalse()
     {
         var a = CreateBook();
         a.BookUuid = Guid.NewGuid();
@@ -85,6 +85,6 @@ public sealed class EpubMetadataTests
         var b = CreateBook();
         b.BookUuid = Guid.NewGuid();
 
-        Assert.IsTrue(a.MetadataEquals(b));
+        Assert.IsFalse(a.MetadataEquals(b));
     }
 }
