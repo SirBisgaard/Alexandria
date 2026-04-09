@@ -1,6 +1,6 @@
 using Alexandria.Business.Library.Models;
 
-namespace Alexandria.Business.Library.Interfaces;
+namespace Alexandria.DataAccess.Files.Interfaces;
 
 public interface IEpubMetadataHandler
 {

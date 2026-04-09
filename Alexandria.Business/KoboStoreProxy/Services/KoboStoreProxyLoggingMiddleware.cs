@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.Library.Interfaces;

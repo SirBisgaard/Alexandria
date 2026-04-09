@@ -1,6 +1,6 @@
 using Alexandria.Business.Library.Models.Settings;
 
-namespace Alexandria.Business.Library.Interfaces;
+namespace Alexandria.Business.Interfaces;
 
 public interface ISettingsRepository
 {

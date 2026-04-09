@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
@@ -7,6 +8,7 @@ using Alexandria.Business.Library.Services;
 using Alexandria.Business.KoboStoreProxy.Services;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Database;
+using Alexandria.DataAccess.Database.Interfaces;
 using Alexandria.DataAccess.Database.Repositories;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Files;

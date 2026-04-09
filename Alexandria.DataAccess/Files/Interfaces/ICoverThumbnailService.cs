@@ -1,4 +1,4 @@
-namespace Alexandria.Business.Library.Interfaces;
+namespace Alexandria.DataAccess.Files.Interfaces;
 
 public interface ICoverThumbnailService
 {

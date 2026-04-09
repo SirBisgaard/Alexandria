@@ -1,7 +1,7 @@
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
 
-namespace Alexandria.Business.Library.Interfaces;
+namespace Alexandria.Business.Interfaces;
 
 public interface IReadingStateRepository
 {

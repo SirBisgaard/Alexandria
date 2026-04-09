@@ -1,4 +1,4 @@
-using Alexandria.Business.Library.Interfaces;
+using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.Business.Library.Models.Settings;
 using ImageMagick;
 using Microsoft.Extensions.Logging;

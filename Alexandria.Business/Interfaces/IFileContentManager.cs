@@ -1,7 +1,7 @@
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 
-namespace Alexandria.Business.Library.Interfaces;
+namespace Alexandria.Business.Interfaces;
 
 public interface IFileContentManager
 {

@@ -1,4 +1,4 @@
-namespace Alexandria.Business.Library.Interfaces;
+namespace Alexandria.DataAccess.Database.Interfaces;
 
 public interface IDatabaseInitializer
 {

@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
 using Alexandria.Business.Library.Extensions;
-using Alexandria.Business.Library.Interfaces;
+using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Files.Models;
 
