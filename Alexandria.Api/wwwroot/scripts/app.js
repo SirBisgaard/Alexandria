@@ -70,13 +70,38 @@ $(function () {
                 '<div class="book-modal-title-bar">Settings</div>' +
                 '<button class="book-modal-close" id="settings-close">&times;</button>' +
                 '<div class="settings-modal-content">' +
-                    '<div class="list-group list-group-flush">' +
-                        '<a href="#" class="list-group-item list-group-item-action px-0">Library path</a>' +
-                        '<a href="#" class="list-group-item list-group-item-action px-0">Syncing and updates</a>' +
-                        '<a href="#" class="list-group-item list-group-item-action px-0">Proxy settings</a>' +
-                        '<a href="#" class="list-group-item list-group-item-action px-0">Sync batch size</a>' +
-                        '<a href="#" class="list-group-item list-group-item-action px-0">Traffic logging</a>' +
-                        '<a href="#" class="list-group-item list-group-item-action px-0">Device information</a>' +
+                    '<div class="settings-tiles">' +
+                        '<div class="settings-tile">' +
+                            '<div class="settings-tile-label">Sync batch size</div>' +
+                            '<input type="number" class="bm-edit-input" data-setting="syncBatchSize" min="1" max="1000">' +
+                            '<div class="settings-tile-desc">Number of books sent to your Kobo per sync request. Default is 60.</div>' +
+                            '<div class="settings-tile-error"></div>' +
+                        '</div>' +
+                        '<div class="settings-tile">' +
+                            '<div class="settings-tile-label">Words per page</div>' +
+                            '<input type="number" class="bm-edit-input" data-setting="wordsPerPage" min="1" max="1000">' +
+                            '<div class="settings-tile-desc">Used to estimate page counts for reading statistics. Default is 250.</div>' +
+                            '<div class="settings-tile-error"></div>' +
+                        '</div>' +
+                        '<div class="settings-tile">' +
+                            '<div class="settings-tile-toggle-row">' +
+                                '<div class="settings-tile-label">Proxy traffic logging</div>' +
+                                '<label class="settings-toggle"><input type="checkbox" data-setting="proxyLoggingEnabled"><span class="settings-toggle-slider"></span></label>' +
+                            '</div>' +
+                            '<div class="settings-tile-desc">Log all Kobo proxy traffic to the database for debugging.</div>' +
+                        '</div>' +
+                        '<div class="settings-tile">' +
+                            '<div class="settings-tile-toggle-row">' +
+                                '<div class="settings-tile-label">Disable Kobo store</div>' +
+                                '<label class="settings-toggle"><input type="checkbox" data-setting="koboStoreKillSwitch"><span class="settings-toggle-slider"></span></label>' +
+                            '</div>' +
+                            '<div class="settings-tile-desc">Block all Kobo store requests. Your device will only show books from your Alexandria library.</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="settings-error-banner"></div>' +
+                    '<div class="settings-footer">' +
+                        '<span class="settings-save-status"></span>' +
+                        '<button class="bm-edit-btn bm-edit-btn-primary settings-save-btn">Save</button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -86,6 +111,7 @@ $(function () {
     $(document).on("click", "[data-open-settings]", function (e) {
         e.preventDefault();
         $("#settings-modal-backdrop").addClass("open");
+        loadSettings("#settings-modal");
     });
 
     $("#settings-close").on("click", function () {

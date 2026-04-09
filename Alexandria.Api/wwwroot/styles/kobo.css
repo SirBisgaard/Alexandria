@@ -856,6 +856,123 @@ a.series-list-item {
     min-height: auto;
 }
 
+/* ===== Settings Tiles ===== */
+.settings-tiles {
+    padding: 0 4px;
+}
+
+.settings-tile {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.settings-tile:last-child {
+    border-bottom: none;
+}
+
+.settings-tile-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--bs-body-color);
+    margin-bottom: 6px;
+}
+
+.settings-tile-desc {
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.settings-tile-error {
+    font-size: 13px;
+    color: #c0392b;
+    margin-top: 4px;
+    font-weight: bold;
+}
+
+.settings-tile-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.settings-tile-toggle-row .settings-tile-label {
+    margin-bottom: 0;
+}
+
+.settings-tile .bm-edit-input[type="number"] {
+    width: 120px;
+}
+
+.settings-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.settings-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.settings-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--bs-border-color);
+    border-radius: 12px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.settings-toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: var(--bs-body-bg);
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+    background: var(--bs-body-color);
+}
+
+.settings-toggle input:checked + .settings-toggle-slider::before {
+    transform: translateX(20px);
+}
+
+.settings-error-banner {
+    font-size: 14px;
+    color: #c0392b;
+    border: 2px solid #c0392b;
+    padding: 10px 14px;
+    margin-top: 16px;
+    font-weight: bold;
+    display: none;
+}
+
+.settings-footer {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-save-status {
+    font-size: 14px;
+    color: var(--bs-secondary-color);
+    display: none;
+}
+
 .about-modal-content {
     font-size: 15px;
     line-height: 1.6;
