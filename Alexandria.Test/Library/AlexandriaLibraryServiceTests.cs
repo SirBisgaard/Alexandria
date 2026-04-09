@@ -70,7 +70,7 @@ public sealed class AlexandriaLibraryServiceTests
         var kepubifyConverter = new KepubifyConverter();
         var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, kepubifyConverter, coverThumbnailService);
         var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
-        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
+        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler(), NullLogger<M4BMetadataHandler>.Instance);
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);

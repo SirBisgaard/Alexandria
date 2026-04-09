@@ -1,6 +1,6 @@
+using System.Collections.Concurrent;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
-using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -12,23 +12,32 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 {
     public async Task<List<Book>> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null)
     {
-        var books = new List<Book>();
+        var books = new ConcurrentBag<Book>();
         var allFiles = indexers.SelectMany(i => i.GetContentFiles()).ToArray();
         logger.LogInformation("Indexing {Count} files from {IndexerCount} indexer(s)", allFiles.Length, indexers.Count());
 
-        for (var i = 0; i < allFiles.Length; i++)
+        var existingByPath = existingBooks?.ToDictionary(b => b.SourcePath, StringComparer.OrdinalIgnoreCase) ?? [];
+        var processed = 0;
+
+        await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, ct) =>
         {
-            progress?.Report((i + 1, allFiles.Length));
-            var filePath = allFiles[i];
+            var current = Interlocked.Increment(ref processed);
+            progress?.Report((current, allFiles.Length));
             var indexer = GetIndexerFor(filePath);
             var fileName = Path.GetFileName(filePath);
 
-            logger.LogDebug("Indexing [{Index}/{Total}]: {FileName}", i + 1, allFiles.Length, fileName);
-
             var fileHash = await indexer.ComputeFileHash(filePath);
+            if (existingByPath.TryGetValue(filePath, out var existing) && existing.FileHash == fileHash)
+            {
+                logger.LogDebug("Skipping unchanged [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
+                books.Add(existing);
+                return;
+            }
+
+            logger.LogDebug("Indexing [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
+
             var (book, coverFilePath) = indexer.ExtractAll(filePath);
             book.FileHash = fileHash;
-            
 
             if (book.BookUuid == Guid.Empty)
             {
@@ -45,12 +54,13 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
             logger.LogDebug("Indexed '{Title}' by {Authors} ({Uuid})", book.Title, string.Join(", ", book.Authors.Select(a => a.Name)), book.BookUuid);
             books.Add(book);
-        }
+        });
 
-        CleanupStaleDerivatives(books, existingBooks);
-        logger.LogInformation("Indexing complete: {Count} books", books.Count);
+        var bookList = books.ToList();
+        CleanupStaleDerivatives(bookList, existingBooks);
+        logger.LogInformation("Indexing complete: {Count} books", bookList.Count);
 
-        return books;
+        return bookList;
     }
 
     public async Task<Book> GetBook(Book book)

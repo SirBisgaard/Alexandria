@@ -2,6 +2,7 @@ using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Files.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alexandria.Tests.Library;
 
@@ -21,7 +22,7 @@ public sealed class M4BMetadataHandlerTests
         outputDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
         GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
-        handler = new M4BMetadataHandler(new FfmpegHandler());
+        handler = new M4BMetadataHandler(new FfmpegHandler(), NullLogger<M4BMetadataHandler>.Instance);
         RequireAudiobooks();
     }
 
