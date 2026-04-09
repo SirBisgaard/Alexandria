@@ -16,7 +16,7 @@ function openBookModal(uuid) {
         var authors = (book.authors || []).map(function(a){return a.name}).join(", ");
         var seriesName = book.series ? book.series.name : "";
         var series = seriesName ? (seriesName.toUpperCase() + ((book.series ? book.series.index : null) ? " - " + (book.series ? book.series.index : null) : "")) : "";
-        var status = readingStatusText(book.readingProgress);
+        var status = readingStatusText(book.readingProgress, book.mediaType);
         var rawStatus = readingStatusRaw(book.readingProgress);
 
         $("#bm-cover-fallback").css("background", fallbackColor(book.bookUuid)).html(escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small>');
@@ -27,6 +27,9 @@ function openBookModal(uuid) {
             $("#bm-cover").hide();
             $("#bm-cover-fallback").show();
         }
+        $("#bm-cover-frame .audiobook-badge").remove();
+        if (book.mediaType === "Audiobook")
+            $("#bm-cover-frame").append(AUDIOBOOK_BADGE);
         $("#bm-cover-frame").show();
         $("#bm-title").text(book.title);
         var seriesHtml = seriesName ? ('<a href="series-detail.html?uuid=' + book.series.seriesUuid + '">' + escapeHtml(series) + '</a>') : "";
@@ -49,11 +52,24 @@ function openBookModal(uuid) {
 
         // Details
         var details = "";
+        if (book.mediaType === "Audiobook" && book.duration) {
+            var hours = (book.duration / 3600).toFixed(1);
+            details += "<div class='detail-row'>" + hours + " hours</div>";
+            details += "<div class='detail-row mb-3'>" + (book.isAbridged ? "Abridged" : "Unabridged") + "</div>";
+        }
+        if (book.pageCount) {
+            details += "<div class='detail-row'>" + book.pageCount + " pages</div>";
+        }
+        if (book.wordCount) {
+            var words = book.wordCount >= 1000 ? Math.round(book.wordCount / 1000) + "k" : book.wordCount;
+            details += "<div class='detail-row mb-3'>" + words + " total words</div>";
+        }
         if (book.publisher) { details += "<div class='detail-row'>Publisher: " + escapeHtml(book.publisher) + (book.publicationDate ? " (" + escapeHtml(book.publicationDate) + ")" : "") + "</div>"; }
+        if (book.isbn) { details += "<div class='detail-row'>ISBN: " + escapeHtml(book.isbn) + "</div>"; }
         if (book.language) { details += "<div class='detail-row'>Language: " + escapeHtml(languageName(book.language)) + "</div>"; }
         if (book.fileName) { details += "<div class='detail-row'>File Name: " + escapeHtml(book.fileName) + "</div>"; }
-        if (book.kepubFileSize) { details += "<div class='detail-row'>File Size: " + formatFileSize(book.kepubFileSize) + "</div>"; }
-        details += "<div class='detail-row'>File Format: KOBO EPUB</div>";
+        if (book.totalFileSize) { details += "<div class='detail-row'>File Size: " + formatFileSize(book.totalFileSize) + "</div>"; }
+        details += "<div class='detail-row'>File Format: " + (book.mediaType === "Audiobook" ? "AUDIOBOOK" : "KOBO EPUB") + "</div>";
         $("#bm-details").html(details || "No details available.");
 
         // Data

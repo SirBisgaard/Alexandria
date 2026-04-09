@@ -6,6 +6,22 @@ function openEntityEditModal(type, entity) {
     entityEditType = type;
     entityEditData = entity;
 
+    var listUrl = type === "author" ? "/api/alexandria/authors" : "/api/alexandria/series";
+    var currentUuid = type === "author" ? entity.authorUuid : entity.seriesUuid;
+
+    $.get(listUrl, function (items) {
+        comboEntity = (items || [])
+            .filter(function (item) {
+                var uuid = type === "author" ? item.authorUuid : item.seriesUuid;
+                return uuid !== currentUuid;
+            })
+            .map(function (item) { return item.name; });
+
+        renderEntityEditModal(type, entity);
+    });
+}
+
+function renderEntityEditModal(type, entity) {
     var label = type === "author" ? "Author" : "Series";
     var name = entity.name || "";
     var books = entity.books || [];
@@ -34,7 +50,10 @@ function openEntityEditModal(type, entity) {
                 '<button class="book-modal-close" id="entity-edit-close">&times;</button>' +
                 '<div class="bm-edit-field" style="margin-bottom:16px;">' +
                     '<div class="bm-edit-label">Name</div>' +
-                    '<input type="text" class="bm-edit-input" id="entity-edit-name" value="' + escapeHtml(name) + '">' +
+                    '<div class="bm-combo-wrap">' +
+                        '<input type="text" class="bm-edit-input bm-combo-input" id="entity-edit-name" data-combo="entity" autocomplete="off" value="' + escapeHtml(name) + '">' +
+                        '<div class="bm-combo-dropdown" id="bm-combo-entity"></div>' +
+                    '</div>' +
                 '</div>' +
                 '<div class="bm-edit-error-banner" id="entity-edit-error-banner"></div>' +
                 (books.length > 0 ?
@@ -59,6 +78,7 @@ function closeEntityEditModal() {
     setTimeout(function () { $("#entity-edit-modal-backdrop").remove(); }, 200);
     entityEditType = null;
     entityEditData = null;
+    comboEntity = [];
 }
 
 function clearEntityEditErrors() {
@@ -98,20 +118,16 @@ function saveEntityEdit() {
         return;
     }
 
-    var url, successHandler;
+    var url, uuidKey;
     if (entityEditType === "author") {
         url = "/api/alexandria/authors/" + entityEditData.authorUuid;
-        successHandler = function () {
-            closeEntityEditModal();
-            if (pageReload) { pageReload(); }
-        };
+        uuidKey = "authorUuid";
     } else {
         url = "/api/alexandria/series/" + entityEditData.seriesUuid;
-        successHandler = function () {
-            closeEntityEditModal();
-            if (pageReload) { pageReload(); }
-        };
+        uuidKey = "seriesUuid";
     }
+
+    var sourceUuid = entityEditType === "author" ? entityEditData.authorUuid : entityEditData.seriesUuid;
 
     var $save = $("#entity-edit-save");
     $save.data("original-text", $save.text()).text("Loading...").prop("disabled", true);
@@ -123,7 +139,16 @@ function saveEntityEdit() {
         method: "PUT",
         contentType: "application/json",
         data: JSON.stringify({ name: newName }),
-        success: successHandler,
+        success: function (data) {
+            closeEntityEditModal();
+            var returnedUuid = data[uuidKey];
+            if (returnedUuid && returnedUuid !== sourceUuid) {
+                var detailPage = entityEditType === "author" ? "author-detail.html" : "series-detail.html";
+                window.location.href = detailPage + "?id=" + returnedUuid;
+            } else {
+                if (pageReload) { pageReload(); }
+            }
+        },
         error: function (jqXHR) { handleEntityEditError(jqXHR); },
         complete: function () {
             $save.text($save.data("original-text") || "Save").prop("disabled", false);
@@ -149,6 +174,9 @@ $(document).on("input", "#entity-edit-name", function () {
 
 $(document).on("keydown", "#entity-edit-name", function (e) {
     if (e.key === "Enter") {
+        var $dropdown = $(this).siblings(".bm-combo-dropdown");
+        if ($dropdown.is(":visible") && comboHighlight >= 0)
+            return;
         e.preventDefault();
         saveEntityEdit();
     }

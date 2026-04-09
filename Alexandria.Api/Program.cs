@@ -1,12 +1,19 @@
 using System.Text.Json.Serialization;
-using Alexandria.Business.Extensions;
-using Alexandria.Business.Interfaces;
-using Alexandria.Business.Middleware;
-using Alexandria.Business.Models.Settings;
-using Alexandria.Business.Services;
-using Alexandria.DataAccess;
-using Alexandria.DataAccess.Repositories;
-using Alexandria.DataAccess.Services;
+using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Models;
+using Alexandria.Business.Library.Services;
+using Alexandria.Business.KoboStoreProxy.Services;
+using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Database;
+using Alexandria.DataAccess.Database.Repositories;
+using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Files;
+using Alexandria.DataAccess.Files.Books.Audiobooks;
+using Alexandria.DataAccess.Files.Books.Ebooks;
+using Alexandria.DataAccess.Files.Interfaces;
+using Alexandria.DataAccess.Files.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,12 +46,20 @@ builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepositor
 builder.Services.AddTransient<IEpubMetadataHandler, EpubMetadataHandler>();
 builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
 builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();
+builder.Services.AddTransient<IFileContentIndexer, FileEbookIndexer>();
+builder.Services.AddTransient<IFfmpegHandler, FfmpegHandler>();
+builder.Services.AddTransient<IM4BMetadataHandler, M4BMetadataHandler>();
+builder.Services.AddTransient<FileAudiobookMediaHandler>();
+builder.Services.AddTransient<IFileContentIndexer, FileAudiobookIndexer>();
+builder.Services.AddTransient<IFileContentMediaHandler, FileEbbokMediaHandler>();
+builder.Services.AddTransient<IFileContentMediaHandler, FileAudiobookMediaHandler>();
+builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.
-builder.Services.AddSingleton<ISyncSessionService, SyncSessionService>();
-builder.Services.AddTransient<ISyncTokenService, SyncTokenService>();
+builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
-builder.Services.AddTransient<ILibraryIndexerService, LibraryIndexerService>();
+builder.Services.AddTransient<IKoboDeviceSyncService, KoboDeviceSyncService>();
+builder.Services.AddTransient<ILibraryIndexerService, AlexandriaIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
 builder.Services.AddTransient<IAlexandriaSettingsService, AlexandriaSettingsService>();
 
@@ -54,7 +69,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseMiddleware<KoboProxyLoggingMiddleware>();
+app.UseMiddleware<KoboStoreProxyLoggingMiddleware>();
 
 // Initialize database schema before indexing.
 var dbInitializer = app.Services.GetRequiredService<IDatabaseInitializer>();

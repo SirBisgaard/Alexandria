@@ -97,11 +97,10 @@ $(function () {
         $.get("/api/alexandria/authors?sort=" + prefs.sort + "&order=" + prefs.order, function (authors) {
             var $list = $("#author-list").empty();
             $.each(authors, function (i, author) {
-                var count = (author.books || []).length;
                 $list.append(
                     '<a href="author-detail.html?uuid=' + author.authorUuid + '" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">' +
                         '<span class="fw-semibold text-body">' + escapeHtml(author.name) + '</span>' +
-                        '<span class="text-body-secondary">' + count + (count === 1 ? ' book' : ' books') + '</span>' +
+                        '<span class="text-body-secondary">' + escapeHtml(bookCountText(author.books || [])) + '</span>' +
                     '</a>'
                 );
             });

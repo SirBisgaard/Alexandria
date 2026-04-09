@@ -1,5 +1,5 @@
-using Alexandria.Business.Models.Settings;
-using Alexandria.DataAccess.Services;
+using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alexandria.Tests.Library;
@@ -20,7 +20,7 @@ public sealed class CoverThumbnailServiceTests
         testDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         coversDir = Path.Combine(testDir, "covers");
         Directory.CreateDirectory(coversDir);
-        settings = new AlexandriaSettings { Database = Path.Combine(testDir, "test.db"), BooksFolder = ContentBooksDir, CoversFolder = coversDir, KepubsFolder = Path.Combine(testDir, "kepubs") };
+        settings = new AlexandriaSettings { DataFolder = testDir, EbookFolder = ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
         service = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
     }
 

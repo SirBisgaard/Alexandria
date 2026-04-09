@@ -8,4 +8,9 @@ public record UpdateSettingsRequest
     public int SyncBatchSize { get; set; }
 
     public bool ProxyLoggingEnabled { get; set; }
+
+    public bool KoboStoreKillSwitch { get; set; }
+
+    [Range(1, 1000, ErrorMessage = "Words per page must be between 1 and 1000.")]
+    public int WordsPerPage { get; set; }
 }

@@ -403,5 +403,5 @@ FodyWeavers.xsd
 .claude
 
 # Project Data
-/Alexandria.Api/Data/*
-/Alexandria.Api/Data/**/*
+/Alexandria.Api/App_Data/*
+/Alexandria.Api/App_Data/**/*

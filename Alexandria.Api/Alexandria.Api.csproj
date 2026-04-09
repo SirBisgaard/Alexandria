@@ -19,8 +19,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Data\" />
+      <Folder Include="App_Data\" />
       <Folder Include="wwwroot\styles\" />
     </ItemGroup>
+
+    <Target Name="SetKepubifyPermissions" AfterTargets="Build">
+        <Exec Command="chmod +x $(OutputPath)/kepubify" />
+    </Target>
 
 </Project>

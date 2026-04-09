@@ -1,27 +1,27 @@
-using Alexandria.Business.Models.Files;
+using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Models;
 
 namespace Alexandria.Tests.Library;
 
 [TestClass]
 public sealed class EpubMetadataTests
 {
-    private static EpubMetadata CreateMetadata() => new()
+    private static Book CreateBook() => new()
     {
         Title = "Life and Fate",
         Language = "en",
-        Authors = ["Vasily Grossman"],
+        Authors = [new Author { Name = "Vasily Grossman" }],
         PublicationDate = "1980-01-01",
         Description = "A novel",
         Publisher = "Harvill Press",
-        SeriesName = "Test Series",
-        SeriesIndex = 1.0m
+        Series = new Series { Name = "Test Series", Index = 1.0m }
     };
 
     [TestMethod]
     public void MetadataEquals_IdenticalMetadata_ReturnsTrue()
     {
-        var a = CreateMetadata();
-        var b = CreateMetadata();
+        var a = CreateBook();
+        var b = CreateBook();
 
         Assert.IsTrue(a.MetadataEquals(b));
     }
@@ -29,17 +29,17 @@ public sealed class EpubMetadataTests
     [TestMethod]
     public void MetadataEquals_NullVsEmptyString_ReturnsTrue()
     {
-        var a = CreateMetadata();
+        var a = CreateBook();
         a.PublicationDate = null;
         a.Description = null;
         a.Publisher = null;
-        a.SeriesName = null;
+        a.Series = null;
 
-        var b = CreateMetadata();
+        var b = CreateBook();
         b.PublicationDate = "";
         b.Description = "";
         b.Publisher = "";
-        b.SeriesName = "";
+        b.Series = new Series { Name = "" };
 
         Assert.IsTrue(a.MetadataEquals(b));
     }
@@ -47,8 +47,8 @@ public sealed class EpubMetadataTests
     [TestMethod]
     public void MetadataEquals_DifferentTitle_ReturnsFalse()
     {
-        var a = CreateMetadata();
-        var b = CreateMetadata();
+        var a = CreateBook();
+        var b = CreateBook();
         b.Title = "Different Title";
 
         Assert.IsFalse(a.MetadataEquals(b));
@@ -57,11 +57,11 @@ public sealed class EpubMetadataTests
     [TestMethod]
     public void MetadataEquals_DifferentAuthorOrder_ReturnsFalse()
     {
-        var a = CreateMetadata();
-        a.Authors = ["Author A", "Author B"];
+        var a = CreateBook();
+        a.Authors = [new Author { Name = "Author A" }, new Author { Name = "Author B" }];
 
-        var b = CreateMetadata();
-        b.Authors = ["Author B", "Author A"];
+        var b = CreateBook();
+        b.Authors = [new Author { Name = "Author B" }, new Author { Name = "Author A" }];
 
         Assert.IsFalse(a.MetadataEquals(b));
     }
@@ -69,21 +69,21 @@ public sealed class EpubMetadataTests
     [TestMethod]
     public void MetadataEquals_DifferentSeriesIndex_ReturnsFalse()
     {
-        var a = CreateMetadata();
-        var b = CreateMetadata();
-        b.SeriesIndex = 2.0m;
+        var a = CreateBook();
+        var b = CreateBook();
+        b.Series = new Series { Name = "Test Series", Index = 2.0m };
 
         Assert.IsFalse(a.MetadataEquals(b));
     }
 
     [TestMethod]
-    public void MetadataEquals_DifferentAlexandriaUuid_ReturnsTrue()
+    public void MetadataEquals_DifferentBookUuid_ReturnsTrue()
     {
-        var a = CreateMetadata();
-        a.AlexandriaUuid = Guid.NewGuid();
+        var a = CreateBook();
+        a.BookUuid = Guid.NewGuid();
 
-        var b = CreateMetadata();
-        b.AlexandriaUuid = Guid.NewGuid();
+        var b = CreateBook();
+        b.BookUuid = Guid.NewGuid();
 
         Assert.IsTrue(a.MetadataEquals(b));
     }

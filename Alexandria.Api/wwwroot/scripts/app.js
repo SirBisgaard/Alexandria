@@ -272,6 +272,8 @@ $(function () {
         e.stopPropagation();
         if (!currentModalUuid) { return; }
         var uuid = currentModalUuid;
+        $(".bm-edit-btn").prop("disabled", true).addClass("bm-edit-btn-disabled");
+        $(".bm-edit-input, .bm-edit-textarea, #bm-edit-abridged").prop("disabled", true).addClass("bm-edit-input-disabled");
         $.ajax({
             url: "/api/alexandria/books/" + uuid + "/cover",
             type: "DELETE",
@@ -286,6 +288,10 @@ $(function () {
                 $(".bm-edit-cover-col .book-cover").show();
                 bustCoverCache(uuid);
                 if (pageReload) { pageReload(); }
+            },
+            complete: function () {
+                $(".bm-edit-btn").prop("disabled", false).removeClass("bm-edit-btn-disabled");
+                $(".bm-edit-input, .bm-edit-textarea, #bm-edit-abridged").prop("disabled", false).removeClass("bm-edit-input-disabled");
             }
         });
     });

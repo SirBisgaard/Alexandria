@@ -1,6 +1,5 @@
-using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models.Proxy;
-using Alexandria.Business.Models.Settings;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;

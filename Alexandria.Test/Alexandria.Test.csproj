@@ -25,6 +25,13 @@
         <Content Include="TestData\Books\**\*.epub">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Include="TestData\Audiobooks\**\*.m4b">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
+
+    <Target Name="SetKepubifyPermissions" AfterTargets="Build">
+        <Exec Command="chmod +x $(OutputPath)/kepubify" />
+    </Target>
 
 </Project>

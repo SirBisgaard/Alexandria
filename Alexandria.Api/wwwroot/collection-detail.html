@@ -45,6 +45,8 @@
             <button class="dropdown-toggle" data-bs-toggle="dropdown" data-label="Filter: ">Filter: All</button>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="#" data-filter="all" data-value="All"><span class="check">&#10003;</span> All</a></li>
+                <li style="display:none"><a class="dropdown-item" href="#" data-filter="ebooks" data-value="Ebooks"><span class="check"></span> Ebooks</a></li>
+                <li style="display:none"><a class="dropdown-item" href="#" data-filter="audiobooks" data-value="Audiobooks"><span class="check"></span> Audiobooks</a></li>
                 <li><a class="dropdown-item" href="#" data-filter="unread" data-value="Unread"><span class="check"></span> Unread</a></li>
                 <li><a class="dropdown-item" href="#" data-filter="reading" data-value="Reading"><span class="check"></span> Reading</a></li>
                 <li><a class="dropdown-item" href="#" data-filter="finished" data-value="Finished"><span class="check"></span> Finished</a></li>
@@ -125,6 +127,8 @@ $(function () {
             document.title = "Alexandria - " + collection.name;
 
             var books = collection.books || [];
+            updateMediaTypeFilters($("[data-page-key='collection-detail']").first(), books);
+            books = applyMediaTypeFilter(books, filter);
             if (filter === "unread") {
                 books = books.filter(function (b) { return !b.readingProgress || b.readingProgress.status === "ReadyToRead"; });
             } else if (filter === "reading") {

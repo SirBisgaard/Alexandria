@@ -1,4 +1,4 @@
-using Alexandria.Business.Models;
+using Alexandria.Business.Library.Models;
 
 namespace Alexandria.Api.Models.Requests;
 

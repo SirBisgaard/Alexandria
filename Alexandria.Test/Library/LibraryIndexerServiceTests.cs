@@ -1,15 +1,20 @@
-using Alexandria.Business.Extensions;
-using Alexandria.Business.Models.Settings;
-using Alexandria.Business.Services;
-using Alexandria.DataAccess;
-using Alexandria.DataAccess.Repositories;
-using Alexandria.DataAccess.Services;
+using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Library.Services;
+using Alexandria.DataAccess.Database;
+using Alexandria.DataAccess.Database.Repositories;
+using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Files;
+using Alexandria.DataAccess.Files.Books.Audiobooks;
+using Alexandria.DataAccess.Files.Books.Ebooks;
+using Alexandria.DataAccess.Files.Interfaces;
+using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alexandria.Tests.Library;
 
 [TestClass]
-public sealed class LibraryIndexerServiceTests
+public sealed class AlexandriaIndexerServiceTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
 
@@ -40,7 +45,7 @@ public sealed class LibraryIndexerServiceTests
         }
     }
 
-    private AlexandriaSettings CreateSettings(string? booksFolder = null) => new() { Database = dbPath, BooksFolder = booksFolder ?? ContentBooksDir, CoversFolder = coversDir, KepubsFolder = kepubsDir };
+    private AlexandriaSettings CreateSettings(string? booksFolder = null) => new() { DataFolder = testDir, EbookFolder = booksFolder ?? ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
 
     private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)> CreateRepositories(AlexandriaSettings settings)
     {
@@ -52,13 +57,19 @@ public sealed class LibraryIndexerServiceTests
         return (bookRepository, authorRepository, seriesRepository);
     }
 
-    private LibraryIndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)
+    private AlexandriaIndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)
     {
-        var extractor = new EpubMetadataHandler();
+        var epubMetadataHandler = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
-        return new LibraryIndexerService(settings, bookRepository, fileRepository, extractor, converter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, coverThumbnailService, NullLogger<LibraryIndexerService>.Instance);
+        var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, converter, coverThumbnailService);
+        var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
+        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
+        var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
+        var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
+        var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
+        return new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
     }
 
     [TestMethod]
@@ -81,7 +92,7 @@ public sealed class LibraryIndexerServiceTests
             Assert.StartsWith("sha256:", book.FileHash);
             Assert.IsNotNull(book.KepubFilePath);
             Assert.IsTrue(File.Exists(book.KepubFilePath), $"KEPUB should exist for {book.Title}");
-            Assert.IsGreaterThan(0, book.KepubFileSize, $"KepubFileSize should be positive for {book.Title}");
+            Assert.IsGreaterThan(0, book.TotalFileSize, $"TotalFileSize should be positive for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt, $"CreatedAt should be set for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.ModifiedAt, $"LastModified should be set for {book.Title}");
             Assert.AreEqual(book.CreatedAt, book.ModifiedAt, $"CreatedAt and LastModified should match on first index for {book.Title}");
@@ -196,7 +207,7 @@ public sealed class LibraryIndexerServiceTests
         Assert.AreEqual(originalCreatedAt, book.CreatedAt, "CreatedAt must be preserved.");
         Assert.IsTrue(book.ModifiedAt > originalModifiedAt, "LastModified must be updated.");
         Assert.AreEqual(originalHash, book.FileHash, "FileHash should be the real hash again.");
-        Assert.IsGreaterThan(0, book.KepubFileSize, "KepubFileSize must be set.");
+        Assert.IsGreaterThan(0, book.TotalFileSize, "TotalFileSize must be set.");
     }
 
     [TestMethod]

@@ -1,7 +1,7 @@
 using Alexandria.Api.Models.Requests;
 using Alexandria.Api.Models.Responses;
-using Alexandria.Business.Models;
-using Alexandria.Business.Models.Settings;
+using Alexandria.Business.Library.Models;
+using Alexandria.Business.Library.Models.Settings;
 
 namespace Alexandria.Api.Models;
 
@@ -20,7 +20,7 @@ public static class ApiMapper
         Publisher = book.Publisher,
         Identifiers = book.Identifiers,
         Subjects = book.Subjects,
-        Contributors = book.Contributors,
+        Contributors = book.Contributors.Select(c => new ContributorResponse { Name = c.Name, Role = c.Role }).ToList(),
         Rights = book.Rights,
         Source = book.Source,
         Type = book.Type,
@@ -30,7 +30,14 @@ public static class ApiMapper
         Series = book.Series is not null ? ToSeriesResponse(book.Series) : null,
         HasCover = book.CoverFilePath is not null,
         FileName = book.FileName,
-        KepubFileSize = book.KepubFileSize,
+        MediaType = book.MediaType,
+        Subtitle = book.Subtitle,
+        Isbn = book.Isbn,
+        TotalFileSize = book.TotalFileSize,
+        PageCount = book.PageCount,
+        WordCount = book.WordCount,
+        Duration = book.Duration,
+        IsAbridged = book.IsAbridged,
         CreatedAt = book.CreatedAt,
         ModifiedAt = book.ModifiedAt,
         IsArchived = book.IsArchived,
@@ -72,14 +79,19 @@ public static class ApiMapper
         Books = series.Books.Select(ToBookResponse).ToList()
     };
 
-    public static CollectionResponse ToCollectionResponse(BookCollection collection) => new()
+    public static CollectionResponse ToCollectionResponse(BookCollection collection, Dictionary<Guid, MediaType> bookMediaTypes)
     {
-        CollectionUuid = collection.CollectionUuid,
-        Name = collection.Name,
-        BookCount = collection.BookUuids.Count,
-        CreatedAt = collection.CreatedAt,
-        ModifiedAt = collection.ModifiedAt
-    };
+        var audiobookCount = collection.BookUuids.Count(id => bookMediaTypes.TryGetValue(id, out var mt) && mt == MediaType.Audiobook);
+        return new CollectionResponse
+        {
+            CollectionUuid = collection.CollectionUuid,
+            Name = collection.Name,
+            EbookCount = collection.BookUuids.Count - audiobookCount,
+            AudiobookCount = audiobookCount,
+            CreatedAt = collection.CreatedAt,
+            ModifiedAt = collection.ModifiedAt
+        };
+    }
 
     public static CollectionDetailResponse ToCollectionDetailResponse(CollectionWithBooks collection) => new()
     {
@@ -104,7 +116,9 @@ public static class ApiMapper
     {
         LastIndexedTimestamp = settings.LastIndexedTimestamp,
         SyncBatchSize = settings.SyncBatchSize,
-        ProxyLoggingEnabled = settings.ProxyLoggingEnabled
+        ProxyLoggingEnabled = settings.ProxyLoggingEnabled,
+        KoboStoreKillSwitch = settings.KoboStoreKillSwitch,
+        WordsPerPage = settings.WordsPerPage
     };
 
     public static Author ToAuthor(UpdateAuthorRequest request) => new()
@@ -120,7 +134,9 @@ public static class ApiMapper
     public static AppSettings ToAppSettings(UpdateSettingsRequest request) => new()
     {
         SyncBatchSize = request.SyncBatchSize,
-        ProxyLoggingEnabled = request.ProxyLoggingEnabled
+        ProxyLoggingEnabled = request.ProxyLoggingEnabled,
+        KoboStoreKillSwitch = request.KoboStoreKillSwitch,
+        WordsPerPage = request.WordsPerPage
     };
 
     public static Book ToBook(UpdateBookMetadataRequest request) => new()
@@ -131,6 +147,7 @@ public static class ApiMapper
         PublicationDate = request.PublicationDate,
         Description = request.Description,
         Publisher = request.Publisher,
+        IsAbridged = request.IsAbridged,
         Series = request.SeriesName is not null ? new Series { Name = request.SeriesName, Index = request.Index } : null
     };
 }

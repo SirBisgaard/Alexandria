@@ -108,8 +108,7 @@ $(function () {
         var $grid = $("#series-grid").empty();
         var $list = $("#series-list").empty();
         $.each(seriesList, function (i, s) {
-            var count = (s.books || []).length;
-            var countText = count + (count === 1 ? " book" : " books");
+            var countText = bookCountText(s.books || []);
             var firstBook = s.books && s.books.length > 0 ? s.books[0] : null;
             var authors = firstBook ? (firstBook.authors || []).map(function(a){return a.name}).join(", ") : "";
 

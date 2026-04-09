@@ -103,11 +103,14 @@ $(function () {
         $.get("/api/alexandria/collections?sort=" + prefs.sort + "&order=" + prefs.order, function (collections) {
             var $list = $("#collection-list").empty();
             $.each(collections, function (i, c) {
-                var count = (c.bookUuids || []).length;
+                var parts = [];
+                if (c.ebookCount > 0) parts.push(c.ebookCount + (c.ebookCount === 1 ? " book" : " books"));
+                if (c.audiobookCount > 0) parts.push(c.audiobookCount + (c.audiobookCount === 1 ? " audiobook" : " audiobooks"));
+                var countText = parts.join(", ") || "0 books";
                 $list.append(
                     '<a href="collection-detail.html?uuid=' + c.collectionUuid + '" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">' +
                         '<span class="fw-semibold text-body">' + escapeHtml(c.name) + '</span>' +
-                        '<span class="text-body-secondary">' + count + (count === 1 ? ' book' : ' books') + '</span>' +
+                        '<span class="text-body-secondary">' + escapeHtml(countText) + '</span>' +
                     '</a>'
                 );
             });

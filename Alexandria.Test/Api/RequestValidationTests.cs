@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Alexandria.Api.Models.Requests;
-using Alexandria.Business.Models;
+using Alexandria.Business.Library.Models;
 
 namespace Alexandria.Tests.Api;
 

@@ -329,6 +329,22 @@ html {
     border-radius: 2px;
 }
 
+.audiobook-badge {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    width: 26px;
+    height: 26px;
+    z-index: 2;
+}
+
+.book-list-cover-img .audiobook-badge {
+    width: 19px;
+    height: 19px;
+    bottom: 4px;
+    left: 4px;
+}
+
 .cover-frame .book-cover {
     position: absolute;
     inset: 0;
@@ -342,9 +358,24 @@ html {
 }
 
 .book-list-cover-img {
-    width: 56px;
-    min-width: 56px;
+    width: 100px;
+    min-width: 100px;
+    aspect-ratio: auto;
 }
+
+.book-list-cover-img img {
+    position: static;
+    transform: none;
+    display: block;
+    width: 100%;
+}
+
+.book-list-cover-img .book-cover {
+    position: static;
+    aspect-ratio: 2 / 3;
+    height: auto;
+}
+
 
 .home-cover-slot {
     position: absolute;
@@ -389,7 +420,7 @@ html {
 /* ===== Book List ===== */
 .book-list-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 14px;
     padding: 12px 0;
     border-bottom: 1px solid var(--bs-border-color);
@@ -418,7 +449,7 @@ html {
 
 .book-list-title {
     font-size: 19px;
-    font-weight: 600;
+    font-weight: normal;
     font-family: "Times New Roman", Times, serif;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -504,24 +535,27 @@ a.series-list-item {
 
 .series-list-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
 }
 
 .series-list-title {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 19px;
+    font-weight: normal;
     font-family: "Times New Roman", Times, serif;
 }
 
 .series-list-author {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--bs-secondary-color);
     margin-top: 2px;
 }
 
 .series-list-count {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--bs-tertiary-color);
-    margin-top: 4px;
+    margin-top: auto;
     font-family: "Times New Roman", Times, serif;
 }
 
@@ -714,7 +748,14 @@ a.series-list-item {
 .book-modal-cover {
     width: 160px;
     min-width: 160px;
+    aspect-ratio: auto;
     cursor: pointer;
+}
+
+.book-modal-cover img {
+    position: static;
+    transform: none;
+    max-width: 100%;
 }
 
 .book-modal-meta {
@@ -871,6 +912,15 @@ a.series-list-item {
     min-width: 160px;
 }
 
+.bm-edit-cover-col .cover-frame {
+    aspect-ratio: auto;
+}
+
+.bm-edit-cover-col .book-cover {
+    position: relative;
+    min-height: 240px;
+}
+
 .bm-edit-btn {
     padding: 10px 24px;
     border: 2px solid var(--bs-body-color);
@@ -914,9 +964,15 @@ a.series-list-item {
     pointer-events: none;
 }
 
-.bm-edit-input-disabled {
+.bm-edit-input.bm-edit-input-disabled,
+.bm-edit-textarea.bm-edit-input-disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    border-color: var(--bs-border-color);
+}
+
+.bm-edit-input-disabled ~ .bm-edit-checkmark {
+    border-color: var(--bs-border-color);
 }
 
 .bm-edit-error {
@@ -979,6 +1035,45 @@ a.series-list-item {
 .bm-edit-textarea {
     min-height: 240px;
     resize: vertical;
+}
+
+.bm-edit-checkbox {
+    display: block;
+    position: relative;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+}
+
+.bm-edit-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.bm-edit-checkmark {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--bs-body-color);
+    background: var(--bs-body-bg);
+}
+
+.bm-edit-checkmark::after {
+    content: "";
+    display: none;
+    position: absolute;
+    left: 13px;
+    top: 5px;
+    width: 10px;
+    height: 20px;
+    border: solid var(--bs-body-color);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+.bm-edit-checkbox input:checked ~ .bm-edit-checkmark::after {
+    display: block;
 }
 
 .bm-edit-row {
@@ -1137,6 +1232,11 @@ a.series-list-item {
     color-scheme: light dark;
     outline: none;
     font-family: "Times New Roman", Times, serif;
+    box-sizing: border-box;
+}
+
+.bm-edit-input {
+    height: 42px;
 }
 
 .search-input {

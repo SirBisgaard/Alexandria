@@ -1,12 +1,17 @@
-using Alexandria.Business.Extensions;
-using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models;
-using Alexandria.Business.Models.KoboStore;
-using Alexandria.Business.Models.Settings;
-using Alexandria.Business.Services;
-using Alexandria.DataAccess;
-using Alexandria.DataAccess.Repositories;
-using Alexandria.DataAccess.Services;
+using Alexandria.Business.KoboStoreProxy.Models.Store;
+using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.Library.Models;
+using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Library.Services;
+using Alexandria.DataAccess.Database;
+using Alexandria.DataAccess.Database.Repositories;
+using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Files;
+using Alexandria.DataAccess.Files.Books.Audiobooks;
+using Alexandria.DataAccess.Files.Books.Ebooks;
+using Alexandria.DataAccess.Files.Interfaces;
+using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alexandria.Tests.Library;
@@ -48,7 +53,7 @@ public sealed class AlexandriaLibraryServiceTests
         }
     }
 
-    private AlexandriaSettings CreateSettings() => new() { Database = dbPath, BooksFolder = booksDir, CoversFolder = coversDir, KepubsFolder = kepubsDir };
+    private AlexandriaSettings CreateSettings() => new() { DataFolder = testDir, EbookFolder = booksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
 
     private async Task<(AlexandriaLibraryService service, BookRepository bookRepository)> CreateService()
     {
@@ -62,10 +67,16 @@ public sealed class AlexandriaLibraryServiceTests
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubMetadataHandler = new EpubMetadataHandler();
         var kepubifyConverter = new KepubifyConverter();
-        var indexerService = new LibraryIndexerService(settings, bookRepository, fileRepository, epubMetadataHandler, kepubifyConverter, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, coverThumbnailService, NullLogger<LibraryIndexerService>.Instance);
+        var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, kepubifyConverter, coverThumbnailService);
+        var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
+        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
+        var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
+        var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
+        var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
+        var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
         var collectionRepository = new FakeCollectionRepository();
-        var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, fileRepository, epubMetadataHandler, indexerService, authorRepository, seriesRepository);
+        var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, contentManager, indexerService, authorRepository, seriesRepository);
 
         await indexerService.Index();
         return (service, bookRepository);
@@ -133,7 +144,7 @@ public sealed class AlexandriaLibraryServiceTests
         var (freshMetadata, _) = handler.ExtractAll(original.SourcePath, coversDir);
         Assert.AreEqual("Roundtrip Title", freshMetadata.Title);
         Assert.HasCount(1, freshMetadata.Authors);
-        Assert.AreEqual("Roundtrip Author", freshMetadata.Authors[0]);
+        Assert.AreEqual("Roundtrip Author", freshMetadata.Authors[0].Name);
         Assert.AreEqual("fr", freshMetadata.Language);
     }
 
@@ -244,9 +255,9 @@ public sealed class AlexandriaLibraryServiceTests
 
     private class FakeReadingStateRepository : IReadingStateRepository
     {
-        public Task<ReadingState?> GetByBookUuid(Guid bookUuid) => Task.FromResult<ReadingState?>(null);
+        public Task<KoboStoreReadingState?> GetByBookUuid(Guid bookUuid) => Task.FromResult<KoboStoreReadingState?>(null);
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult<ReadingProgress?>(null);
-        public Task Upsert(Guid bookUuid, ReadingState state) => Task.CompletedTask;
+        public Task Upsert(Guid bookUuid, KoboStoreReadingState state) => Task.CompletedTask;
     }
 
     private class FakeCollectionRepository : ICollectionRepository

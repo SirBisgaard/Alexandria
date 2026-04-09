@@ -47,10 +47,27 @@ function formatFileSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-function readingStatusText(progress) {
-    if (!progress || progress.status === "ReadyToRead") { return "Unread"; }
+function bookCountText(books) {
+    var ebooks = 0, audiobooks = 0;
+    for (var i = 0; i < books.length; i++) {
+        if (books[i].mediaType === "Audiobook")
+            audiobooks++;
+        else
+            ebooks++;
+    }
+    var parts = [];
+    if (ebooks > 0)
+        parts.push(ebooks + (ebooks === 1 ? " book" : " books"));
+    if (audiobooks > 0)
+        parts.push(audiobooks + (audiobooks === 1 ? " audiobook" : " audiobooks"));
+    return parts.join(", ") || "0 books";
+}
+
+function readingStatusText(progress, mediaType) {
+    var isAudiobook = mediaType === "Audiobook";
+    if (!progress || progress.status === "ReadyToRead") { return isAudiobook ? "Unplayed" : "Unread"; }
     if (progress.status === "Finished" || (progress.progressPercent != null && Math.round(progress.progressPercent) >= 100)) { return "Finished"; }
-    if (progress.progressPercent != null) { return Math.max(1, Math.min(100, Math.round(progress.progressPercent))) + "% Read"; }
+    if (progress.progressPercent != null) { return Math.max(1, Math.min(100, Math.round(progress.progressPercent))) + (isAudiobook ? "% Played" : "% Read"); }
     return progress.status;
 }
 
@@ -86,13 +103,17 @@ function fallbackColor(uuid) {
     return "hsl(" + h + ", 30%, 35%)";
 }
 
+var AUDIOBOOK_BADGE = '<svg class="audiobook-badge" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#000" stroke="#fff" stroke-width="1"/><path d="M12 5.5a5.8 5.8 0 0 0-5.8 5.8v3.2a1.6 1.6 0 0 0 1.6 1.6h1.2a.8.8 0 0 0 .8-.8v-2.8a.8.8 0 0 0-.8-.8H7.8v-1.2a4.2 4.2 0 0 1 8.4 0V12.5h-1.2a.8.8 0 0 0-.8.8v2.8a.8.8 0 0 0 .8.8h1.2a1.6 1.6 0 0 0 1.6-1.6v-3.2A5.8 5.8 0 0 0 12 5.5z" fill="#fff"/></svg>';
+
 function bookCoverHtml(book, cssClass) {
     var cls = cssClass || "book-cover-img";
     var size = cls === "book-list-cover-img" ? COVER_SMALL : COVER_LARGE;
     var hasCover = !!book.hasCover;
+    var badge = book.mediaType === "Audiobook" ? AUDIOBOOK_BADGE : "";
     return '<div class="cover-frame ' + cls + '">' +
            (hasCover ? '<img loading="lazy" src="' + coverUrl(book.bookUuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' : '') +
-           '<div class="book-cover" style="' + (hasCover ? 'display:none;' : '') + 'background:' + fallbackColor(book.bookUuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).map(function(a){return a.name}).join(", ")) + '</small></div></div>';
+           '<div class="book-cover" style="' + (hasCover ? 'display:none;' : '') + 'background:' + fallbackColor(book.bookUuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).map(function(a){return a.name}).join(", ")) + '</small></div>' +
+           badge + '</div>';
 }
 
 function homeStackCoverHtml(book) {

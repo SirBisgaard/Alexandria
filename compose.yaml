@@ -16,7 +16,6 @@ services:
       - KoboProxySettings__AlexandriaApi=http://localhost
       - KoboProxySettings__StoreApi=https://storeapi.kobo.com
       # AlexandriaSettings
-      - AlexandriaSettings__Database=/app/content/data/alexandria.db
-      - AlexandriaSettings__BooksFolder=/app/content/books
-      - AlexandriaSettings__CoversFolder=/app/content/data/covers
-      - AlexandriaSettings__KepubsFolder=/app/content/data/kepubs
+      - AlexandriaSettings__DataFolder=/app/content/data
+      - AlexandriaSettings__EbookFolder=/app/content/books
+      - AlexandriaSettings__AudiobookFolder=/app/content/audiobooks

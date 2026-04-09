@@ -23,6 +23,8 @@ public class UpdateBookMetadataRequest : IValidatableObject
     [Range(0, (double)decimal.MaxValue, ErrorMessage = "Index must be zero or positive.")]
     public decimal? Index { get; set; }
 
+    public bool? IsAbridged { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (Authors.Count > 0 && Authors.All(string.IsNullOrWhiteSpace))

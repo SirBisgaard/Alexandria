@@ -96,7 +96,7 @@ $(function () {
                 var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
                 readingHtml += '<div class="home-reading-item" onclick="openBookModal(\'' + book.bookUuid + '\')">' +
                     '<div class="home-card-covers">' + homeSingleCoverHtml(book) + '</div>' +
-                    '<div class="home-card-title">' + pct + '% Read</div>' +
+                    '<div class="home-card-title">' + pct + (book.mediaType === "Audiobook" ? '% Played' : '% Read') + '</div>' +
                     '<div class="home-card-sub">' + escapeHtml(subText) + '</div>' +
                 '</div>';
             });

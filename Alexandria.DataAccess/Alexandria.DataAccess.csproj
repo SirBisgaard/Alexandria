@@ -13,17 +13,21 @@
     <ItemGroup>
         <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.11.1" />
         <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
+        <PackageReference Include="z440.atl.core" Version="7.12.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="runtimes\linux-x64\native\" />
-        <None Include="runtimes/linux-x64/native/kepubify">
+        <None Include="Externals/kepubify">
             <Pack>true</Pack>
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <CopyToPublishDirectory>Always</CopyToPublishDirectory>
             <CopyToPublishSingleFile>Always</CopyToPublishSingleFile>
             <Link>kepubify</Link>
         </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Files\Books\" />
     </ItemGroup>
 
     <Target Name="SetKepubifyPermissions" AfterTargets="Build">

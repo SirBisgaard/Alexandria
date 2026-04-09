@@ -2,8 +2,8 @@ using System.Text.Json;
 using Alexandria.Api.Models;
 using Alexandria.Api.Models.Events;
 using Alexandria.Api.Models.Requests;
-using Alexandria.Business.Interfaces;
-using Alexandria.Business.Models;
+using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.Library.Models.Others;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -81,6 +81,13 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         return Ok(ApiMapper.ToAuthorDetailResponse(author));
     }
 
+    [HttpGet("publishers")]
+    public async Task<IActionResult> GetPublishers()
+    {
+        var publishers = await alexandriaLibraryService.GetPublishers();
+        return Ok(publishers);
+    }
+
     [HttpGet("series")]
     public async Task<IActionResult> GetSeries([FromQuery] SeriesSortField? sort, [FromQuery] SortOrder? order)
     {
@@ -114,7 +121,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             var conflict = await alexandriaLibraryService.GetAuthorByName(author.Name);
             if (conflict is not null)
-                return Conflict(new { errors = new Dictionary<string, string[]> { ["Name"] = ["An author with this name already exists."] } });
+            {
+                var merged = await alexandriaLibraryService.MergeAuthor(uuid, conflict.AuthorUuid);
+                return Ok(ApiMapper.ToAuthorDetailResponse(merged!));
+            }
         }
 
         var result = await alexandriaLibraryService.UpdateAuthor(author);
@@ -134,7 +144,10 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         {
             var conflict = await alexandriaLibraryService.GetSeriesByName(series.Name);
             if (conflict is not null)
-                return Conflict(new { errors = new Dictionary<string, string[]> { ["Name"] = ["A series with this name already exists."] } });
+            {
+                var merged = await alexandriaLibraryService.MergeSeries(uuid, conflict.SeriesUuid);
+                return Ok(ApiMapper.ToSeriesDetailResponse(merged!));
+            }
         }
 
         var result = await alexandriaLibraryService.UpdateSeries(series);
@@ -146,7 +159,9 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         var options = new CollectionSortOptions(sort ?? CollectionSortField.CollectionName, order ?? SortOrder.Asc);
         var collections = await alexandriaLibraryService.GetCollections(options);
-        return Ok(collections.Select(ApiMapper.ToCollectionResponse));
+        var books = await alexandriaLibraryService.GetBooks();
+        var bookMediaTypes = books.ToDictionary(b => b.BookUuid, b => b.MediaType);
+        return Ok(collections.Select(c => ApiMapper.ToCollectionResponse(c, bookMediaTypes)));
     }
 
     [HttpGet("collections/{uuid:guid}")]
