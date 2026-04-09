@@ -124,6 +124,53 @@ public static class KoboStoreEntityMapper
         };
     }
 
+    public static KoboStoreProductRecommendationItem ToProductRecommendationItem(Book book) => book.MediaType == MediaType.Audiobook
+        ? new KoboStoreProductRecommendationItem { Audiobook = ToAudiobookProduct(book) }
+        : new KoboStoreProductRecommendationItem { Book = ToEbookProduct(book) };
+
+    public static KoboStoreProductRecommendationAudiobook ToAudiobookProduct(Book book) => new()
+    {
+        Id = book.EntitlementUuid.ToString(),
+        Title = book.Title,
+        Contributors = string.Join(",", book.Authors.Select(a => a.Name)),
+        ContributorRoles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name }).ToList(),
+        Description = book.Description,
+        Language = book.Language,
+        Duration = book.Duration ?? 0,
+        TotalBytes = book.TotalFileSize,
+        IsAbridged = book.IsAbridged ?? false,
+        ISBN = book.Isbn,
+        PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
+        Subtitle = book.Subtitle,
+        PublisherName = book.Publisher,
+        ImageId = book.CoverImageUuid?.ToString(),
+        SeriesName = book.Series?.Name,
+        SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
+        SeriesId = book.Series?.SeriesUuid.ToString(),
+        SeriesNumberFloat = book.Series?.Index is not null ? (float)book.Series.Index.Value : null
+    };
+
+    public static KoboStoreEbookProduct ToEbookProduct(Book book) => new()
+    {
+        Id = book.EntitlementUuid.ToString(),
+        Title = book.Title,
+        Contributors = string.Join(",", book.Authors.Select(a => a.Name)),
+        ContributorRoles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name }).ToList(),
+        Description = book.Description,
+        Language = book.Language,
+        Locale = new KoboStoreLocale { LanguageCode = book.Language },
+        ISBN = book.Isbn,
+        PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
+        Subtitle = book.Subtitle,
+        PublisherName = book.Publisher,
+        ImageId = book.CoverImageUuid?.ToString(),
+        SeriesName = book.Series?.Name,
+        SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
+        SeriesId = book.Series?.SeriesUuid.ToString(),
+        SeriesNumberFloat = book.Series?.Index is not null ? (float)book.Series.Index.Value : null,
+        Stats = book.PageCount is not null || book.WordCount is not null ? new KoboStoreEbookStats { Pages = book.PageCount ?? 0, WordCount = book.WordCount ?? 0 } : null
+    };
+
     private static List<KoboStoreContributorRole> BuildContributorRoles(Book book)
     {
         var roles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name, Role = "Author" }).ToList();

@@ -58,7 +58,10 @@ builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
-builder.Services.AddTransient<IKoboDeviceSyncService, KoboDeviceSyncService>();
+builder.Services.AddTransient<IKoboLibrarySyncService, KoboLibrarySyncService>();
+builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliveryService>();
+builder.Services.AddTransient<IKoboReadingStateService, KoboReadingStateService>();
+builder.Services.AddTransient<IKoboProductService, KoboProductService>();
 builder.Services.AddTransient<ILibraryIndexerService, AlexandriaIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
 builder.Services.AddTransient<IAlexandriaSettingsService, AlexandriaSettingsService>();

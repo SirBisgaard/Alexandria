@@ -55,13 +55,13 @@ public sealed class LibrarySyncTests
         return new KoboProxyRequest { Method = "GET", Path = "/v1/library/sync", QueryString = "", Headers = headers, Body = [] };
     }
 
-    private KoboDeviceSyncService CreateService(List<Book> books, HttpResponseMessage? upstreamResponse = null, FakeKoboDeviceSyncRepository? syncRepo = null, int syncBatchSize = 60)
+    private KoboLibrarySyncService CreateService(List<Book> books, HttpResponseMessage? upstreamResponse = null, FakeKoboDeviceSyncRepository? syncRepo = null, int syncBatchSize = 60)
     {
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
         var proxyService = new KoboStoreProxyService(Settings, httpClient, NullLogger<KoboStoreProxyService>.Instance);
-        return new KoboDeviceSyncService(Settings, proxyService, libraryService, new FakeSettingsService(syncBatchSize), new FakeFileContentManager(), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), koboDeviceSyncTokenService, NullLogger<KoboDeviceSyncService>.Instance);
+        return new KoboLibrarySyncService(Settings, proxyService, libraryService, new FakeSettingsService(syncBatchSize), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), koboDeviceSyncTokenService, NullLogger<KoboLibrarySyncService>.Instance);
     }
 
     private static HttpResponseMessage MakeEmptyStoreResponse(string? syncToken = null)
@@ -496,15 +496,6 @@ public sealed class LibrarySyncTests
         public Task<Series?> MergeSeries(Guid sourceUuid, Guid targetUuid) => Task.FromResult<Series?>(null);
     }
 
-    private class FakeFileContentManager : IFileContentManager
-    {
-        public Task<List<Book>> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null) => Task.FromResult(new List<Book>());
-        public Task<Book> GetBook(Book book) => throw new NotImplementedException();
-        public Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null) => throw new NotImplementedException();
-        public Task<byte[]?> GetContentFile(Book book) => Task.FromResult<byte[]?>(null);
-        public Task<byte[]?> GetChapterFile(Book book, int chapterIndex) => Task.FromResult<byte[]?>(null);
-        public Task<byte[]?> GetCoverFile(Book book, int? width = null, int? height = null, int? quality = null) => Task.FromResult<byte[]?>(null);
-    }
 
     private class FakeReadingStateRepository : IReadingStateRepository
     {
