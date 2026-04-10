@@ -123,13 +123,6 @@ public sealed class M4BMetadataHandlerTests
     }
 
     [TestMethod]
-    public async Task Extract_FantasticBeasts_ReturnsCorrectIdentifier()
-    {
-        var book = await ExtractBook(FantasticBeastsFileName);
-        Assert.Contains("asin:B01MZE29BJ", book.Identifiers);
-    }
-
-    [TestMethod]
     public async Task Extract_FantasticBeasts_ReturnsMediaTypeAudiobook()
     {
         var book = await ExtractBook(FantasticBeastsFileName);

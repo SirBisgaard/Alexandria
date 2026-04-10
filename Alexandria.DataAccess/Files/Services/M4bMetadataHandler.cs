@@ -30,9 +30,8 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         {
             MediaType = MediaType.Audiobook,
             Title = GetTag(tags, "title") ?? Path.GetFileNameWithoutExtension(filePath),
-            Subtitle = GetTag(tags, "SUBTITLE") ?? GetTag(tags, "subtitle"),
-            Description = GetTag(tags, "comment") ?? GetTag(tags, "description"),
-            Publisher = GetTag(tags, "PUBLISHER") ?? GetTag(tags, "publisher"),
+            Description = GetTag(tags, "description") ?? GetTag(tags, "comment"),
+            Publisher = GetTag(tags, "publisher") ?? GetTag(tags, "PUBLISHER"),
             Language = GetTag(tags, "LANGUAGE") ?? GetTag(tags, "language") ?? "",
             PublicationDate = GetTag(tags, "date"),
             Rights = GetTag(tags, "copyright"),
@@ -42,10 +41,6 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         if (format.TryGetProperty("duration", out var dur) && double.TryParse(dur.GetString(), CultureInfo.InvariantCulture, out var duration))
             book.Duration = (int)Math.Round(duration);
 
-        var alexandriaUuid = GetTag(tags, "ALEXANDRIA_UUID");
-        if (alexandriaUuid is not null && Guid.TryParse(alexandriaUuid, out var parsedUuid) && parsedUuid != Guid.Empty)
-            book.BookUuid = parsedUuid;
-
         var artist = GetTag(tags, "artist") ?? GetTag(tags, "album_artist");
         if (artist is not null)
             book.Authors = [new Author { Name = artist }];
@@ -54,27 +49,21 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         if (narrator is not null)
             book.Contributors = [new Contributor { Name = narrator, Role = "Narrator" }];
 
-        var seriesName = GetTag(tags, "SERIES") ?? GetTag(tags, "series");
-        if (seriesName is not null)
+        var grouping = GetTag(tags, "grouping");
+        if (grouping is not null)
         {
-            var partStr = GetTag(tags, "PART") ?? GetTag(tags, "part");
-            decimal? index = partStr is not null && decimal.TryParse(partStr, out var p) ? p : null;
-            book.Series = new Series { Name = seriesName, Index = index };
+            book.Series = ParseGrouping(grouping);
         }
         else
         {
-            var grouping = GetTag(tags, "grouping");
-            if (grouping is not null)
-                book.Series = ParseGrouping(grouping);
+            var seriesName = GetTag(tags, "SERIES") ?? GetTag(tags, "series");
+            if (seriesName is not null)
+            {
+                var partStr = GetTag(tags, "PART") ?? GetTag(tags, "part");
+                decimal? index = partStr is not null && decimal.TryParse(partStr, out var p) ? p : null;
+                book.Series = new Series { Name = seriesName, Index = index };
+            }
         }
-
-        var isAbridged = GetTag(tags, "ISABRIDGED") ?? GetTag(tags, "isAbridged");
-        if (isAbridged is not null && bool.TryParse(isAbridged, out var abridged))
-            book.IsAbridged = abridged;
-
-        var asin = GetTag(tags, "AUDIBLE_ASIN") ?? GetTag(tags, "asin") ?? GetTag(tags, "ASIN");
-        if (asin is not null)
-            book.Identifiers = [$"asin:{asin}"];
 
         var genre = GetTag(tags, "genre");
         if (genre is not null)
@@ -128,12 +117,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
 
         var tags = BuildStandardTagDictionary(book);
         var chapters = BuildChapterList(existing);
-        var coverData = await ffmpegHandler.ExtractCoverImage(filePath);
-
-        if (coverData is not null)
-            await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadataWithCover(input, output, tags, chapters, coverData));
-        else
-            await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadata(input, output, tags, chapters));
+        await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadata(input, output, tags, chapters));
     }
 
     public async Task EmbedCover(string filePath, byte[] coverData, string mediaType)
@@ -172,20 +156,27 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         var tags = new Dictionary<string, string>();
 
         if (!string.IsNullOrWhiteSpace(book.Title))
+        {
             tags["title"] = book.Title;
+            tags["album"] = book.Subtitle is not null ? $"{book.Title}: {book.Subtitle}" : book.Title;
+        }
 
         if (book.Authors.Count > 0)
         {
-            tags["artist"] = book.Authors[0].Name;
-            tags["album_artist"] = book.Authors[0].Name;
+            var authorStr = string.Join(", ", book.Authors.Select(a => a.Name));
+            tags["artist"] = authorStr;
+            tags["album_artist"] = authorStr;
         }
 
-        var narrator = book.Contributors.FirstOrDefault(c => c.Role == "Narrator");
-        if (narrator is not null)
-            tags["composer"] = narrator.Name;
+        var narrators = book.Contributors.Where(c => c.Role == "Narrator").ToList();
+        if (narrators.Count > 0)
+            tags["composer"] = string.Join(", ", narrators.Select(n => n.Name));
 
         if (book.Description is not null)
+        {
             tags["comment"] = book.Description;
+            tags["description"] = book.Description;
+        }
 
         if (book.PublicationDate is not null)
             tags["date"] = book.PublicationDate;
@@ -193,8 +184,11 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         if (book.Rights is not null)
             tags["copyright"] = book.Rights;
 
+        if (book.Publisher is not null)
+            tags["publisher"] = book.Publisher;
+
         if (book.Subjects.Count > 0)
-            tags["genre"] = book.Subjects[0];
+            tags["genre"] = string.Join("; ", book.Subjects);
 
         if (book.Series is not null)
         {

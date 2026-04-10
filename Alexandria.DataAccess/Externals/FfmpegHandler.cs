@@ -93,7 +93,7 @@ public class FfmpegHandler : IFfmpegHandler
         try
         {
             await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
-            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map 0:v? -map_metadata 1 -map_metadata 0 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
         }
         finally
         {
@@ -110,7 +110,7 @@ public class FfmpegHandler : IFfmpegHandler
         {
             await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
             await File.WriteAllBytesAsync(coverPath, coverData);
-            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -i \"{coverPath}\" -map 0:a -map_metadata 1 -map_chapters 1 -map 2:v -c copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover -f mp4 -y \"{outputPath}\"");
+            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -i \"{coverPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map_chapters 1 -map 2:v -c copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover -f mp4 -y \"{outputPath}\"");
         }
         finally
         {
@@ -127,7 +127,7 @@ public class FfmpegHandler : IFfmpegHandler
         try
         {
             await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
-            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
         }
         finally
         {
