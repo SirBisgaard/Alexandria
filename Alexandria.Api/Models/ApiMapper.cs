@@ -117,7 +117,8 @@ public static class ApiMapper
         LastIndexedTimestamp = settings.LastIndexedTimestamp,
         SyncBatchSize = settings.SyncBatchSize,
         ProxyLoggingEnabled = settings.ProxyLoggingEnabled,
-        WordsPerPage = settings.WordsPerPage
+        WordsPerPage = settings.WordsPerPage,
+        SyncLibraryAtBoot = settings.SyncLibraryAtBoot
     };
 
     public static Author ToAuthor(UpdateAuthorRequest request) => new()
@@ -134,7 +135,8 @@ public static class ApiMapper
     {
         SyncBatchSize = request.SyncBatchSize,
         ProxyLoggingEnabled = request.ProxyLoggingEnabled,
-        WordsPerPage = request.WordsPerPage
+        WordsPerPage = request.WordsPerPage,
+        SyncLibraryAtBoot = request.SyncLibraryAtBoot
     };
 
     public static Book ToBook(UpdateBookMetadataRequest request) => new()

@@ -8,4 +8,5 @@ public class AppSettings
     public bool ProxyLoggingEnabled { get; set; } = true;
 
     public int WordsPerPage { get; set; } = 250;
+    public bool SyncLibraryAtBoot { get; set; }
 }

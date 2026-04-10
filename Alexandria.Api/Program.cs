@@ -90,8 +90,11 @@ var appSettings = await settingsRepo.Get();
 GuidExtensions.SetNamespace(appSettings.UuidSeed);
 
 // Index library at boot.
-var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();
-await libraryIndexer.Index();
+if (appSettings.SyncLibraryAtBoot)
+{
+    var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();
+    await libraryIndexer.Index();
+}
 
 app.UseAuthorization();
 

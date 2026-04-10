@@ -7,4 +7,5 @@ public class SettingsResponse
     public bool ProxyLoggingEnabled { get; set; }
 
     public int WordsPerPage { get; set; }
+    public bool SyncLibraryAtBoot { get; set; }
 }

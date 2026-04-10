@@ -293,15 +293,16 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 LastIndexedTimestamp TEXT,
                 SyncBatchSize INTEGER NOT NULL DEFAULT 60,
                 ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1,
-                WordsPerPage INTEGER NOT NULL DEFAULT 250
+                WordsPerPage INTEGER NOT NULL DEFAULT 250,
+                SyncLibraryAtBoot INTEGER NOT NULL DEFAULT 0
             )
             """;
         await settingsCreateCmd.ExecuteNonQueryAsync();
 
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
-            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage)
-            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 0, 250)
+            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot)
+            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 0, 250, 0)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
     }
