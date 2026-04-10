@@ -600,7 +600,8 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             if (role is null)
                 continue;
 
-            var roleName = MarcRelatorRoles.TryGetValue(role, out var mapped) ? mapped : role;
+            if (!MarcRelatorRoles.TryGetValue(role, out var roleName))
+                continue;
             contributors.Add(new Contributor { Name = name, Role = roleName });
         }
 

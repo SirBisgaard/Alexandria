@@ -154,8 +154,8 @@ public static class KoboStoreEntityMapper
     {
         Id = book.EntitlementUuid.ToString(),
         Title = book.Title,
-        Contributors = string.Join(",", book.Authors.Select(a => a.Name)),
-        ContributorRoles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name }).ToList(),
+        Contributors = string.Join(",", book.Authors.Select(a => a.Name).Concat(book.Contributors.Select(c => c.Name)).Distinct()),
+        ContributorRoles = BuildContributorRoles(book),
         Description = book.Description,
         Language = book.Language,
         Locale = new KoboStoreLocale { LanguageCode = book.Language },
@@ -174,12 +174,7 @@ public static class KoboStoreEntityMapper
     private static List<KoboStoreContributorRole> BuildContributorRoles(Book book)
     {
         var roles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name, Role = "Author" }).ToList();
-
-        if (book.MediaType is MediaType.Audiobook)
-        {
-            roles.AddRange(book.Contributors.Select(contributor => new KoboStoreContributorRole { Name = contributor.Name, Role = contributor.Role }));
-        }
-
+        roles.AddRange(book.Contributors.Select(contributor => new KoboStoreContributorRole { Name = contributor.Name, Role = contributor.Role }));
         return roles;
     }
 }
