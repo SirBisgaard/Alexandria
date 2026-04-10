@@ -231,62 +231,116 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler, ILogger<M4BMetadat
 
     public async Task EmbedMetadata(string filePath, Book book)
     {
-        var existing = ExtractMetadata(filePath).GetAwaiter().GetResult();
+        var existing = await ExtractMetadata(filePath);
         if (existing.MetadataEquals(book))
             return;
 
-        var track = new Track(filePath);
+        var tags = BuildStandardTagDictionary(book);
+        var chapters = BuildChapterList(existing);
+        var coverData = await ffmpegHandler.ExtractCoverImage(filePath);
+
+        if (coverData is not null)
+            await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadataWithCover(input, output, tags, chapters, coverData));
+        else
+            await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadata(input, output, tags, chapters));
+
+        WriteCustomTagsViaAtl(filePath, book, existing);
+    }
+
+    public async Task EmbedCover(string filePath, byte[] coverData, string mediaType)
+    {
+        var existing = await ExtractMetadata(filePath);
+        var tags = BuildStandardTagDictionary(existing);
+        var chapters = BuildChapterList(existing);
+        await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadataWithCover(input, output, tags, chapters, coverData));
+        WriteCustomTagsViaAtl(filePath, existing, existing);
+    }
+
+    public async Task RemoveCover(string filePath)
+    {
+        var existing = await ExtractMetadata(filePath);
+        var tags = BuildStandardTagDictionary(existing);
+        var chapters = BuildChapterList(existing);
+        await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadataRemoveCover(input, output, tags, chapters));
+        WriteCustomTagsViaAtl(filePath, existing, existing);
+    }
+
+    private static async Task WriteViaFfmpeg(string filePath, Func<string, string, Task> action)
+    {
+        var tempPath = filePath + ".tmp";
+        try
+        {
+            await action(filePath, tempPath);
+            File.Move(tempPath, filePath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
+        }
+    }
+
+    private static Dictionary<string, string> BuildStandardTagDictionary(Book book)
+    {
+        var tags = new Dictionary<string, string>();
 
         if (!string.IsNullOrWhiteSpace(book.Title))
-            track.Title = book.Title;
+            tags["title"] = book.Title;
 
         if (book.Authors.Count > 0)
         {
-            track.Artist = book.Authors[0].Name;
-            track.AlbumArtist = book.Authors[0].Name;
+            tags["artist"] = book.Authors[0].Name;
+            tags["album_artist"] = book.Authors[0].Name;
         }
 
         var narrator = book.Contributors.FirstOrDefault(c => c.Role == "Narrator");
         if (narrator is not null)
-            track.Composer = narrator.Name;
+            tags["composer"] = narrator.Name;
 
         if (book.Description is not null)
-            track.Comment = book.Description;
+            tags["comment"] = book.Description;
 
-        if (book.PublicationDate is not null && int.TryParse(book.PublicationDate, out var year))
-            track.Year = year;
+        if (book.PublicationDate is not null)
+            tags["date"] = book.PublicationDate;
+
+        if (book.Rights is not null)
+            tags["copyright"] = book.Rights;
+
+        if (book.Subjects.Count > 0)
+            tags["genre"] = book.Subjects[0];
+
+        if (book.Series is not null)
+        {
+            var grouping = book.Series.Name;
+            if (book.Series.Index is not null)
+                grouping += $" #{book.Series.Index.Value}";
+            tags["grouping"] = grouping;
+        }
+
+        return tags;
+    }
+
+    private static void WriteCustomTagsViaAtl(string filePath, Book book, Book existing)
+    {
+        var track = new Track(filePath);
+
+        if (!string.IsNullOrEmpty(book.Language))
+            track.AdditionalFields["LANGUAGE"] = book.Language;
 
         if (book.Publisher is not null)
             track.Publisher = book.Publisher;
 
-        if (!string.IsNullOrEmpty(book.Language))
-            track.Language = book.Language;
-
-        if (book.Rights is not null)
-            track.Copyright = book.Rights;
-
-        if (book.Subjects.Count > 0)
-            track.Genre = book.Subjects[0];
-
         if (book.Series is not null)
         {
-            track.SeriesTitle = book.Series.Name;
-            if (book.Series.Index is not null)
-                track.SeriesPart = book.Series.Index.Value.ToString(CultureInfo.InvariantCulture);
-
             track.AdditionalFields["SERIES"] = book.Series.Name;
             if (book.Series.Index is not null)
                 track.AdditionalFields["PART"] = book.Series.Index.Value.ToString(CultureInfo.InvariantCulture);
-
-            var grouping = book.Series.Name;
-            if (book.Series.Index is not null)
-                grouping += $" #{book.Series.Index.Value}";
-            track.Group = grouping;
         }
 
-        var existingUuid = GetAdditionalField(track, "ALEXANDRIA_UUID");
-        if (existingUuid is null && book.BookUuid != Guid.Empty)
+        if (existing.BookUuid == Guid.Empty && book.BookUuid != Guid.Empty)
             track.AdditionalFields["ALEXANDRIA_UUID"] = book.BookUuid.ToString();
+        else if (existing.BookUuid != Guid.Empty)
+            track.AdditionalFields["ALEXANDRIA_UUID"] = existing.BookUuid.ToString();
 
         if (book.Subtitle is not null)
             track.AdditionalFields["SUBTITLE"] = book.Subtitle;
@@ -298,26 +352,12 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler, ILogger<M4BMetadat
         if (asin is not null)
             track.AdditionalFields["AUDIBLE_ASIN"] = asin["asin:".Length..];
 
-        await track.SaveAsync();
+        track.Save();
     }
 
-    public Task EmbedCover(string filePath, byte[] coverData, string mediaType)
+    private static List<FfmpegChapter> BuildChapterList(Book book)
     {
-        var track = new Track(filePath);
-        foreach (var pic in track.EmbeddedPictures)
-            pic.MarkedForDeletion = true;
-        track.EmbeddedPictures.Add(PictureInfo.fromBinaryData(coverData, PictureInfo.PIC_TYPE.Front));
-        track.Save();
-        return Task.CompletedTask;
-    }
-
-    public Task RemoveCover(string filePath)
-    {
-        var track = new Track(filePath);
-        foreach (var pic in track.EmbeddedPictures)
-            pic.MarkedForDeletion = true;
-        track.Save();
-        return Task.CompletedTask;
+        return book.Chapters.Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title)).ToList();
     }
 
     private static Series ParseGrouping(string grouping)

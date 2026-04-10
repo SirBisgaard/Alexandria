@@ -6,4 +6,7 @@ public interface IFfmpegHandler
     Task<byte[]> ExtractChapterAsMp3ToMemory(string inputPath, double startTime, double endTime);
     Task<string> GetMetadataJson(string inputPath);
     Task<byte[]?> ExtractCoverImage(string inputPath);
+    Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters);
+    Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData);
+    Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters);
 }

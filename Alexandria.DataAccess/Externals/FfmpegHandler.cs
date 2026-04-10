@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace Alexandria.DataAccess.Externals;
 
@@ -84,6 +85,86 @@ public class FfmpegHandler : IFfmpegHandler
 
         var data = memoryStream.ToArray();
         return data.Length > 0 ? data : null;
+    }
+
+    public async Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters)
+    {
+        var metadataPath = outputPath + ".ffmetadata";
+        try
+        {
+            await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
+            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+        }
+        finally
+        {
+            if (File.Exists(metadataPath))
+                File.Delete(metadataPath);
+        }
+    }
+
+    public async Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData)
+    {
+        var metadataPath = outputPath + ".ffmetadata";
+        var coverPath = outputPath + ".cover.jpg";
+        try
+        {
+            await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
+            await File.WriteAllBytesAsync(coverPath, coverData);
+            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -i \"{coverPath}\" -map 0:a -map_metadata 1 -map_chapters 1 -map 2:v -c copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover -f mp4 -y \"{outputPath}\"");
+        }
+        finally
+        {
+            if (File.Exists(metadataPath))
+                File.Delete(metadataPath);
+            if (File.Exists(coverPath))
+                File.Delete(coverPath);
+        }
+    }
+
+    public async Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters)
+    {
+        var metadataPath = outputPath + ".ffmetadata";
+        try
+        {
+            await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
+            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+        }
+        finally
+        {
+            if (File.Exists(metadataPath))
+                File.Delete(metadataPath);
+        }
+    }
+
+    private static string GenerateFfMetadata(Dictionary<string, string> tags, List<FfmpegChapter> chapters)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(";FFMETADATA1");
+
+        foreach (var (key, value) in tags)
+            sb.AppendLine($"{key}={EscapeFfMetadataValue(value)}");
+
+        foreach (var chapter in chapters)
+        {
+            sb.AppendLine();
+            sb.AppendLine("[CHAPTER]");
+            sb.AppendLine("TIMEBASE=1/1000");
+            sb.AppendLine($"START={chapter.StartMs}");
+            sb.AppendLine($"END={chapter.EndMs}");
+            sb.AppendLine($"title={EscapeFfMetadataValue(chapter.Title)}");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeFfMetadataValue(string value)
+    {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("=", "\\=")
+            .Replace(";", "\\;")
+            .Replace("#", "\\#")
+            .Replace("\n", "\\\n");
     }
 
     private static async Task RunFfmpeg(string arguments)

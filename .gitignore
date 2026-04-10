@@ -405,3 +405,6 @@ FodyWeavers.xsd
 # Project Data
 /Alexandria.Api/App_Data/*
 /Alexandria.Api/App_Data/**/*
+
+# Large audiobook test files (too large for git)
+Alexandria.Test/TestData/Audiobooks/Christopher Glyn*
