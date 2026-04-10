@@ -1378,14 +1378,11 @@ a.series-list-item {
 
 /* ===== Archived Book Styles ===== */
 
-.book-card-archived .cover-frame::after,
-.book-list-item-archived .cover-frame::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(128, 128, 128, 0.55);
-    z-index: 1;
-    border-radius: 2px;
+.book-card-archived .cover-frame img,
+.book-list-item-archived .cover-frame img,
+.book-card-archived .cover-frame .book-cover,
+.book-list-item-archived .cover-frame .book-cover {
+    filter: brightness(0.85) saturate(0.3);
 }
 
 .book-archived-label {
