@@ -20,7 +20,7 @@ public sealed class CoverThumbnailServiceTests
         testDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         coversDir = Path.Combine(testDir, "covers");
         Directory.CreateDirectory(coversDir);
-        settings = new AlexandriaSettings { DataFolder = testDir, EbookFolder = ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
+        settings = new AlexandriaSettings { PublicUrl = "http://localhost", DataFolder = testDir, EbookFolder = ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
         service = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
     }
 

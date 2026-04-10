@@ -20,12 +20,11 @@ public sealed class LibrarySyncTests
 {
     private const string DeviceId = "test-device-id";
     private const string KoboStoreToken = "raw-kobo-store-token";
-    private const string StoreApi = "https://storeapi.kobo.com";
-    private const string AlexandriaApi = "http://localhost";
+    private const string PublicUrl = "http://localhost";
 
     private readonly KoboDeviceSyncTokenService koboDeviceSyncTokenService = new();
 
-    private static readonly KoboProxySettings Settings = new() { AlexandriaApi = AlexandriaApi, StoreApi = StoreApi };
+    private static readonly AlexandriaSettings Settings = new() { PublicUrl = PublicUrl, DataFolder = "/tmp", EbookFolder = "/tmp", AudiobookFolder = "/tmp" };
 
     [TestInitialize]
     public void Setup()
@@ -61,7 +60,7 @@ public sealed class LibrarySyncTests
         var libraryService = new FakeLibraryService(books);
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
-        var proxyService = new KoboStoreProxyService(Settings, httpClient, NullLogger<KoboStoreProxyService>.Instance);
+        var proxyService = new KoboStoreProxyService(httpClient, NullLogger<KoboStoreProxyService>.Instance);
         return new KoboLibrarySyncService(Settings, proxyService, libraryService, new FakeSettingsService(syncBatchSize), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), koboDeviceSyncTokenService, NullLogger<KoboLibrarySyncService>.Instance);
     }
 

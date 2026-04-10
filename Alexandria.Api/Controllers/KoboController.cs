@@ -11,7 +11,7 @@ namespace Alexandria.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("/api/kobo")]
-public class KoboController(IKoboProxyService koboProxyService, KoboProxySettings settings) : ControllerBase
+public class KoboController(IKoboProxyService koboProxyService) : ControllerBase
 {
     /// <summary>
     /// Forwards unmatched requests to Kobo's store API and returns the raw response.
@@ -22,7 +22,7 @@ public class KoboController(IKoboProxyService koboProxyService, KoboProxySetting
     [HttpDelete("{**path}")]
     public async Task CatchAll([FromRoute]string? path = null)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, settings.KoboRoutePrefix);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await koboProxyService.Proxy(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }

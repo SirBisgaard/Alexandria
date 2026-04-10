@@ -3,7 +3,6 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
-using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.Library.Services;
 using Alexandria.Business.KoboStoreProxy.Services;
 using Alexandria.Business.Library.Models.Settings;
@@ -21,15 +20,10 @@ using Alexandria.DataAccess.Files.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // App settings load.
-// builder.Services.Configure<KoboRetailSettings>(builder.Configuration.GetSection("KoboRetailSettings")); for reloading with IOptions<KoboRetailSettings>
-var koboRetailSettings = builder.Configuration
-    .GetSection("KoboProxySettings")
-    .Get<KoboProxySettings>()!;
 var alexandriaSettings =  builder.Configuration
     .GetSection("AlexandriaSettings")
     .Get<AlexandriaSettings>()!;
 
-builder.Services.AddSingleton(koboRetailSettings);
 builder.Services.AddSingleton(alexandriaSettings);
 
 // Http client for KoboStoreApi

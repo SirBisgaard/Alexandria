@@ -12,10 +12,8 @@ services:
     environment:
       # Logging
       - Logging__LogLevel__Default=Information
-      # KoboProxySettings
-      - KoboProxySettings__AlexandriaApi=http://localhost
-      - KoboProxySettings__StoreApi=https://storeapi.kobo.com
       # AlexandriaSettings
+      - AlexandriaSettings__PublicUrl=http://localhost
       - AlexandriaSettings__DataFolder=/app/content/data
       - AlexandriaSettings__EbookFolder=/app/content/books
       - AlexandriaSettings__AudiobookFolder=/app/content/audiobooks

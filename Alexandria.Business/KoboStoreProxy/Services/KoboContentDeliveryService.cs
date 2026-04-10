@@ -3,12 +3,13 @@ using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.Library.Models;
+using Alexandria.Business.Library.Models.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboContentDeliveryService(KoboProxySettings settings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
+public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
 {
     public async Task<KoboProxyResponse> Download(KoboProxyRequest request, Guid uuid)
     {
@@ -77,7 +78,7 @@ public class KoboContentDeliveryService(KoboProxySettings settings, IKoboProxySe
             return new KoboProxyResponse { StatusCode = StatusCodes.Status404NotFound, Headers = new Dictionary<string, string[]>(), Body = [] };
 
         logger.LogInformation("DownloadManifest: serving manifest for '{Title}' ({Uuid})", book.Title, uuid);
-        var manifest = KoboStoreEntityMapper.ToManifest(book, settings.KoboApiUrl);
+        var manifest = KoboStoreEntityMapper.ToManifest(book, alexandriaSettings.KoboApiUrl);
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, manifest);
     }
 

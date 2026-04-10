@@ -1,10 +1,7 @@
 namespace Alexandria.Business.KoboStoreProxy.Models;
 
-public record KoboProxySettings
+public static class KoboProxySettings
 {
-    public required string AlexandriaApi { get; init; }
-    public required string StoreApi { get; init; }
-    public string KoboRoutePrefix { get; init; } = "/api/kobo";
-
-    public string KoboApiUrl => $"{AlexandriaApi}{KoboRoutePrefix}";
+    public const string StoreApi = "https://storeapi.kobo.com";
+    public const string KoboRoutePrefix = "/api/kobo";
 }

@@ -45,7 +45,7 @@ public sealed class AlexandriaIndexerServiceTests
         }
     }
 
-    private AlexandriaSettings CreateSettings(string? booksFolder = null) => new() { DataFolder = testDir, EbookFolder = booksFolder ?? ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
+    private AlexandriaSettings CreateSettings(string? booksFolder = null) => new() { PublicUrl = "http://localhost", DataFolder = testDir, EbookFolder = booksFolder ?? ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
 
     private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)> CreateRepositories(AlexandriaSettings settings)
     {

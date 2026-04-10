@@ -9,7 +9,7 @@ namespace Alexandria.Business.KoboStoreProxy.Services;
 /// Transparent HTTP proxy between Kobo e-readers and storeapi.kobo.com.
 /// Forwards unintercepted requests.
 /// </summary>
-public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpClient, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
+public class KoboStoreProxyService(HttpClient httpClient, ILogger<KoboStoreProxyService> logger) : IKoboProxyService
 {
     private static readonly HashSet<string> HopByHopHeaders =
     [
@@ -23,7 +23,7 @@ public class KoboStoreProxyService(KoboProxySettings settings, HttpClient httpCl
     /// </summary>
     public async Task<KoboProxyResponse> Proxy(KoboProxyRequest request)
     {
-        var targetUrl = $"{settings.StoreApi}{request.Path}{request.QueryString}";
+        var targetUrl = $"{KoboProxySettings.StoreApi}{request.Path}{request.QueryString}";
         logger.LogInformation("Proxy: {Method} {Url}", request.Method, targetUrl);
 
         var (response, responseBody) = await ForwardRequest(targetUrl, request);

@@ -7,12 +7,13 @@ using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
+using Alexandria.Business.Library.Models.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboLibrarySyncService(KoboProxySettings settings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
+public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
 {
     public async Task<KoboProxyResponse> Initialization(KoboProxyRequest request)
     {
@@ -27,10 +28,10 @@ public class KoboLibrarySyncService(KoboProxySettings settings, IKoboProxyServic
         if (resources is null)
             return koboResponse;
 
-        resources["library_sync"] = $"{settings.KoboApiUrl}/v1/library/sync";
-        resources["image_host"] = $"{settings.KoboApiUrl}";
-        resources["image_url_template"] = $"{settings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
-        resources["image_url_quality_template"] = $"{settings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
+        resources["library_sync"] = $"{alexandriaSettings.KoboApiUrl}/v1/library/sync";
+        resources["image_host"] = $"{alexandriaSettings.KoboApiUrl}";
+        resources["image_url_template"] = $"{alexandriaSettings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
+        resources["image_url_quality_template"] = $"{alexandriaSettings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
 
         var headers = new Dictionary<string, string[]> { { "x-kobo-apitoken", ["e30="] } };
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, json!, headers);
@@ -116,13 +117,13 @@ public class KoboLibrarySyncService(KoboProxySettings settings, IKoboProxyServic
                     readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
 
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, settings.KoboApiUrl, readingState, relatedGroupId);
+                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, readingState, relatedGroupId);
                 syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement });
                 await koboDeviceSyncRepository.UpsertSyncedFile(deviceId, book.BookUuid, book.FileHash);
             }
             else if (book.IsArchived)
             {
-                var entitlement = KoboStoreEntityMapper.WithRemoved(KoboStoreEntityMapper.ToStoreEntitlement(book, settings.KoboApiUrl));
+                var entitlement = KoboStoreEntityMapper.WithRemoved(KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl));
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
                 await koboDeviceSyncRepository.RemoveSyncedFile(deviceId, book.BookUuid);
             }
@@ -133,7 +134,7 @@ public class KoboLibrarySyncService(KoboProxySettings settings, IKoboProxyServic
                     readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
 
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, settings.KoboApiUrl, relatedGroupId: relatedGroupId);
+                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, relatedGroupId: relatedGroupId);
                 var removedEntitlement = KoboStoreEntityMapper.WithRemoved(entitlement);
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = removedEntitlement });
                 syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement with { ReadingState = null } });
@@ -148,7 +149,7 @@ public class KoboLibrarySyncService(KoboProxySettings settings, IKoboProxyServic
                     readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
 
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, settings.KoboApiUrl, relatedGroupId: relatedGroupId);
+                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, relatedGroupId: relatedGroupId);
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
                 if (readingState is not null)
                     syncResults.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
@@ -189,7 +190,7 @@ public class KoboLibrarySyncService(KoboProxySettings settings, IKoboProxyServic
         var relatedGroupId = GetRelatedGroupId(book, BuildWorkGroupLookup(allBooks));
 
         logger.LogInformation("Metadata: serving metadata for '{Title}' ({Uuid})", book.Title, uuid);
-        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, settings.KoboApiUrl, relatedGroupId) });
+        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, alexandriaSettings.KoboApiUrl, relatedGroupId) });
     }
 
     public async Task<KoboProxyResponse> DeleteBook(KoboProxyRequest request, Guid uuid)

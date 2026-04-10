@@ -51,7 +51,7 @@ public sealed class AudiobookIndexerTests
         File.Copy(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), Path.Combine(audiobookDir, FantasticBeastsFileName));
     }
 
-    private AlexandriaSettings CreateSettings(string? audiobookFolder = null) => new() { DataFolder = testDir, EbookFolder = Path.Combine(testDir, "empty-ebooks"), AudiobookFolder = audiobookFolder ?? audiobookDir };
+    private AlexandriaSettings CreateSettings(string? audiobookFolder = null) => new() { PublicUrl = "http://localhost", DataFolder = testDir, EbookFolder = Path.Combine(testDir, "empty-ebooks"), AudiobookFolder = audiobookFolder ?? audiobookDir };
 
     private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)> CreateRepositories(AlexandriaSettings settings)
     {
