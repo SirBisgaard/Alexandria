@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Threading.Channels;
 using Alexandria.Api.Models;
 using Alexandria.Api.Models.Events;
 using Alexandria.Api.Models.Requests;
@@ -7,6 +8,11 @@ using Alexandria.Business.Library.Models.Others;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
+
+file class ChannelProgress<T>(Func<T, string> formatter, ChannelWriter<string> writer) : IProgress<T>
+{
+    public void Report(T value) => writer.TryWrite(formatter(value));
+}
 
 [ApiController]
 [Route("/api/alexandria")]
@@ -250,20 +256,36 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         Response.Headers.Connection = "keep-alive";
 
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var channel = Channel.CreateUnbounded<string>();
 
-        var progress = new Progress<(int current, int total)>(async value =>
+        var progress = new ChannelProgress<(int current, int total)>(value =>
         {
             var json = JsonSerializer.Serialize(new SyncProgressEvent(value.current, value.total), jsonOptions);
-            await Response.WriteAsync($"data: {json}\n\n");
-            await Response.Body.FlushAsync();
+            return $"data: {json}\n\n";
+        }, channel.Writer);
+
+        var syncTask = Task.Run(async () =>
+        {
+            try
+            {
+                var bookCount = await alexandriaLibraryService.Sync(progress);
+                var settings = await settingsService.Get();
+                var lastIndexed = settings.LastIndexedTimestamp?.ToString("O");
+                var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);
+                channel.Writer.TryWrite($"data: {doneJson}\n\n");
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
         });
 
-        var bookCount = await alexandriaLibraryService.Sync(progress);
+        await foreach (var message in channel.Reader.ReadAllAsync())
+        {
+            await Response.WriteAsync(message);
+            await Response.Body.FlushAsync();
+        }
 
-        var settings = await settingsService.Get();
-        var lastIndexed = settings.LastIndexedTimestamp?.ToString("O");
-        var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);
-        await Response.WriteAsync($"data: {doneJson}\n\n");
-        await Response.Body.FlushAsync();
+        await syncTask;
     }
 }
