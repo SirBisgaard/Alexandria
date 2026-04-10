@@ -65,7 +65,7 @@ public sealed class AlexandriaIndexerServiceTests
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, converter, coverThumbnailService);
         var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
-        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler(), NullLogger<M4BMetadataHandler>.Instance);
+        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);

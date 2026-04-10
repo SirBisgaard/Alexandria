@@ -97,7 +97,7 @@ public sealed class FfmpegHandlerTests
         var m4BCopy = CopyM4BToOutputDir();
         var outputPath = Path.Combine(outputDir, "output-cover.m4b");
 
-        var metadataHandler = new M4BMetadataHandler(ffmpegHandler, NullLogger<M4BMetadataHandler>.Instance);
+        var metadataHandler = new M4BMetadataHandler(ffmpegHandler);
         var book = await metadataHandler.ExtractMetadata(m4BCopy);
         var chapters = book.Chapters.Select(c => new FfmpegChapter((long)(c.StartTime * 1000), (long)(c.EndTime * 1000), c.Title)).ToList();
         var tags = new Dictionary<string, string> { ["title"] = book.Title };

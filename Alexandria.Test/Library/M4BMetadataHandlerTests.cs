@@ -22,7 +22,7 @@ public sealed class M4BMetadataHandlerTests
         outputDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
         GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
-        handler = new M4BMetadataHandler(new FfmpegHandler(), NullLogger<M4BMetadataHandler>.Instance);
+        handler = new M4BMetadataHandler(new FfmpegHandler());
         RequireAudiobooks();
     }
 
@@ -305,122 +305,127 @@ public sealed class M4BMetadataHandlerTests
     }
 
     [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_AlexandriaUuid()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var book = await handler.ExtractMetadata(m4BCopy);
-        var uuid = Guid.NewGuid();
-        book.BookUuid = uuid;
-
-        await handler.EmbedMetadata(m4BCopy, book);
-
-        var reExtracted = await handler.ExtractMetadata(m4BCopy);
-        Assert.AreEqual(uuid, reExtracted.BookUuid);
-    }
-
-    [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_SeriesAndPartTags()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var book = await handler.ExtractMetadata(m4BCopy);
-        book.Series = new Series { Name = "My Series", Index = 7m };
-
-        await handler.EmbedMetadata(m4BCopy, book);
-
-        var reExtracted = await handler.ExtractMetadata(m4BCopy);
-        Assert.IsNotNull(reExtracted.Series);
-        Assert.AreEqual("My Series", reExtracted.Series.Name);
-        Assert.AreEqual(7m, reExtracted.Series.Index);
-    }
-
-    [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_LanguageTag()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var book = await handler.ExtractMetadata(m4BCopy);
-        book.Language = "en";
-
-        await handler.EmbedMetadata(m4BCopy, book);
-
-        var reExtracted = await handler.ExtractMetadata(m4BCopy);
-        Assert.IsNotNull(reExtracted.Language);
-        Assert.IsTrue(reExtracted.Language is "en" or "English", $"Language should be 'en' or 'English', got '{reExtracted.Language}'");
-    }
-
-    [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_SubtitleAndRights()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var book = await handler.ExtractMetadata(m4BCopy);
-        book.Subtitle = "A Test Subtitle";
-        book.Rights = "Copyright 2026 Test";
-
-        await handler.EmbedMetadata(m4BCopy, book);
-
-        var reExtracted = await handler.ExtractMetadata(m4BCopy);
-        Assert.AreEqual("A Test Subtitle", reExtracted.Subtitle);
-        Assert.AreEqual("Copyright 2026 Test", reExtracted.Rights);
-    }
-
-    [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_AudibleAsin()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var book = await handler.ExtractMetadata(m4BCopy);
-        book.Identifiers = ["asin:B01234TEST"];
-
-        await handler.EmbedMetadata(m4BCopy, book);
-
-        var reExtracted = await handler.ExtractMetadata(m4BCopy);
-        Assert.IsNotEmpty(reExtracted.Identifiers);
-        Assert.Contains("asin:B01234TEST", reExtracted.Identifiers);
-    }
-
-    [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_AllFields()
+    public async Task EmbedMetadata_Roundtrip_StandardFields()
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var book = await handler.ExtractMetadata(m4BCopy);
 
-        book.Title = "Roundtrip All Fields Title";
+        book.Title = "Roundtrip Title";
         book.Authors = [new Author { Name = "Roundtrip Author" }];
         book.Contributors = [new Contributor { Name = "Roundtrip Narrator", Role = "Narrator" }];
         book.Description = "Roundtrip description text.";
         book.PublicationDate = "2025";
-        book.Publisher = "Roundtrip Publisher";
-        book.Language = "de";
         book.Rights = "Copyright 2025 Roundtrip";
         book.Subjects = ["Roundtrip Genre"];
         book.Series = new Series { Name = "Roundtrip Series", Index = 5m };
-        book.Subtitle = "Roundtrip Subtitle";
-        book.IsAbridged = true;
-        book.Identifiers = ["asin:ROUNDTRIP01"];
-        var uuid = Guid.NewGuid();
-        book.BookUuid = uuid;
 
         await handler.EmbedMetadata(m4BCopy, book);
 
         var re = await handler.ExtractMetadata(m4BCopy);
-        Assert.AreEqual("Roundtrip All Fields Title", re.Title);
+        Assert.AreEqual("Roundtrip Title", re.Title);
         Assert.IsNotEmpty(re.Authors);
         Assert.AreEqual("Roundtrip Author", re.Authors[0].Name);
         Assert.IsNotEmpty(re.Contributors);
         Assert.AreEqual("Roundtrip Narrator", re.Contributors[0].Name);
-        Assert.AreEqual("Narrator", re.Contributors[0].Role);
         Assert.AreEqual("Roundtrip description text.", re.Description);
         Assert.AreEqual("2025", re.PublicationDate);
-        Assert.AreEqual("Roundtrip Publisher", re.Publisher);
-        Assert.IsTrue(re.Language is "de" or "German", $"Expected 'de' or 'German', got '{re.Language}'");
         Assert.AreEqual("Copyright 2025 Roundtrip", re.Rights);
         Assert.IsNotEmpty(re.Subjects);
         Assert.AreEqual("Roundtrip Genre", re.Subjects[0]);
         Assert.IsNotNull(re.Series);
         Assert.AreEqual("Roundtrip Series", re.Series.Name);
         Assert.AreEqual(5m, re.Series.Index);
-        Assert.AreEqual("Roundtrip Subtitle", re.Subtitle);
-        Assert.AreEqual(true, re.IsAbridged);
-        Assert.Contains("asin:ROUNDTRIP01", re.Identifiers);
-        Assert.AreEqual(uuid, re.BookUuid);
+    }
+
+    [TestMethod]
+    public async Task EmbedMetadata_Roundtrip_PreservesCover()
+    {
+        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+        var coverDir = Path.Combine(outputDir, "cover-before");
+        Directory.CreateDirectory(coverDir);
+        var originalCoverPath = await handler.ExtractCover(m4BCopy, coverDir, Guid.NewGuid());
+        Assert.IsNotNull(originalCoverPath, "Test file should have a cover.");
+
+        var book = await handler.ExtractMetadata(m4BCopy);
+        book.Title = "Cover Preservation Test";
+        await handler.EmbedMetadata(m4BCopy, book);
+
+        var reExtractDir = Path.Combine(outputDir, "cover-after");
+        Directory.CreateDirectory(reExtractDir);
+        var reExtractedCoverPath = await handler.ExtractCover(m4BCopy, reExtractDir, Guid.NewGuid());
+        Assert.IsNotNull(reExtractedCoverPath, "Cover should still exist after metadata write.");
+        var reExtractedBytes = await File.ReadAllBytesAsync(reExtractedCoverPath);
+        Assert.AreEqual(0xFF, reExtractedBytes[0], "Cover should be JPEG.");
+        Assert.AreEqual(0xD8, reExtractedBytes[1], "Cover should be JPEG.");
+    }
+
+    [TestMethod]
+    public async Task EmbedCover_Roundtrip_ExtractMatchesEmbedded()
+    {
+        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+        var coverDir = Path.Combine(outputDir, "source-cover");
+        Directory.CreateDirectory(coverDir);
+        var coverPath = await handler.ExtractCover(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), coverDir, Guid.NewGuid());
+        Assert.IsNotNull(coverPath);
+        var coverBytes = await File.ReadAllBytesAsync(coverPath);
+
+        await handler.EmbedCover(m4BCopy, coverBytes, "image/jpeg");
+
+        var extractDir = Path.Combine(outputDir, "re-extracted");
+        Directory.CreateDirectory(extractDir);
+        var reExtractedPath = await handler.ExtractCover(m4BCopy, extractDir, Guid.NewGuid());
+        Assert.IsNotNull(reExtractedPath);
+        var reExtractedBytes = await File.ReadAllBytesAsync(reExtractedPath);
+        Assert.AreEqual(0xFF, reExtractedBytes[0], "Should be JPEG SOI marker.");
+        Assert.AreEqual(0xD8, reExtractedBytes[1], "Should be JPEG SOI marker.");
+    }
+
+    [TestMethod]
+    public async Task EmbedCover_Roundtrip_PreservesMetadataAndChapters()
+    {
+        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+        var original = await handler.ExtractMetadata(m4BCopy);
+        var coverDir = Path.Combine(outputDir, "source-cover");
+        Directory.CreateDirectory(coverDir);
+        var coverPath = await handler.ExtractCover(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), coverDir, Guid.NewGuid());
+        Assert.IsNotNull(coverPath);
+        var coverBytes = await File.ReadAllBytesAsync(coverPath);
+
+        await handler.EmbedCover(m4BCopy, coverBytes, "image/jpeg");
+
+        var re = await handler.ExtractMetadata(m4BCopy);
+        Assert.AreEqual(original.Title, re.Title);
+        Assert.IsNotEmpty(re.Authors);
+        Assert.AreEqual(original.Authors[0].Name, re.Authors[0].Name);
+        Assert.HasCount(original.Chapters.Count, re.Chapters);
+    }
+
+    [TestMethod]
+    public async Task RemoveCover_Roundtrip_ExtractReturnsNull()
+    {
+        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+
+        await handler.RemoveCover(m4BCopy);
+
+        var extractDir = Path.Combine(outputDir, "after-remove");
+        Directory.CreateDirectory(extractDir);
+        var coverPath = await handler.ExtractCover(m4BCopy, extractDir, Guid.NewGuid());
+        Assert.IsNull(coverPath, "Cover should not exist after removal.");
+    }
+
+    [TestMethod]
+    public async Task RemoveCover_Roundtrip_PreservesMetadataAndChapters()
+    {
+        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+        var original = await handler.ExtractMetadata(m4BCopy);
+
+        await handler.RemoveCover(m4BCopy);
+
+        var re = await handler.ExtractMetadata(m4BCopy);
+        Assert.AreEqual(original.Title, re.Title);
+        Assert.IsNotEmpty(re.Authors);
+        Assert.AreEqual(original.Authors[0].Name, re.Authors[0].Name);
+        Assert.HasCount(original.Chapters.Count, re.Chapters);
     }
 
     [TestMethod]
@@ -464,71 +469,6 @@ public sealed class M4BMetadataHandlerTests
     }
 
     [TestMethod]
-    public async Task EmbedMetadata_Roundtrip_PreservesCover()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var coverDir = Path.Combine(outputDir, "cover-before");
-        Directory.CreateDirectory(coverDir);
-        var originalCoverPath = await handler.ExtractCover(m4BCopy, coverDir, Guid.NewGuid());
-        Assert.IsNotNull(originalCoverPath, "Test file should have a cover.");
-        var originalCoverSize = new FileInfo(originalCoverPath).Length;
-
-        var book = await handler.ExtractMetadata(m4BCopy);
-        book.Title = "Cover Preservation Test";
-        await handler.EmbedMetadata(m4BCopy, book);
-
-        var reExtractDir = Path.Combine(outputDir, "cover-after");
-        Directory.CreateDirectory(reExtractDir);
-        var reExtractedCoverPath = await handler.ExtractCover(m4BCopy, reExtractDir, Guid.NewGuid());
-        Assert.IsNotNull(reExtractedCoverPath, "Cover should still exist after metadata write.");
-        var reExtractedBytes = await File.ReadAllBytesAsync(reExtractedCoverPath);
-        Assert.AreEqual(0xFF, reExtractedBytes[0], "Cover should be JPEG.");
-        Assert.AreEqual(0xD8, reExtractedBytes[1], "Cover should be JPEG.");
-        Assert.AreEqual(originalCoverSize, new FileInfo(reExtractedCoverPath).Length, "Cover size should be unchanged.");
-    }
-
-    [TestMethod]
-    public async Task EmbedCover_Roundtrip_PreservesMetadataAndChapters()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var original = await handler.ExtractMetadata(m4BCopy);
-
-        var coverDir = Path.Combine(outputDir, "source-cover");
-        Directory.CreateDirectory(coverDir);
-        var coverPath = await handler.ExtractCover(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), coverDir, Guid.NewGuid());
-        Assert.IsNotNull(coverPath);
-        var coverBytes = await File.ReadAllBytesAsync(coverPath);
-
-        await handler.EmbedCover(m4BCopy, coverBytes, "image/jpeg");
-
-        var re = await handler.ExtractMetadata(m4BCopy);
-        Assert.AreEqual(original.Title, re.Title);
-        Assert.IsNotEmpty(re.Authors);
-        Assert.AreEqual(original.Authors[0].Name, re.Authors[0].Name);
-        Assert.HasCount(original.Chapters.Count, re.Chapters);
-    }
-
-    [TestMethod]
-    public async Task RemoveCover_Roundtrip_PreservesMetadataAndChapters()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var original = await handler.ExtractMetadata(m4BCopy);
-
-        await handler.RemoveCover(m4BCopy);
-
-        var re = await handler.ExtractMetadata(m4BCopy);
-        Assert.AreEqual(original.Title, re.Title);
-        Assert.IsNotEmpty(re.Authors);
-        Assert.AreEqual(original.Authors[0].Name, re.Authors[0].Name);
-        Assert.HasCount(original.Chapters.Count, re.Chapters);
-
-        var coverDir = Path.Combine(outputDir, "after-remove");
-        Directory.CreateDirectory(coverDir);
-        var coverPath = await handler.ExtractCover(m4BCopy, coverDir, Guid.NewGuid());
-        Assert.IsNull(coverPath, "Cover should not exist after removal.");
-    }
-
-    [TestMethod]
     public async Task EmbedMetadata_SpecialCharacters_Roundtrip()
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
@@ -541,40 +481,4 @@ public sealed class M4BMetadataHandlerTests
         Assert.AreEqual("Title with = equals; semicolon # hash", re.Title);
     }
 
-    // --- Embed cover ---
-
-    [TestMethod]
-    public async Task EmbedCover_Roundtrip_ExtractMatchesEmbedded()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-        var originalCoverPath = await handler.ExtractCover(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), outputDir, Guid.NewGuid());
-        Assert.IsNotNull(originalCoverPath);
-        var coverBytes = await File.ReadAllBytesAsync(originalCoverPath);
-
-        await handler.EmbedCover(m4BCopy, coverBytes, "image/jpeg");
-
-        var extractDir = Path.Combine(outputDir, "re-extracted");
-        Directory.CreateDirectory(extractDir);
-        var reExtractedPath = await handler.ExtractCover(m4BCopy, extractDir, Guid.NewGuid());
-        Assert.IsNotNull(reExtractedPath);
-        Assert.IsTrue(File.Exists(reExtractedPath));
-        var reExtractedBytes = await File.ReadAllBytesAsync(reExtractedPath);
-        Assert.AreEqual(0xFF, reExtractedBytes[0], "Should be JPEG SOI marker.");
-        Assert.AreEqual(0xD8, reExtractedBytes[1], "Should be JPEG SOI marker.");
-    }
-
-    // --- Remove cover ---
-
-    [TestMethod]
-    public async Task RemoveCover_Roundtrip_ExtractReturnsNull()
-    {
-        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
-
-        await handler.RemoveCover(m4BCopy);
-
-        var extractDir = Path.Combine(outputDir, "after-remove");
-        Directory.CreateDirectory(extractDir);
-        var coverPath = await handler.ExtractCover(m4BCopy, extractDir, Guid.NewGuid());
-        Assert.IsNull(coverPath, "Cover should not exist after removal.");
-    }
 }

@@ -72,6 +72,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             refreshed.CoverImageUuid = Guid.GenerateUuidV5("cover:" + refreshed.FileHash);
             refreshed.CreatedAt = existing.CreatedAt;
             refreshed.ModifiedAt = DateTimeOffset.UtcNow;
+            MergeDbOnlyFields(refreshed, desiredMetadata ?? existing);
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
             ComputePageCount(refreshed, wordsPerPage);
 
@@ -109,6 +110,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         discovered.CoverImageUuid = Guid.GenerateUuidV5("cover:" + discovered.FileHash);
         discovered.CreatedAt = existing.CreatedAt;
         discovered.ModifiedAt = DateTimeOffset.UtcNow;
+        MergeDbOnlyFields(discovered, existing);
         ComputePageCount(discovered, wordsPerPage);
 
         await PersistBook(discovered, false);
@@ -142,6 +144,22 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             await seriesRepository.RemoveBookSeries(book.BookUuid);
             book.Series = null;
         }
+    }
+
+    private static void MergeDbOnlyFields(Book target, Book source)
+    {
+        if (string.IsNullOrEmpty(target.Subtitle))
+            target.Subtitle = source.Subtitle;
+        if (string.IsNullOrEmpty(target.Language))
+            target.Language = source.Language;
+        if (string.IsNullOrEmpty(target.Publisher))
+            target.Publisher = source.Publisher;
+        if (target.IsAbridged is null)
+            target.IsAbridged = source.IsAbridged;
+        if (target.Series is null && source.Series is not null)
+            target.Series = source.Series;
+        if (target.Identifiers.Count == 0 && source.Identifiers.Count > 0)
+            target.Identifiers = source.Identifiers;
     }
 
     private static void ComputePageCount(Book book, int wordsPerPage)
