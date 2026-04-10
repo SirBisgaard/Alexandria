@@ -522,12 +522,11 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
-    public void Extract_ReturnsContributors()
+    public void Extract_ExcludesUnmappedContributorRoles()
     {
         var book = ExtractBook("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        Assert.IsNotEmpty(book.Contributors);
-        Assert.StartsWith("calibre", book.Contributors[0].Name);
+        Assert.IsEmpty(book.Contributors);
     }
 
     [TestMethod]
