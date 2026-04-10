@@ -38,6 +38,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 // Path+hash matched an existing record in FileContentManager — unchanged.
                 if (discovered.BookUuid != Guid.Empty)
                 {
+                    await contentManager.CreateDerivativeFiles(discovered);
                     claimedUuids.Add(discovered.BookUuid);
                     continue;
                 }
@@ -47,6 +48,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 {
                     logger.LogInformation("File modified externally: {Title} ({SourcePath})", pathMatch.Title, discovered.SourcePath);
                     discovered.BookUuid = pathMatch.BookUuid;
+                    await contentManager.CreateDerivativeFiles(discovered);
                     await HandleExistingBook(discovered, pathMatch, wordsPerPage);
                     claimedUuids.Add(pathMatch.BookUuid);
                     continue;
@@ -57,6 +59,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 {
                     logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", hashMatch.Title, hashMatch.SourcePath, discovered.SourcePath);
                     discovered.BookUuid = hashMatch.BookUuid;
+                    await contentManager.CreateDerivativeFiles(discovered);
                     await HandleMovedBook(discovered, hashMatch, wordsPerPage);
                     claimedUuids.Add(hashMatch.BookUuid);
                     continue;
@@ -64,6 +67,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
                 // Truly new file.
                 discovered.BookUuid = Guid.NewGuid();
+                await contentManager.CreateDerivativeFiles(discovered);
                 await HandleNewBook(discovered, wordsPerPage);
                 claimedUuids.Add(discovered.BookUuid);
             }

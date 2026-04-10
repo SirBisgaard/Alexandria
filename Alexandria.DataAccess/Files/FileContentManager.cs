@@ -41,7 +41,6 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
             book.FileHash = fileHash;
             book.SourcePath = filePath;
             book.CoverFilePath = coverFilePath;
-            await indexer.CreateDerivativeFiles(book, filePath);
 
             logger.LogDebug("Indexed '{Title}' by {Authors} ({Uuid})", book.Title, string.Join(", ", book.Authors.Select(a => a.Name)), book.BookUuid);
             books.Add(book);
@@ -58,6 +57,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     {
         var indexer = GetIndexerFor(book.SourcePath);
         var (freshBook, coverFilePath) = indexer.ExtractAll(book.SourcePath);
+        freshBook.BookUuid = book.BookUuid;
         freshBook.SourcePath = book.SourcePath;
         freshBook.CoverFilePath = coverFilePath;
         await indexer.CreateDerivativeFiles(freshBook, book.SourcePath);
@@ -90,6 +90,12 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
             indexer.DeleteDerivedFiles(book);
 
         return await GetBook(book);
+    }
+
+    public Task CreateDerivativeFiles(Book book)
+    {
+        var indexer = GetIndexerFor(book.SourcePath);
+        return indexer.CreateDerivativeFiles(book, book.SourcePath);
     }
 
     public Task<byte[]?> GetContentFile(Book book) => GetHandlerFor(book.SourcePath).ReadContent(book);

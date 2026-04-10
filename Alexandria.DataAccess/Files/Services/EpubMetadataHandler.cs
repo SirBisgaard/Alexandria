@@ -293,7 +293,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             Publisher = metadata.Publisher,
             Identifiers = metadata.Identifiers,
             Subjects = metadata.Subjects,
-            Contributors = metadata.Contributors.Where(c => c.Role is not null).ToList(),
+            Contributors = metadata.Contributors.Where(c => !string.IsNullOrWhiteSpace(c.Role)).ToList(),
             Rights = metadata.Rights,
             Source = metadata.Source,
             Type = metadata.Type,

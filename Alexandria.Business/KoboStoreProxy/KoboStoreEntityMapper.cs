@@ -175,9 +175,9 @@ public static class KoboStoreEntityMapper
     {
         var roles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name, Role = "Author" }).ToList();
 
-        foreach (var contributor in book.Contributors)
+        if (book.MediaType is not MediaType.Audiobook)
         {
-            roles.Add(new KoboStoreContributorRole { Name = contributor.Name, Role = contributor.Role });
+            roles.AddRange(book.Contributors.Select(contributor => new KoboStoreContributorRole { Name = contributor.Name, Role = contributor.Role }));
         }
 
         return roles;

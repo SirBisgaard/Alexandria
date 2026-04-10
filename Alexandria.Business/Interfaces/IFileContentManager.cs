@@ -6,6 +6,7 @@ namespace Alexandria.Business.Interfaces;
 public interface IFileContentManager
 {
     Task<List<Book>> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null);
+    Task CreateDerivativeFiles(Book book);
     Task<Book> GetBook(Book book);
     Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null);
     Task<byte[]?> GetContentFile(Book book);
