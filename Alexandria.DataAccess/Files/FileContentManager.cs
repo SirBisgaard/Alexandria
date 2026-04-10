@@ -21,7 +21,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, ct) =>
         {
             var current = Interlocked.Increment(ref processed);
-            progress?.Report((current, allFiles.Length));
+            progress?.Report((current, allFiles.Length * 2));
             var indexer = GetIndexerFor(filePath);
             var fileName = Path.GetFileName(filePath);
 
@@ -113,7 +113,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         {
             foreach (var existing in existingBooks)
             {
-                if (!currentUuids.Contains(existing.BookUuid))
+                if (!currentUuids.Contains(existing.BookUuid) && (existing.CoverFilePath is null || !validCoverPaths.Contains(existing.CoverFilePath)))
                     GetIndexerFor(existing.SourcePath).DeleteDerivedFiles(existing);
             }
         }

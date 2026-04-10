@@ -33,8 +33,10 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             var claimedUuids = new HashSet<Guid>();
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
 
+            var dbProcessed = 0;
             foreach (var discovered in discoveredBooks)
             {
+                progress?.Report((discoveredBooks.Count + ++dbProcessed, discoveredBooks.Count * 2));
                 // Path+hash matched an existing record in FileContentManager — unchanged.
                 if (discovered.BookUuid != Guid.Empty)
                 {
