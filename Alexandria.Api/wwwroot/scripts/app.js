@@ -101,8 +101,11 @@ $(function () {
                     '</div>' +
                     '<div class="settings-error-banner"></div>' +
                     '<div class="settings-footer">' +
-                        '<span class="settings-save-status"></span>' +
-                        '<button class="bm-edit-btn bm-edit-btn-primary settings-save-btn">Save</button>' +
+                        '<span class="settings-version"></span>' +
+                        '<span class="settings-footer-right">' +
+                            '<span class="settings-save-status"></span>' +
+                            '<button class="bm-edit-btn bm-edit-btn-primary settings-save-btn">Save</button>' +
+                        '</span>' +
                     '</div>' +
                 '</div>' +
             '</div>' +

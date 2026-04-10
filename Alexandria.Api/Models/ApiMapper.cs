@@ -1,3 +1,4 @@
+using System.Reflection;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Api.Models.Responses;
 using Alexandria.Business.Library.Models;
@@ -7,6 +8,8 @@ namespace Alexandria.Api.Models;
 
 public static class ApiMapper
 {
+    private static readonly string? BuildVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+    
     public static BookResponse ToBookResponse(Book book) => new()
     {
         BookUuid = book.BookUuid,
@@ -118,7 +121,8 @@ public static class ApiMapper
         SyncBatchSize = settings.SyncBatchSize,
         ProxyLoggingEnabled = settings.ProxyLoggingEnabled,
         WordsPerPage = settings.WordsPerPage,
-        SyncLibraryAtBoot = settings.SyncLibraryAtBoot
+        SyncLibraryAtBoot = settings.SyncLibraryAtBoot,
+        Version = BuildVersion
     };
 
     public static Author ToAuthor(UpdateAuthorRequest request) => new()

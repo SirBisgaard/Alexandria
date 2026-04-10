@@ -10,6 +10,7 @@ function loadSettings(container) {
         $c.find("[data-setting='wordsPerPage']").val(data.wordsPerPage);
         $c.find("[data-setting='proxyLoggingEnabled']").prop("checked", data.proxyLoggingEnabled);
         $c.find("[data-setting='syncLibraryAtBoot']").prop("checked", data.syncLibraryAtBoot);
+        $c.find(".settings-version").text(data.version || "");
     });
 }
 

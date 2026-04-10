@@ -8,4 +8,5 @@ public class SettingsResponse
 
     public int WordsPerPage { get; set; }
     public bool SyncLibraryAtBoot { get; set; }
+    public string? Version { get; set; }
 }
