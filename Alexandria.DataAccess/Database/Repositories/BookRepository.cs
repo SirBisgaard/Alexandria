@@ -123,6 +123,28 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         return null;
     }
 
+    public async Task<Book?> FindByPath(string sourcePath)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT * FROM Books WHERE SourcePath = @path COLLATE NOCASE";
+        cmd.Parameters.AddWithValue("@path", sourcePath);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            var book = MapBook(reader);
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            await LoadSubTableData(connection, book);
+            return book;
+        }
+
+        return null;
+    }
+
     public async Task Add(Book book)
     {
         await using var connection = new SqliteConnection(connectionString);

@@ -183,25 +183,11 @@ public sealed class M4BMetadataHandlerTests
     }
 
     [TestMethod]
-    public async Task Extract_SameBook_ProducesDeterministicUuid()
+    public async Task Extract_ReturnsEmptyBookUuid()
     {
-        var book1 = await ExtractBook(FantasticBeastsFileName);
-        var book2 = await ExtractBook(FantasticBeastsFileName);
+        var book = await ExtractBook(FantasticBeastsFileName);
 
-        var uuid1 = book1.GenerateDeterministicUuid();
-        var uuid2 = book2.GenerateDeterministicUuid();
-
-        Assert.AreNotEqual(Guid.Empty, uuid1);
-        Assert.AreEqual(uuid1, uuid2);
-    }
-
-    [TestMethod]
-    public async Task Extract_DifferentBooks_ProduceDifferentUuids()
-    {
-        var beasts = await ExtractBook(FantasticBeastsFileName);
-        var hutt = await ExtractBook(HuttGambitFileName);
-
-        Assert.AreNotEqual(beasts.GenerateDeterministicUuid(), hutt.GenerateDeterministicUuid());
+        Assert.AreEqual(Guid.Empty, book.BookUuid, "Extracted BookUuid should be Empty — identity comes from the database, not the file.");
     }
 
     // --- Cover extraction ---

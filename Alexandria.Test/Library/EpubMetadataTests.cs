@@ -76,15 +76,4 @@ public sealed class EpubMetadataTests
         Assert.IsFalse(a.MetadataEquals(b));
     }
 
-    [TestMethod]
-    public void MetadataEquals_DifferentBookUuid_ReturnsFalse()
-    {
-        var a = CreateBook();
-        a.BookUuid = Guid.NewGuid();
-
-        var b = CreateBook();
-        b.BookUuid = Guid.NewGuid();
-
-        Assert.IsFalse(a.MetadataEquals(b));
-    }
 }

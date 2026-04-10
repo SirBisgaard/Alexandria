@@ -8,7 +8,6 @@ public interface IFileContentIndexer
     string[] GetContentFiles();
     Task<string> ComputeFileHash(string filePath);
     (Book Book, string? CoverFilePath) ExtractAll(string filePath);
-    void StampIdentifier(string filePath, Book book);
     Task CreateDerivativeFiles(Book book, string sourcePath);
     void DeleteDerivedFiles(Book book);
     void CleanupOrphanedFiles(HashSet<Guid> validBookUuids, HashSet<string> validCoverPaths);

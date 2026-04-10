@@ -58,7 +58,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
         var book = ToBook(metadata);
         book.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
-        var coverUuid = book.BookUuid != Guid.Empty ? book.BookUuid : book.GenerateDeterministicUuid();
+        var coverUuid = Guid.GenerateUuidV5("cover:" + epubPath);
         var coverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, coverUuid);
 
         return (book, coverFilePath);
@@ -112,14 +112,11 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         RemoveEpub3SeriesMeta(metadataEl);
         WriteEpub3SeriesMeta(metadataEl, metadata.SeriesName, metadata.SeriesIndex);
 
-        // Stamp Alexandria UUID as dc:identifier if not already present.
-        var existingAlexandriaId = metadataEl.Elements(Dc + "identifier")
-            .FirstOrDefault(e => e.Value.Trim().StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase));
-        if (existingAlexandriaId is null)
-        {
-            var alexandriaUuid = metadata.AlexandriaUuid ?? book.GenerateDeterministicUuid();
-            metadataEl.Add(new XElement(Dc + "identifier", $"alexandria:{alexandriaUuid}"));
-        }
+        // Remove any existing Alexandria UUID identifier (no longer stamped).
+        metadataEl.Elements(Dc + "identifier")
+            .Where(e => e.Value.Trim().StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase))
+            .ToList()
+            .ForEach(e => e.Remove());
 
         ReplaceOpfEntry(zip, opfPath, opfDoc);
     }
@@ -286,7 +283,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     {
         return new Book
         {
-            BookUuid = metadata.AlexandriaUuid ?? Guid.Empty,
+            BookUuid = Guid.Empty,
             Title = metadata.Title,
             Authors = metadata.Authors.Select(name => new Author { Name = name }).ToList(),
             Language = metadata.Language,
@@ -331,7 +328,6 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     {
         return new EpubMetadata
         {
-            AlexandriaUuid = book.BookUuid != Guid.Empty ? book.BookUuid : null,
             Title = book.Title,
             Authors = book.Authors.Select(a => a.Name).ToList(),
             Language = book.Language,
@@ -488,15 +484,6 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         };
 
         ParseSeriesAndCustomProperties(metadataEl, result);
-
-        // Read Alexandria UUID from dc:identifier (format: "alexandria:{guid}").
-        var alexandriaId = metadataEl.Elements(Dc + "identifier")
-            .Select(e => e.Value.Trim())
-            .FirstOrDefault(v => v.StartsWith("alexandria:", StringComparison.OrdinalIgnoreCase));
-        if (alexandriaId is not null && Guid.TryParse(alexandriaId.AsSpan("alexandria:".Length), out var parsedUuid) && parsedUuid != Guid.Empty)
-        {
-            result.AlexandriaUuid = parsedUuid;
-        }
 
         return (result, metadataEl);
     }

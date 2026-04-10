@@ -20,8 +20,6 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
         return (book, coverFilePath);
     }
 
-    public void StampIdentifier(string filePath, Book book) => epubMetadataHandler.EmbedMetadata(filePath, book);
-
     public async Task CreateDerivativeFiles(Book book, string sourcePath)
     {
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{book.BookUuid}.kepub.epub");

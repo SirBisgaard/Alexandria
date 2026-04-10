@@ -4,8 +4,6 @@ namespace Alexandria.DataAccess.Files.Models;
 
 public class EpubMetadata
 {
-    /// <summary>Persistent UUID stamped into the EPUB by Alexandria. Takes priority over the deterministic UUID.</summary>
-    public Guid? AlexandriaUuid { get; set; }
     /// <summary>Series name. Read priority: EPUB3 belongs-to-collection > calibre:series.</summary>
     public string? SeriesName { get; set; }
     /// <summary>Position within the series. Read priority: EPUB3 group-position > calibre:series_index.</summary>

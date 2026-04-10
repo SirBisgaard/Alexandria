@@ -87,30 +87,14 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
-    public void Extract_SameBook_ProducesDeterministicUuid()
+    public void Extract_ReturnsEmptyBookUuid()
     {
         var extractor = new EpubMetadataHandler();
         var inputPath = Path.Combine(ContentBooksDir, "Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var (first, _) = extractor.ExtractAll(inputPath, outputDir);
-        var (second, _) = extractor.ExtractAll(inputPath, outputDir);
+        var (book, _) = extractor.ExtractAll(inputPath, outputDir);
 
-        Assert.AreEqual(first.GenerateDeterministicUuid(), second.GenerateDeterministicUuid(), "UUID should be deterministic for the same title and authors.");
-        Assert.AreNotEqual(Guid.Empty, first.GenerateDeterministicUuid());
-    }
-
-    [TestMethod]
-    public void Extract_DifferentBooks_ProduceDifferentUuids()
-    {
-        var extractor = new EpubMetadataHandler();
-        var epubs = Directory.GetFiles(ContentBooksDir, "*.epub");
-        var uuids = new HashSet<Guid>();
-
-        foreach (var epub in epubs)
-        {
-            var (book, _) = extractor.ExtractAll(epub, outputDir);
-            Assert.IsTrue(uuids.Add(book.GenerateDeterministicUuid()), $"UUID collision for {Path.GetFileName(epub)}.");
-        }
+        Assert.AreEqual(Guid.Empty, book.BookUuid, "Extracted BookUuid should be Empty — identity comes from the database, not the file.");
     }
 
     [TestMethod]
@@ -491,32 +475,29 @@ public sealed class EpubMetadataHandlerTests
     }
 
     [TestMethod]
-    public void Extract_EpubWithEmptyGuidIdentifier_IgnoresItAndReturnsNull()
+    public void Extract_EpubWithAlexandriaIdentifier_IgnoresIt()
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        InjectDcIdentifier(epubPath, $"alexandria:{Guid.Empty}");
+        InjectDcIdentifier(epubPath, $"alexandria:{Guid.NewGuid()}");
 
         var (result, _) = handler.ExtractAll(epubPath, outputDir);
 
-        Assert.AreEqual(Guid.Empty, result.BookUuid, "Guid.Empty in dc:identifier should be treated as unset.");
-        Assert.AreNotEqual(Guid.Empty, result.GenerateDeterministicUuid());
+        Assert.AreEqual(Guid.Empty, result.BookUuid, "Alexandria UUID in dc:identifier should be ignored — identity comes from the database.");
     }
 
     [TestMethod]
-    public void EmbedMetadata_ExistingUuidIdentifier_DoesNotOverwrite()
+    public void EmbedMetadata_RemovesExistingAlexandriaIdentifier()
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var originalUuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-        InjectDcIdentifier(epubPath, $"alexandria:{originalUuid}");
+        InjectDcIdentifier(epubPath, $"alexandria:{Guid.NewGuid()}");
 
         var (original, _) = handler.ExtractAll(epubPath, outputDir);
         var modified = new Book
         {
-            BookUuid = Guid.NewGuid(),
             Title = "Changed Title",
             Authors = original.Authors,
             Language = original.Language,
@@ -524,48 +505,9 @@ public sealed class EpubMetadataHandlerTests
         };
         handler.EmbedMetadata(epubPath, modified);
 
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
-
-        Assert.AreEqual(originalUuid, result.BookUuid, "Existing UUID identifier should not be overwritten.");
-        Assert.AreEqual("Changed Title", result.Title);
-    }
-
-    [TestMethod]
-    public void EmbedMetadata_WritesAlexandriaUuidAsIdentifier()
-    {
-        var handler = new EpubMetadataHandler();
-        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-
-        // Remove any existing alexandria identifier so EmbedMetadata will write a fresh one.
-        RemoveAlexandriaIdentifier(epubPath);
-
-        var modified = new Book
-        {
-            BookUuid = Guid.Parse("11111111-2222-3333-4444-555555555555"),
-            Title = "Test",
-            Authors = [new Author { Name = "Author" }],
-            Language = "en"
-        };
-
-        handler.EmbedMetadata(epubPath, modified);
-
-        // Verify via extraction.
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
-        Assert.AreEqual(Guid.Parse("11111111-2222-3333-4444-555555555555"), result.BookUuid);
-    }
-
-    [TestMethod]
-    public void Extract_ReadsAlexandriaUuidFromIdentifier()
-    {
-        var handler = new EpubMetadataHandler();
-        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-
-        var expectedUuid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-        InjectDcIdentifier(epubPath, $"alexandria:{expectedUuid}");
-
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
-
-        Assert.AreEqual(expectedUuid, result.BookUuid);
+        var opfXml = ReadOpfXml(epubPath);
+        Assert.DoesNotContain("alexandria:", opfXml, "EmbedMetadata should remove existing Alexandria UUID identifiers.");
+        Assert.AreEqual("Changed Title", handler.ExtractMetadata(epubPath).Title);
     }
 
     [TestMethod]

@@ -9,6 +9,7 @@ public interface IBookRepository
     Task<Book?> FindByEntitlementUuid(Guid entitlementUuid);
     Task<Book?> FindByCoverImageUuid(Guid uuid);
     Task<Book?> FindByHash(string fileHash);
+    Task<Book?> FindByPath(string sourcePath);
     Task Add(Book book);
     Task Update(Book book);
     Task Remove(Guid uuid);

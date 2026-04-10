@@ -10,6 +10,7 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
     private readonly ConcurrentDictionary<Guid, Book> byEntitlementUuid = new();
     private readonly ConcurrentDictionary<Guid, Book> byCoverImageUuid = new();
     private readonly ConcurrentDictionary<string, Book> byHash = new();
+    private readonly ConcurrentDictionary<string, Book> byPath = new(StringComparer.OrdinalIgnoreCase);
     private volatile List<string>? publishersCache;
 
     public CachingBookRepository Init()
@@ -69,6 +70,18 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
         return loaded;
     }
 
+    public async Task<Book?> FindByPath(string sourcePath)
+    {
+        if (byPath.TryGetValue(sourcePath, out var cached))
+            return cached;
+
+        var loaded = await inner.FindByPath(sourcePath);
+        if (loaded is not null)
+            byPath[sourcePath] = loaded;
+
+        return loaded;
+    }
+
     public async Task Add(Book book)
     {
         await inner.Add(book);
@@ -103,6 +116,7 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
         byEntitlementUuid.Clear();
         byCoverImageUuid.Clear();
         byHash.Clear();
+        byPath.Clear();
 
         foreach (var book in books)
         {
@@ -111,6 +125,8 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
                 byCoverImageUuid[book.CoverImageUuid.Value] = book;
             if (!string.IsNullOrEmpty(book.FileHash))
                 byHash[book.FileHash] = book;
+            if (!string.IsNullOrEmpty(book.SourcePath))
+                byPath[book.SourcePath] = book;
         }
     }
 
@@ -120,6 +136,7 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
         byEntitlementUuid.Clear();
         byCoverImageUuid.Clear();
         byHash.Clear();
+        byPath.Clear();
         publishersCache = null;
     }
 }

@@ -19,26 +19,56 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             logger.LogInformation("Library indexing started.");
 
             var existingBooks = await bookRepository.GetAll();
-            var existingByUuid = existingBooks.ToDictionary(b => b.BookUuid);
+            var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
+            var existingByHash = new Dictionary<string, Book>();
+            foreach (var book in existingBooks)
+            {
+                existingByPath[book.SourcePath] = book;
+                if (!string.IsNullOrEmpty(book.FileHash))
+                    existingByHash.TryAdd(book.FileHash, book);
+            }
 
             var discoveredBooks = await contentManager.GetAllBooks(existingBooks, progress);
-            var discoveredByUuid = discoveredBooks.ToDictionary(b => b.BookUuid);
-
-            await HandleStaleBooks(existingBooks, discoveredByUuid);
+            var discoveredPaths = discoveredBooks.Select(b => b.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var claimedUuids = new HashSet<Guid>();
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
 
             foreach (var discovered in discoveredBooks)
             {
-                if (existingByUuid.TryGetValue(discovered.BookUuid, out var existing) && existing.FileHash == discovered.FileHash)
+                // Path+hash matched an existing record in FileContentManager — unchanged.
+                if (discovered.BookUuid != Guid.Empty)
+                {
+                    claimedUuids.Add(discovered.BookUuid);
                     continue;
+                }
 
-                var isNew = !existingByUuid.ContainsKey(discovered.BookUuid);
-                if (isNew)
-                    await HandleNewBook(discovered, wordsPerPage);
-                else
-                    await HandleExistingBook(discovered, existingByUuid[discovered.BookUuid], wordsPerPage);
+                // Path match + hash mismatch — file was modified externally.
+                if (existingByPath.TryGetValue(discovered.SourcePath, out var pathMatch))
+                {
+                    logger.LogInformation("File modified externally: {Title} ({SourcePath})", pathMatch.Title, discovered.SourcePath);
+                    discovered.BookUuid = pathMatch.BookUuid;
+                    await HandleExistingBook(discovered, pathMatch, wordsPerPage);
+                    claimedUuids.Add(pathMatch.BookUuid);
+                    continue;
+                }
+
+                // Path miss + hash match, and original path no longer exists — file was moved/renamed.
+                if (existingByHash.TryGetValue(discovered.FileHash, out var hashMatch) && !discoveredPaths.Contains(hashMatch.SourcePath))
+                {
+                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", hashMatch.Title, hashMatch.SourcePath, discovered.SourcePath);
+                    discovered.BookUuid = hashMatch.BookUuid;
+                    await HandleMovedBook(discovered, hashMatch, wordsPerPage);
+                    claimedUuids.Add(hashMatch.BookUuid);
+                    continue;
+                }
+
+                // Truly new file.
+                discovered.BookUuid = Guid.NewGuid();
+                await HandleNewBook(discovered, wordsPerPage);
+                claimedUuids.Add(discovered.BookUuid);
             }
 
+            await HandleStaleBooks(existingBooks, claimedUuids);
             await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
             logger.LogInformation("Library indexing complete. Total files: {Count}", discoveredBooks.Count);
             return discoveredBooks.Count;
@@ -91,7 +121,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         logger.LogInformation("Indexing new book: {Title}", discovered.Title);
         var now = DateTimeOffset.UtcNow;
 
-        discovered.EntitlementUuid = discovered.GenerateDeterministicUuid();
+        discovered.EntitlementUuid = Guid.NewGuid();
         discovered.CoverImageUuid = Guid.GenerateUuidV5("cover:" + discovered.FileHash);
         discovered.CreatedAt = now;
         discovered.ModifiedAt = now;
@@ -116,6 +146,22 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         await PersistBook(discovered, false);
 
         logger.LogInformation("Updated: {Title} by {Authors}", discovered.Title, string.Join(", ", discovered.Authors.Select(a => a.Name)));
+    }
+
+    private async Task HandleMovedBook(Book discovered, Book existing, int wordsPerPage)
+    {
+        logger.LogInformation("Updating moved book: {Title}", discovered.Title);
+
+        discovered.EntitlementUuid = existing.EntitlementUuid;
+        discovered.CoverImageUuid = Guid.GenerateUuidV5("cover:" + discovered.FileHash);
+        discovered.CreatedAt = existing.CreatedAt;
+        discovered.ModifiedAt = DateTimeOffset.UtcNow;
+        MergeDbOnlyFields(discovered, existing);
+        ComputePageCount(discovered, wordsPerPage);
+
+        await PersistBook(discovered, false);
+
+        logger.LogInformation("Moved: {Title} by {Authors}", discovered.Title, string.Join(", ", discovered.Authors.Select(a => a.Name)));
     }
 
     private async Task PersistBook(Book book, bool isNewBook)
@@ -168,9 +214,9 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             book.PageCount = (int)Math.Ceiling((double)book.WordCount.Value / wordsPerPage);
     }
 
-    private async Task HandleStaleBooks(List<Book> existingBooks, Dictionary<Guid, Book> discoveredByUuid)
+    private async Task HandleStaleBooks(List<Book> existingBooks, HashSet<Guid> claimedUuids)
     {
-        var staleBooks = existingBooks.Where(b => !discoveredByUuid.ContainsKey(b.BookUuid)).ToList();
+        var staleBooks = existingBooks.Where(b => !claimedUuids.Contains(b.BookUuid)).ToList();
         foreach (var stale in staleBooks)
         {
             logger.LogInformation("Removing stale entry: {Title} ({SourcePath})", stale.Title, stale.SourcePath);

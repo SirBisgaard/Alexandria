@@ -22,14 +22,12 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
     public (Book Book, string? CoverFilePath) ExtractAll(string filePath)
     {
         var book = mediaHandler.ExtractMetadata(filePath);
-        var coverUuid = book.BookUuid != Guid.Empty ? book.BookUuid : book.GenerateDeterministicUuid();
+        var coverUuid = Guid.GenerateUuidV5("cover:" + filePath);
         Directory.CreateDirectory(settings.CoversFolder);
         var coverFilePath = mediaHandler.ExtractCover(filePath, settings.CoversFolder, coverUuid);
         coverFilePath = ConvertCoverToJpeg(coverFilePath);
         return (book, coverFilePath);
     }
-
-    public void StampIdentifier(string filePath, Book book) => mediaHandler.EmbedMetadata(filePath, book);
 
     public Task CreateDerivativeFiles(Book book, string sourcePath)
     {

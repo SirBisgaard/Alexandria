@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -38,14 +37,6 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
             var (book, coverFilePath) = indexer.ExtractAll(filePath);
             book.FileHash = fileHash;
-
-            if (book.BookUuid == Guid.Empty)
-            {
-                book.BookUuid = book.GenerateDeterministicUuid();
-                logger.LogInformation("Stamping UUID {Uuid} into {FileName}", book.BookUuid, fileName);
-                indexer.StampIdentifier(filePath, book);
-                fileHash = await indexer.ComputeFileHash(filePath);
-            }
 
             book.FileHash = fileHash;
             book.SourcePath = filePath;
