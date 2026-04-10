@@ -6,6 +6,6 @@ public class AppSettings
     public DateTimeOffset? LastIndexedTimestamp { get; set; }
     public int SyncBatchSize { get; set; } = 60;
     public bool ProxyLoggingEnabled { get; set; } = true;
-    public bool KoboStoreKillSwitch { get; set; } = false;
+
     public int WordsPerPage { get; set; } = 250;
 }

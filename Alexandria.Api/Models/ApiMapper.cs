@@ -117,7 +117,6 @@ public static class ApiMapper
         LastIndexedTimestamp = settings.LastIndexedTimestamp,
         SyncBatchSize = settings.SyncBatchSize,
         ProxyLoggingEnabled = settings.ProxyLoggingEnabled,
-        KoboStoreKillSwitch = settings.KoboStoreKillSwitch,
         WordsPerPage = settings.WordsPerPage
     };
 
@@ -135,7 +134,6 @@ public static class ApiMapper
     {
         SyncBatchSize = request.SyncBatchSize,
         ProxyLoggingEnabled = request.ProxyLoggingEnabled,
-        KoboStoreKillSwitch = request.KoboStoreKillSwitch,
         WordsPerPage = request.WordsPerPage
     };
 

@@ -90,13 +90,8 @@ $(function () {
                             '</div>' +
                             '<div class="settings-tile-desc">Log all Kobo proxy traffic to the database for debugging.</div>' +
                         '</div>' +
-                        '<div class="settings-tile">' +
-                            '<div class="settings-tile-toggle-row">' +
-                                '<div class="settings-tile-label">Disable Kobo store</div>' +
-                                '<label class="settings-toggle"><input type="checkbox" data-setting="koboStoreKillSwitch"><span class="settings-toggle-slider"></span></label>' +
-                            '</div>' +
-                            '<div class="settings-tile-desc">Block all Kobo store requests. Your device will only show books from your Alexandria library.</div>' +
-                        '</div>' +
+
+
                     '</div>' +
                     '<div class="settings-error-banner"></div>' +
                     '<div class="settings-footer">' +

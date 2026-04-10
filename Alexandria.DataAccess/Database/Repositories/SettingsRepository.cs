@@ -15,7 +15,7 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, KoboStoreKillSwitch, WordsPerPage FROM Settings WHERE Id = 1";
+        cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage FROM Settings WHERE Id = 1";
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -26,7 +26,6 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
             LastIndexedTimestamp = reader.IsDBNull(reader.GetOrdinal("LastIndexedTimestamp")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("LastIndexedTimestamp"))),
             SyncBatchSize = reader.GetInt32(reader.GetOrdinal("SyncBatchSize")),
             ProxyLoggingEnabled = reader.GetInt32(reader.GetOrdinal("ProxyLoggingEnabled")) == 1,
-            KoboStoreKillSwitch = reader.GetInt32(reader.GetOrdinal("KoboStoreKillSwitch")) == 1,
             WordsPerPage = reader.GetInt32(reader.GetOrdinal("WordsPerPage"))
         };
     }
@@ -48,10 +47,9 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, KoboStoreKillSwitch = @koboStoreKillSwitch, WordsPerPage = @wordsPerPage WHERE Id = 1";
+        cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage WHERE Id = 1";
         cmd.Parameters.AddWithValue("@syncBatchSize", settings.SyncBatchSize);
         cmd.Parameters.AddWithValue("@proxyLoggingEnabled", settings.ProxyLoggingEnabled ? 1 : 0);
-        cmd.Parameters.AddWithValue("@koboStoreKillSwitch", settings.KoboStoreKillSwitch ? 1 : 0);
         cmd.Parameters.AddWithValue("@wordsPerPage", settings.WordsPerPage);
         await cmd.ExecuteNonQueryAsync();
     }

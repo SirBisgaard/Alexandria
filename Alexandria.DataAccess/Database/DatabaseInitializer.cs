@@ -293,7 +293,6 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 LastIndexedTimestamp TEXT,
                 SyncBatchSize INTEGER NOT NULL DEFAULT 60,
                 ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1,
-                KoboStoreKillSwitch INTEGER NOT NULL DEFAULT 0,
                 WordsPerPage INTEGER NOT NULL DEFAULT 250
             )
             """;
@@ -301,8 +300,8 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
 
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
-            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, KoboStoreKillSwitch, WordsPerPage)
-            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 0, 0, 250)
+            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage)
+            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 0, 250)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
     }

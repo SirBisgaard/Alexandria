@@ -9,7 +9,6 @@ function loadSettings(container) {
         $c.find("[data-setting='syncBatchSize']").val(data.syncBatchSize);
         $c.find("[data-setting='wordsPerPage']").val(data.wordsPerPage);
         $c.find("[data-setting='proxyLoggingEnabled']").prop("checked", data.proxyLoggingEnabled);
-        $c.find("[data-setting='koboStoreKillSwitch']").prop("checked", data.koboStoreKillSwitch);
     });
 }
 
@@ -22,8 +21,7 @@ function saveSettings(container) {
     var payload = {
         syncBatchSize: parseInt($c.find("[data-setting='syncBatchSize']").val(), 10),
         wordsPerPage: parseInt($c.find("[data-setting='wordsPerPage']").val(), 10),
-        proxyLoggingEnabled: $c.find("[data-setting='proxyLoggingEnabled']").prop("checked"),
-        koboStoreKillSwitch: $c.find("[data-setting='koboStoreKillSwitch']").prop("checked")
+        proxyLoggingEnabled: $c.find("[data-setting='proxyLoggingEnabled']").prop("checked")
     };
 
     var $btns = $c.find(".bm-edit-btn");
