@@ -1,4 +1,5 @@
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
@@ -22,52 +23,58 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             foreach (var book in existingBooks)
                 existingByPath[book.SourcePath] = book;
 
-            var (discoveredBooks, unchangedUuids) = await contentManager.GetAllBooks(existingBooks, progress);
-            var discoveredPaths = discoveredBooks.Select(b => b.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var files = contentManager.GetContentFiles();
+            var discoveredBooks = new List<Book>();
+            var discoveredPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var claimedUuids = new HashSet<Guid>();
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
 
-            var dbProcessed = 0;
-            foreach (var discovered in discoveredBooks)
+            for (var i = 0; i < files.Length; i++)
             {
-                progress?.Report((discoveredBooks.Count + ++dbProcessed, discoveredBooks.Count * 2));
-                var existingAtPath = existingByPath.GetValueOrDefault(discovered.SourcePath);
+                var filePath = files[i];
+                progress?.Report((i + 1, files.Length * 2));
+                discoveredPaths.Add(filePath);
 
-                // Unchanged — FileContentManager confirmed metadata + cover match.
-                if (unchangedUuids.Contains(discovered.BookUuid))
+                var existingAtPath = existingByPath.GetValueOrDefault(filePath);
+                var metadata = contentManager.ExtractMetadata(filePath);
+
+                // Unchanged — metadata + cover both match existing.
+                if (existingAtPath is not null && existingAtPath.MetadataEquals(metadata) && CoverUnchanged(existingAtPath, contentManager.ExtractCoverBytes(filePath)))
                 {
-                    await contentManager.CreateDerivativeFiles(discovered);
-                    claimedUuids.Add(discovered.BookUuid);
+                    discoveredBooks.Add(existingAtPath);
+                    await contentManager.CreateDerivativeFiles(existingAtPath);
+                    claimedUuids.Add(existingAtPath.BookUuid);
                     continue;
                 }
 
-                // Path match — file was modified externally.
-                if (existingAtPath is not null)
+                // Resolve UUID: path match → moved book match → new.
+                var bookUuid = existingAtPath?.BookUuid ?? FindMovedBookUuid(metadata, existingBooks, discoveredPaths) ?? Guid.NewGuid();
+
+                var (book, _) = contentManager.ExtractBook(filePath, bookUuid);
+                discoveredBooks.Add(book);
+                await contentManager.CreateDerivativeFiles(book);
+
+                // Classify and persist.
+                var existingMatch = existingAtPath ?? existingBooks.FirstOrDefault(b => b.BookUuid == bookUuid);
+                if (existingMatch is not null && existingAtPath is not null)
                 {
-                    logger.LogInformation("File modified externally: {Title} ({SourcePath})", existingAtPath.Title, discovered.SourcePath);
-                    await contentManager.CreateDerivativeFiles(discovered);
-                    await HandleExistingBook(discovered, existingAtPath, wordsPerPage);
-                    claimedUuids.Add(discovered.BookUuid);
-                    continue;
+                    logger.LogInformation("File modified externally: {Title} ({SourcePath})", existingMatch.Title, filePath);
+                    await HandleExistingBook(book, existingMatch, wordsPerPage);
+                }
+                else if (existingMatch is not null)
+                {
+                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, filePath);
+                    await HandleMovedBook(book, existingMatch, wordsPerPage);
+                }
+                else
+                {
+                    await HandleNewBook(book, wordsPerPage);
                 }
 
-                // Path miss + metadata match with missing-path book — file was moved/renamed.
-                var existingMatch = existingBooks.FirstOrDefault(b => b.BookUuid == discovered.BookUuid);
-                if (existingMatch is not null && !discoveredPaths.Contains(existingMatch.SourcePath))
-                {
-                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, discovered.SourcePath);
-                    await contentManager.CreateDerivativeFiles(discovered);
-                    await HandleMovedBook(discovered, existingMatch, wordsPerPage);
-                    claimedUuids.Add(discovered.BookUuid);
-                    continue;
-                }
-
-                // Truly new file. BookUuid already assigned by FileContentManager.
-                await contentManager.CreateDerivativeFiles(discovered);
-                await HandleNewBook(discovered, wordsPerPage);
-                claimedUuids.Add(discovered.BookUuid);
+                claimedUuids.Add(bookUuid);
             }
 
+            contentManager.CleanupStaleDerivatives(discoveredBooks, existingBooks);
             await HandleStaleBooks(existingBooks, claimedUuids);
             await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
             await databasePersistence.Flush();
@@ -88,8 +95,6 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             var existing = await bookRepository.FindByUuid(uuid)
                 ?? throw new InvalidOperationException($"Book with UUID '{uuid}' not found.");
 
-            logger.LogInformation("Reindexing book: {Title}", existing.Title);
-
             if (desiredMetadata is not null || coverUpdate is not null)
             {
                 var bookToUpdate = desiredMetadata ?? existing;
@@ -108,7 +113,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             await PersistBook(refreshed, false);
             await databasePersistence.Flush();
 
-            logger.LogInformation("Reindexed: {Title} by {Authors}", refreshed.Title, string.Join(", ", refreshed.Authors.Select(a => a.Name)));
+            logger.LogInformation("Reindexed: {mediaType}:{Title} from {filePath}", refreshed.MediaType, refreshed.Title, refreshed.SourcePath);
         }
         finally
         {
@@ -118,7 +123,6 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
     private async Task HandleNewBook(Book discovered, int wordsPerPage)
     {
-        logger.LogInformation("Indexing new book: {Title}", discovered.Title);
         var now = DateTimeOffset.UtcNow;
 
         discovered.EntitlementUuid = Guid.NewGuid();
@@ -128,7 +132,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
         await PersistBook(discovered, true);
 
-        logger.LogInformation("Indexed: {Title} by {Authors}", discovered.Title, string.Join(", ", discovered.Authors.Select(a => a.Name)));
+        logger.LogInformation("Indexed: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
     }
 
     private async Task HandleExistingBook(Book discovered, Book existing, int wordsPerPage)
@@ -143,7 +147,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
         await PersistBook(discovered, false);
 
-        logger.LogInformation("Updated: {Title} by {Authors}", discovered.Title, string.Join(", ", discovered.Authors.Select(a => a.Name)));
+        logger.LogInformation("Updated: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
     }
 
     private async Task HandleMovedBook(Book discovered, Book existing, int wordsPerPage)
@@ -158,7 +162,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
         await PersistBook(discovered, false);
 
-        logger.LogInformation("Moved: {Title} by {Authors}", discovered.Title, string.Join(", ", discovered.Authors.Select(a => a.Name)));
+        logger.LogInformation("Moved: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
     }
 
     private async Task PersistBook(Book book, bool isNewBook)
@@ -187,6 +191,23 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             await seriesRepository.RemoveBookSeries(book.BookUuid);
             book.Series = null;
         }
+    }
+
+    private static bool CoverUnchanged(Book existing, byte[]? freshCoverBytes)
+    {
+        if (existing.CoverFilePath is null && freshCoverBytes is null)
+            return true;
+        if (existing.CoverFilePath is null || freshCoverBytes is null)
+            return false;
+        if (!File.Exists(existing.CoverFilePath))
+            return false;
+        var existingBytes = File.ReadAllBytes(existing.CoverFilePath);
+        return existingBytes.AsSpan().SequenceEqual(freshCoverBytes);
+    }
+
+    private static Guid? FindMovedBookUuid(Book freshMetadata, List<Book> existingBooks, HashSet<string> discoveredPaths)
+    {
+        return existingBooks.FirstOrDefault(b => !discoveredPaths.Contains(b.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
     }
 
     private static void MergeDbOnlyFields(Book target, Book source)

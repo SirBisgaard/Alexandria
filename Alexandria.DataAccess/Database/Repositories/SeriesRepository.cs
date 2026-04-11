@@ -2,15 +2,16 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : ISeriesRepository
 {
-    public Task<List<Series>> GetAll()
+    public async Task<List<Series>> GetAll()
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series ORDER BY Name";
@@ -23,12 +24,12 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             }
 
             return series;
-        }));
+        });
     }
 
-    public Task<Series?> FindByUuid(Guid seriesUuid)
+    public async Task<Series?> FindByUuid(Guid seriesUuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series WHERE SeriesUuid = @uuid";
@@ -39,12 +40,12 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
                 return MapSeries(reader);
 
             return (Series?)null;
-        }));
+        });
     }
 
-    public Task<Guid> GetOrCreate(string name)
+    public async Task<Guid> GetOrCreate(string name)
     {
-        return Task.FromResult(connectionProvider.Write(connection =>
+        return await connectionProvider.Write(connection =>
         {
             using var selectCmd = connection.CreateCommand();
             selectCmd.CommandText = "SELECT SeriesUuid FROM Series WHERE Name = @name COLLATE NOCASE";
@@ -65,12 +66,12 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             insertCmd.ExecuteNonQuery();
 
             return newUuid;
-        }));
+        });
     }
 
-    public Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index)
+    public async Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var deleteCmd = connection.CreateCommand();
             deleteCmd.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @bookUuid";
@@ -87,24 +88,22 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             insertCmd.Parameters.AddWithValue("@modifiedAt", now);
             insertCmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task RemoveBookSeries(Guid bookUuid)
+    public async Task RemoveBookSeries(Guid bookUuid)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @bookUuid";
             cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task<Series?> GetSeriesByBookUuid(Guid bookUuid)
+    public async Task<Series?> GetSeriesByBookUuid(Guid bookUuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -129,12 +128,12 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             }
 
             return (Series?)null;
-        }));
+        });
     }
 
-    public Task RemoveOrphanedSeries()
+    public async Task RemoveOrphanedSeries()
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -143,12 +142,11 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
                 """;
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task<Series?> FindByName(string name)
+    public async Task<Series?> FindByName(string name)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series WHERE Name = @name COLLATE NOCASE";
@@ -159,12 +157,12 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
                 return MapSeries(reader);
 
             return (Series?)null;
-        }));
+        });
     }
 
-    public Task Update(Series series)
+    public async Task Update(Series series)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "UPDATE Series SET Name = @name, ModifiedAt = @modifiedAt WHERE SeriesUuid = @uuid";
@@ -173,12 +171,11 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             cmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
+    public async Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var updateCmd = connection.CreateCommand();
             updateCmd.CommandText = "UPDATE BookSeries SET SeriesUuid = @targetUuid, ModifiedAt = @modifiedAt WHERE SeriesUuid = @sourceUuid AND BookUuid NOT IN (SELECT BookUuid FROM BookSeries WHERE SeriesUuid = @targetUuid)";
@@ -192,7 +189,6 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             deleteCmd.Parameters.AddWithValue("@sourceUuid", sourceUuid.ToString());
             deleteCmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
     private static Series MapSeries(SqliteDataReader reader)

@@ -1,13 +1,14 @@
 using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvider) : IKoboDeviceSyncRepository
 {
-    public Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceId)
+    public async Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceId)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT BookUuid, BookModifiedAt FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId";
@@ -21,12 +22,12 @@ public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvid
             }
 
             return result;
-        }));
+        });
     }
 
-    public Task UpsertSyncedFile(string deviceId, Guid bookUuid, DateTimeOffset bookModifiedAt)
+    public async Task UpsertSyncedFile(string deviceId, Guid bookUuid, DateTimeOffset bookModifiedAt)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             var now = DateTimeOffset.UtcNow.ToString("O");
             using var cmd = connection.CreateCommand();
@@ -42,12 +43,11 @@ public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvid
             cmd.Parameters.AddWithValue("@modifiedAt", now);
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task RemoveSyncedFile(string deviceId, Guid bookUuid)
+    public async Task RemoveSyncedFile(string deviceId, Guid bookUuid)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "DELETE FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId AND BookUuid = @bookUuid";
@@ -55,6 +55,5 @@ public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvid
             cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 }

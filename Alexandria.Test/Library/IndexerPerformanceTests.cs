@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Library;
 
 [TestClass]
+// [Ignore("Performance tests — run manually")]
 public sealed class IndexerPerformanceTests
 {
     private const string EbookFolder = "/path/to/books/Ebooks";

@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -10,73 +8,43 @@ namespace Alexandria.DataAccess.Files;
 
 public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnumerable<IFileContentMediaHandler> handlers, ILogger<FileContentManager> logger) : IFileContentManager
 {
-    public async Task<(List<Book> Books, HashSet<Guid> UnchangedUuids)> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null)
+    public string[] GetContentFiles()
     {
-        var unchangedUuids = new ConcurrentBag<Guid>();
-        var books = new ConcurrentBag<Book>();
-        var allFiles = indexers.SelectMany(i => i.GetContentFiles()).ToArray();
-        logger.LogInformation("Indexing {Count} files from {IndexerCount} indexer(s)", allFiles.Length, indexers.Count());
+        var files = indexers.SelectMany(i => i.GetContentFiles()).ToArray();
+        logger.LogInformation("Discovered {Count} files from {IndexerCount} indexer(s)", files.Length, indexers.Count());
+        return files;
+    }
 
-        var existingByPath = existingBooks?.ToDictionary(b => b.SourcePath, StringComparer.OrdinalIgnoreCase) ?? [];
-        var discoveredPaths = new ConcurrentBag<string>();
-        var processed = 0;
+    public Book ExtractMetadata(string filePath) => GetIndexerFor(filePath).ExtractMetadata(filePath);
 
-        await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, ct) =>
+    public byte[]? ExtractCoverBytes(string filePath) => GetIndexerFor(filePath).ExtractCoverBytes(filePath);
+
+    public (Book Book, string? CoverFilePath) ExtractBook(string filePath, Guid bookUuid)
+    {
+        var indexer = GetIndexerFor(filePath);
+        var (book, coverFilePath) = indexer.ExtractAll(filePath, bookUuid);
+        book.BookUuid = bookUuid;
+        book.SourcePath = filePath;
+        book.CoverFilePath = coverFilePath;
+        return (book, coverFilePath);
+    }
+
+    public void CleanupStaleDerivatives(List<Book> currentBooks, List<Book>? previousBooks)
+    {
+        var currentUuids = currentBooks.Select(b => b.BookUuid).ToHashSet();
+        var validCoverPaths = currentBooks.Where(b => b.CoverFilePath is not null).Select(b => b.CoverFilePath!).ToHashSet();
+
+        if (previousBooks is not null)
         {
-            var current = Interlocked.Increment(ref processed);
-            progress?.Report((current, allFiles.Length * 2));
-            var indexer = GetIndexerFor(filePath);
-            var fileName = Path.GetFileName(filePath);
-            discoveredPaths.Add(filePath);
-
-            var freshMetadata = indexer.ExtractMetadata(filePath);
-
-            if (existingByPath.TryGetValue(filePath, out var existing) && existing.MetadataEquals(freshMetadata) && CoverUnchanged(existing, indexer.ExtractCoverBytes(filePath)))
+            foreach (var existing in previousBooks)
             {
-                logger.LogDebug("Skipping unchanged [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
-                unchangedUuids.Add(existing.BookUuid);
-                books.Add(existing);
-                return;
+                if (!currentUuids.Contains(existing.BookUuid) && (existing.CoverFilePath is null || !validCoverPaths.Contains(existing.CoverFilePath)))
+                    GetIndexerFor(existing.SourcePath).DeleteDerivedFiles(existing);
             }
+        }
 
-            logger.LogDebug("Indexing [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
-
-            var bookUuid = existing?.BookUuid ?? FindMovedBookUuid(freshMetadata, existingBooks, discoveredPaths) ?? Guid.NewGuid();
-
-            var (book, coverFilePath) = indexer.ExtractAll(filePath, bookUuid);
-            book.BookUuid = bookUuid;
-            book.SourcePath = filePath;
-            book.CoverFilePath = coverFilePath;
-
-            logger.LogDebug("Indexed '{Title}' by {Authors} ({Uuid})", book.Title, string.Join(", ", book.Authors.Select(a => a.Name)), book.BookUuid);
-            books.Add(book);
-        });
-
-        var bookList = books.ToList();
-        CleanupStaleDerivatives(bookList, existingBooks);
-        logger.LogInformation("Indexing complete: {Count} books", bookList.Count);
-
-        return (bookList, unchangedUuids.ToHashSet());
-    }
-
-    private static bool CoverUnchanged(Book existing, byte[]? freshCoverBytes)
-    {
-        if (existing.CoverFilePath is null && freshCoverBytes is null)
-            return true;
-        if (existing.CoverFilePath is null || freshCoverBytes is null)
-            return false;
-        if (!File.Exists(existing.CoverFilePath))
-            return false;
-        var existingBytes = File.ReadAllBytes(existing.CoverFilePath);
-        return existingBytes.AsSpan().SequenceEqual(freshCoverBytes);
-    }
-
-    private static Guid? FindMovedBookUuid(Book freshMetadata, List<Book>? existingBooks, ConcurrentBag<string> discoveredPaths)
-    {
-        if (existingBooks is null)
-            return null;
-        var paths = discoveredPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return existingBooks.FirstOrDefault(b => !paths.Contains(b.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
+        foreach (var indexer in indexers)
+            indexer.CleanupOrphanedFiles(currentUuids, validCoverPaths);
     }
 
     public async Task<Book> GetBook(Book book)
@@ -128,24 +96,6 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     public Task<byte[]?> GetChapterFile(Book book, int chapterIndex) => GetHandlerFor(book.SourcePath).ReadChapter(book, chapterIndex);
 
     public Task<byte[]?> GetCoverFile(Book book, int? width = null, int? height = null, int? quality = null) => GetHandlerFor(book.SourcePath).ReadCover(book, width, height, quality);
-
-    private void CleanupStaleDerivatives(List<Book> currentBooks, List<Book>? existingBooks)
-    {
-        var currentUuids = currentBooks.Select(b => b.BookUuid).ToHashSet();
-        var validCoverPaths = currentBooks.Where(b => b.CoverFilePath is not null).Select(b => b.CoverFilePath!).ToHashSet();
-
-        if (existingBooks is not null)
-        {
-            foreach (var existing in existingBooks)
-            {
-                if (!currentUuids.Contains(existing.BookUuid) && (existing.CoverFilePath is null || !validCoverPaths.Contains(existing.CoverFilePath)))
-                    GetIndexerFor(existing.SourcePath).DeleteDerivedFiles(existing);
-            }
-        }
-
-        foreach (var indexer in indexers)
-            indexer.CleanupOrphanedFiles(currentUuids, validCoverPaths);
-    }
 
     private IFileContentIndexer GetIndexerFor(string filePath)
     {

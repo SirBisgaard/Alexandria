@@ -1,4 +1,5 @@
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database;
@@ -7,7 +8,7 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
 {
     private readonly string diskPath;
     private readonly SqliteConnection connection;
-    private readonly ReaderWriterLockSlim rwLock = new();
+    private readonly SemaphoreSlim dbLock = new(1, 1);
 
     public SqliteConnectionProvider(AlexandriaSettings settings)
     {
@@ -17,71 +18,70 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
 
         if (!File.Exists(diskPath))
             return;
-        
+
         using var diskConn = new SqliteConnection($"Data Source={diskPath}");
         diskConn.Open();
         diskConn.BackupDatabase(connection);
     }
 
-    public T Read<T>(Func<SqliteConnection, T> operation)
+    public async Task<T> Read<T>(Func<SqliteConnection, T> operation)
     {
-        rwLock.EnterReadLock();
+        await dbLock.WaitAsync();
         try
         {
             return operation(connection);
         }
         finally
         {
-            rwLock.ExitReadLock();
+            dbLock.Release();
         }
     }
 
-    public void Write(Action<SqliteConnection> operation)
+    public async Task Write(Action<SqliteConnection> operation)
     {
-        rwLock.EnterWriteLock();
+        await dbLock.WaitAsync();
         try
         {
             operation(connection);
         }
         finally
         {
-            rwLock.ExitWriteLock();
+            dbLock.Release();
         }
     }
 
-    public T Write<T>(Func<SqliteConnection, T> operation)
+    public async Task<T> Write<T>(Func<SqliteConnection, T> operation)
     {
-        rwLock.EnterWriteLock();
+        await dbLock.WaitAsync();
         try
         {
             return operation(connection);
         }
         finally
         {
-            rwLock.ExitWriteLock();
+            dbLock.Release();
         }
     }
 
-    public Task Flush()
+    public async Task Flush()
     {
-        rwLock.EnterWriteLock();
+        await dbLock.WaitAsync();
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
-            using var diskConn = new SqliteConnection($"Data Source={diskPath}");
+            await using var diskConn = new SqliteConnection($"Data Source={diskPath}");
             diskConn.Open();
             connection.BackupDatabase(diskConn);
-            return Task.CompletedTask;
         }
         finally
         {
-            rwLock.ExitWriteLock();
+            dbLock.Release();
         }
     }
 
     public void Dispose()
     {
         connection.Dispose();
-        rwLock.Dispose();
+        dbLock.Dispose();
     }
 }

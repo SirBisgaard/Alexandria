@@ -1,25 +1,26 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class CollectionRepository(ISqliteConnectionProvider connectionProvider) : ICollectionRepository
 {
-    public Task<List<BookCollection>> GetAll()
+    public async Task<List<BookCollection>> GetAll()
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             var collections = QueryCollections(connection, "SELECT * FROM Collections");
             HydrateBookUuids(connection, collections);
             return collections;
-        }));
+        });
     }
 
-    public Task<BookCollection?> FindByUuid(Guid uuid)
+    public async Task<BookCollection?> FindByUuid(Guid uuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             var collections = QueryCollections(connection, "SELECT * FROM Collections WHERE CollectionUuid = @uuid", ("@uuid", uuid.ToString()));
             if (collections.Count == 0)
@@ -27,12 +28,12 @@ public class CollectionRepository(ISqliteConnectionProvider connectionProvider) 
 
             HydrateBookUuids(connection, collections);
             return (BookCollection?)collections[0];
-        }));
+        });
     }
 
-    public Task Upsert(BookCollection collection)
+    public async Task Upsert(BookCollection collection)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var transaction = connection.BeginTransaction();
 
@@ -63,12 +64,11 @@ public class CollectionRepository(ISqliteConnectionProvider connectionProvider) 
 
             transaction.Commit();
         });
-        return Task.CompletedTask;
     }
 
-    public Task Delete(Guid uuid)
+    public async Task Delete(Guid uuid)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var transaction = connection.BeginTransaction();
 
@@ -84,17 +84,16 @@ public class CollectionRepository(ISqliteConnectionProvider connectionProvider) 
 
             transaction.Commit();
         });
-        return Task.CompletedTask;
     }
 
-    public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since)
+    public async Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             var collections = QueryCollections(connection, "SELECT * FROM Collections WHERE ModifiedAt > @since", ("@since", since.ToString("O")));
             HydrateBookUuids(connection, collections);
             return collections;
-        }));
+        });
     }
 
     private static List<BookCollection> QueryCollections(SqliteConnection connection, string sql, params (string Name, string Value)[] parameters)

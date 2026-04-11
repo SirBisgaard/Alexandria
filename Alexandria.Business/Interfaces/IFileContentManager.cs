@@ -5,7 +5,11 @@ namespace Alexandria.Business.Interfaces;
 
 public interface IFileContentManager
 {
-    Task<(List<Book> Books, HashSet<Guid> UnchangedUuids)> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null);
+    string[] GetContentFiles();
+    Book ExtractMetadata(string filePath);
+    byte[]? ExtractCoverBytes(string filePath);
+    (Book Book, string? CoverFilePath) ExtractBook(string filePath, Guid bookUuid);
+    void CleanupStaleDerivatives(List<Book> currentBooks, List<Book>? previousBooks);
     Task CreateDerivativeFiles(Book book);
     Task<Book> GetBook(Book book);
     Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null);

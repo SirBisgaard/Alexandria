@@ -1,14 +1,15 @@
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class KoboTrafficLogRepository(ISqliteConnectionProvider connectionProvider) : IKoboTrafficLogRepository
 {
-    public Task Log(KoboProxyTrafficLog entry)
+    public async Task Log(KoboProxyTrafficLog entry)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -32,17 +33,15 @@ public class KoboTrafficLogRepository(ISqliteConnectionProvider connectionProvid
 
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task Clear()
+    public async Task Clear()
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "DELETE FROM KoboTrafficLogs";
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 }

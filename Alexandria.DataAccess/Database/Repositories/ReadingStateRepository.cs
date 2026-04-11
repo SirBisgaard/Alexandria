@@ -2,15 +2,16 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider) : IReadingStateRepository
 {
-    public Task<KoboStoreReadingState?> GetByBookUuid(Guid bookUuid)
+    public async Task<KoboStoreReadingState?> GetByBookUuid(Guid bookUuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT * FROM KoboReadingStates WHERE BookUuid = @bookUuid";
@@ -23,12 +24,12 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
             }
 
             return MapReadingState(reader);
-        }));
+        });
     }
 
-    public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid)
+    public async Task<ReadingProgress?> GetReadingProgress(Guid bookUuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT StatusInfoStatus, ProgressPercent, SpentReadingMinutes, RemainingTimeMinutes, CreatedAt, ModifiedAt FROM KoboReadingStates WHERE BookUuid = @bookUuid";
@@ -49,12 +50,12 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
                 CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
                 ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt")))
             };
-        }));
+        });
     }
 
-    public Task Upsert(Guid bookUuid, KoboStoreReadingState state)
+    public async Task Upsert(Guid bookUuid, KoboStoreReadingState state)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -86,7 +87,6 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
 
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
     private static KoboStoreReadingState MapReadingState(SqliteDataReader reader)

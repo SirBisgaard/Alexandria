@@ -1,15 +1,16 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class BookRepository(ISqliteConnectionProvider connectionProvider, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
 {
-    public Task<List<Book>> GetAll()
+    public async Task<List<Book>> GetAll()
     {
-        var books = connectionProvider.Read(connection =>
+        var books = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT * FROM Books";
@@ -29,16 +30,16 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 
         foreach (var book in books)
         {
-            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
-            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
         }
 
-        return Task.FromResult(books);
+        return books;
     }
 
-    public Task<Book?> FindByUuid(Guid uuid)
+    public async Task<Book?> FindByUuid(Guid uuid)
     {
-        var book = connectionProvider.Read(connection =>
+        var book = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT * FROM Books WHERE BookUuid = @uuid";
@@ -57,16 +58,16 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 
         if (book is not null)
         {
-            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
-            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
         }
 
-        return Task.FromResult(book);
+        return book;
     }
 
-    public Task<Book?> FindByEntitlementUuid(Guid entitlementUuid)
+    public async Task<Book?> FindByEntitlementUuid(Guid entitlementUuid)
     {
-        var book = connectionProvider.Read(connection =>
+        var book = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT * FROM Books WHERE EntitlementUuid = @uuid";
@@ -85,16 +86,16 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 
         if (book is not null)
         {
-            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
-            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
         }
 
-        return Task.FromResult(book);
+        return book;
     }
 
-    public Task<Book?> FindByPath(string sourcePath)
+    public async Task<Book?> FindByPath(string sourcePath)
     {
-        var book = connectionProvider.Read(connection =>
+        var book = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT * FROM Books WHERE SourcePath = @path COLLATE NOCASE";
@@ -113,16 +114,16 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 
         if (book is not null)
         {
-            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
-            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
+            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
         }
 
-        return Task.FromResult(book);
+        return book;
     }
 
-    public Task Add(Book book)
+    public async Task Add(Book book)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -133,12 +134,11 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             cmd.ExecuteNonQuery();
             SaveSubTableData(connection, book);
         });
-        return Task.CompletedTask;
     }
 
-    public Task Update(Book book)
+    public async Task Update(Book book)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -150,12 +150,11 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             DeleteSubTableData(connection, book.BookUuid);
             SaveSubTableData(connection, book);
         });
-        return Task.CompletedTask;
     }
 
-    public Task Remove(Guid uuid)
+    public async Task Remove(Guid uuid)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             DeleteSubTableData(connection, uuid);
 
@@ -184,12 +183,11 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task<List<string>> GetPublishers()
+    public async Task<List<string>> GetPublishers()
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT DISTINCT Publisher FROM Books WHERE Publisher IS NOT NULL AND Publisher != '' ORDER BY Publisher";
@@ -199,7 +197,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             while (reader.Read())
                 publishers.Add(reader.GetString(0));
             return publishers;
-        }));
+        });
     }
 
     private static void AddBookParameters(SqliteCommand cmd, Book book)

@@ -2,15 +2,16 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IAuthorRepository
 {
-    public Task<List<Author>> GetAll()
+    public async Task<List<Author>> GetAll()
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors ORDER BY Name";
@@ -23,12 +24,12 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             }
 
             return authors;
-        }));
+        });
     }
 
-    public Task<Author?> FindByUuid(Guid authorUuid)
+    public async Task<Author?> FindByUuid(Guid authorUuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE AuthorUuid = @uuid";
@@ -39,12 +40,12 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
                 return MapAuthor(reader);
 
             return (Author?)null;
-        }));
+        });
     }
 
-    public Task<Author?> FindByName(string name)
+    public async Task<Author?> FindByName(string name)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE Name = @name COLLATE NOCASE";
@@ -55,12 +56,12 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
                 return MapAuthor(reader);
 
             return (Author?)null;
-        }));
+        });
     }
 
-    public Task<Guid> GetOrCreate(string name)
+    public async Task<Guid> GetOrCreate(string name)
     {
-        return Task.FromResult(connectionProvider.Write(connection =>
+        return await connectionProvider.Write(connection =>
         {
             using var selectCmd = connection.CreateCommand();
             selectCmd.CommandText = "SELECT AuthorUuid FROM Authors WHERE Name = @name COLLATE NOCASE";
@@ -81,12 +82,12 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             insertCmd.ExecuteNonQuery();
 
             return newUuid;
-        }));
+        });
     }
 
-    public Task SetBookAuthors(Guid bookUuid, List<string> authorNames)
+    public async Task SetBookAuthors(Guid bookUuid, List<string> authorNames)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var deleteCmd = connection.CreateCommand();
             deleteCmd.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @bookUuid";
@@ -107,12 +108,11 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
                 insertCmd.ExecuteNonQuery();
             }
         });
-        return Task.CompletedTask;
     }
 
-    public Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid)
+    public async Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid)
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -132,12 +132,12 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             }
 
             return authors;
-        }));
+        });
     }
 
-    public Task RemoveOrphanedAuthors()
+    public async Task RemoveOrphanedAuthors()
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -146,7 +146,6 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
                 """;
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
     private static Guid GetOrCreateWithConnection(SqliteConnection connection, string name)
@@ -174,9 +173,9 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
         return newUuid;
     }
 
-    public Task Update(Author author)
+    public async Task Update(Author author)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "UPDATE Authors SET Name = @name, ModifiedAt = @modifiedAt WHERE AuthorUuid = @uuid";
@@ -185,12 +184,11 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             cmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
+    public async Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var updateCmd = connection.CreateCommand();
             updateCmd.CommandText = "UPDATE BookAuthors SET AuthorUuid = @targetUuid, ModifiedAt = @modifiedAt WHERE AuthorUuid = @sourceUuid AND BookUuid NOT IN (SELECT BookUuid FROM BookAuthors WHERE AuthorUuid = @targetUuid)";
@@ -204,7 +202,6 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             deleteCmd.Parameters.AddWithValue("@sourceUuid", sourceUuid.ToString());
             deleteCmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
     private static Author MapAuthor(SqliteDataReader reader)

@@ -1,15 +1,16 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : ISettingsRepository
 {
-    public Task<AppSettings> Get()
+    public async Task<AppSettings> Get()
     {
-        return Task.FromResult(connectionProvider.Read(connection =>
+        return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot FROM Settings WHERE Id = 1";
@@ -26,24 +27,23 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
                 WordsPerPage = reader.GetInt32(reader.GetOrdinal("WordsPerPage")),
                 SyncLibraryAtBoot = reader.GetInt32(reader.GetOrdinal("SyncLibraryAtBoot")) == 1
             };
-        }));
+        });
     }
 
-    public Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp)
+    public async Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "UPDATE Settings SET LastIndexedTimestamp = @timestamp WHERE Id = 1";
             cmd.Parameters.AddWithValue("@timestamp", timestamp.ToString("O"));
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 
-    public Task UpdateSettings(AppSettings settings)
+    public async Task UpdateSettings(AppSettings settings)
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage, SyncLibraryAtBoot = @syncLibraryAtBoot WHERE Id = 1";
@@ -53,6 +53,5 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
             cmd.Parameters.AddWithValue("@syncLibraryAtBoot", settings.SyncLibraryAtBoot ? 1 : 0);
             cmd.ExecuteNonQuery();
         });
-        return Task.CompletedTask;
     }
 }

@@ -6,9 +6,9 @@ namespace Alexandria.DataAccess.Database;
 
 public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
-    public Task Initialize()
+    public async Task Initialize()
     {
-        connectionProvider.Write(connection =>
+        await connectionProvider.Write(connection =>
         {
             logger.LogInformation("Database initialization started.");
 
@@ -33,8 +33,6 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
 
             logger.LogInformation("Database initialization complete");
         });
-
-        return Task.CompletedTask;
     }
 
     private static void EnsureSchemaVersionTable(SqliteConnection connection)
