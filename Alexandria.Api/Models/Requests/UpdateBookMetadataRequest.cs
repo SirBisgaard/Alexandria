@@ -10,8 +10,7 @@ public class UpdateBookMetadataRequest : IValidatableObject
     [Required(ErrorMessage = "At least one author is required."), MinLength(1)]
     public List<string> Authors { get; set; } = [];
 
-    [Required, MinLength(1)]
-    public string Language { get; set; } = string.Empty;
+    public string? Language { get; set; }
 
     [RegularExpression(@"^\d{4}(-\d{2}(-\d{2})?)?$", ErrorMessage = "PublicationDate must be in YYYY, YYYY-MM, or YYYY-MM-DD format.")]
     public string? PublicationDate { get; set; }

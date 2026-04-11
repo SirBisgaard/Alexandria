@@ -36,4 +36,14 @@ public class KoboTrafficLogRepository(AlexandriaSettings settings) : IKoboTraffi
 
         await cmd.ExecuteNonQueryAsync();
     }
+
+    public async Task Clear()
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM KoboTrafficLogs";
+        await cmd.ExecuteNonQueryAsync();
+    }
 }

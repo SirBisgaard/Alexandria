@@ -35,7 +35,7 @@ function languageName(code) {
 }
 
 function languageOptions(selected) {
-    var html = "";
+    var html = '<option value=""' + (!selected ? ' selected' : '') + '></option>';
     for (var code in LANGUAGES) {
         html += '<option value="' + code + '"' + (selected && selected.toLowerCase() === code ? ' selected' : '') + '>' + LANGUAGES[code] + '</option>';
     }

@@ -69,7 +69,7 @@ public sealed class AlexandriaIndexerServiceTests
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        return new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
+        return new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings), new KoboTrafficLogRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
     }
 
     [TestMethod]

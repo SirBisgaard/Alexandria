@@ -146,7 +146,7 @@ public static class ApiMapper
     {
         Title = request.Title,
         Authors = request.Authors.Select(name => new Author { Name = name }).ToList(),
-        Language = request.Language,
+        Language = request.Language ?? string.Empty,
         PublicationDate = request.PublicationDate,
         Description = request.Description,
         Publisher = request.Publisher,

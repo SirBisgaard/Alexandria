@@ -62,12 +62,12 @@ public sealed class RequestValidationTests
     }
 
     [TestMethod]
-    public void UpdateBookMetadata_EmptyLanguage_FailsValidation()
+    public void UpdateBookMetadata_EmptyLanguage_PassesValidation()
     {
         var request = ValidMetadataRequest();
         request.Language = "";
         var results = Validate(request);
-        Assert.IsNotEmpty(results);
+        Assert.IsEmpty(results);
     }
 
     [TestMethod]

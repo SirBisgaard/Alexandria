@@ -301,7 +301,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
         await using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot)
-            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 0, 250, 0)
+            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 1, 250, 0)
             """;
         await settingsSeedCmd.ExecuteNonQueryAsync();
     }
