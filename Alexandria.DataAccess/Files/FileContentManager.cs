@@ -18,7 +18,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         var existingByPath = existingBooks?.ToDictionary(b => b.SourcePath, StringComparer.OrdinalIgnoreCase) ?? [];
         var processed = 0;
 
-        await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, ct) =>
+        await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (filePath, ct) =>
         {
             var current = Interlocked.Increment(ref processed);
             progress?.Report((current, allFiles.Length * 2));
