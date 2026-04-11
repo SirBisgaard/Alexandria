@@ -16,7 +16,7 @@ public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<Dat
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         timer?.Change(Timeout.Infinite, 0);
-        await provider.FlushToDisk();
+        await provider.Flush();
         logger.LogInformation("Database flushed to disk on shutdown.");
     }
 
@@ -24,7 +24,7 @@ public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<Dat
     {
         try
         {
-            await provider.FlushToDisk();
+            await provider.Flush();
             logger.LogInformation("Periodic database flush completed.");
         }
         catch (Exception ex)

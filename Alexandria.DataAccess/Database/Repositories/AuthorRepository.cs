@@ -6,151 +6,156 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class AuthorRepository(SqliteConnectionProvider connectionProvider) : IAuthorRepository
+public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IAuthorRepository
 {
-    public async Task<List<Author>> GetAll()
+    public Task<List<Author>> GetAll()
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors ORDER BY Name";
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        var authors = new List<Author>();
-        while (await reader.ReadAsync())
+        return Task.FromResult(connectionProvider.Read(connection =>
         {
-            authors.Add(MapAuthor(reader));
-        }
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors ORDER BY Name";
 
-        return authors;
+            using var reader = cmd.ExecuteReader();
+            var authors = new List<Author>();
+            while (reader.Read())
+            {
+                authors.Add(MapAuthor(reader));
+            }
+
+            return authors;
+        }));
     }
 
-    public async Task<Author?> FindByUuid(Guid authorUuid)
+    public Task<Author?> FindByUuid(Guid authorUuid)
     {
-        var connection = connectionProvider.Connection;
+        return Task.FromResult(connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE AuthorUuid = @uuid";
+            cmd.Parameters.AddWithValue("@uuid", authorUuid.ToString());
 
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE AuthorUuid = @uuid";
-        cmd.Parameters.AddWithValue("@uuid", authorUuid.ToString());
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapAuthor(reader);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-            return MapAuthor(reader);
-
-        return null;
+            return (Author?)null;
+        }));
     }
 
-    public async Task<Author?> FindByName(string name)
+    public Task<Author?> FindByName(string name)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE Name = @name COLLATE NOCASE";
-        cmd.Parameters.AddWithValue("@name", name);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
+        return Task.FromResult(connectionProvider.Read(connection =>
         {
-            return MapAuthor(reader);
-        }
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE Name = @name COLLATE NOCASE";
+            cmd.Parameters.AddWithValue("@name", name);
 
-        return null;
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapAuthor(reader);
+
+            return (Author?)null;
+        }));
     }
 
-    public async Task<Guid> GetOrCreate(string name)
+    public Task<Guid> GetOrCreate(string name)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var selectCmd = connection.CreateCommand();
-        selectCmd.CommandText = "SELECT AuthorUuid FROM Authors WHERE Name = @name COLLATE NOCASE";
-        selectCmd.Parameters.AddWithValue("@name", name);
-
-        var existing = await selectCmd.ExecuteScalarAsync();
-        if (existing is string uuidStr)
+        return Task.FromResult(connectionProvider.Write(connection =>
         {
-            return Guid.Parse(uuidStr);
-        }
+            using var selectCmd = connection.CreateCommand();
+            selectCmd.CommandText = "SELECT AuthorUuid FROM Authors WHERE Name = @name COLLATE NOCASE";
+            selectCmd.Parameters.AddWithValue("@name", name);
 
-        var now = DateTimeOffset.UtcNow.ToString("O");
-        var newUuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
-        await using var insertCmd = connection.CreateCommand();
-        insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
-        insertCmd.Parameters.AddWithValue("@uuid", newUuid.ToString());
-        insertCmd.Parameters.AddWithValue("@name", name);
-        insertCmd.Parameters.AddWithValue("@createdAt", now);
-        insertCmd.Parameters.AddWithValue("@modifiedAt", now);
-        await insertCmd.ExecuteNonQueryAsync();
+            var existing = selectCmd.ExecuteScalar();
+            if (existing is string uuidStr)
+                return Guid.Parse(uuidStr);
 
-        return newUuid;
-    }
-
-    public async Task SetBookAuthors(Guid bookUuid, List<string> authorNames)
-    {
-        var connection = connectionProvider.Connection;
-
-        await using var deleteCmd = connection.CreateCommand();
-        deleteCmd.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @bookUuid";
-        deleteCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
-        await deleteCmd.ExecuteNonQueryAsync();
-
-        var now = DateTimeOffset.UtcNow.ToString("O");
-        for (var i = 0; i < authorNames.Count; i++)
-        {
-            var authorUuid = await GetOrCreateWithConnection(connection, authorNames[i]);
-
-            await using var insertCmd = connection.CreateCommand();
-            insertCmd.CommandText = "INSERT INTO BookAuthors (BookUuid, AuthorUuid, CreatedAt, ModifiedAt) VALUES (@bookUuid, @authorUuid, @createdAt, @modifiedAt)";
-            insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
-            insertCmd.Parameters.AddWithValue("@authorUuid", authorUuid.ToString());
+            var now = DateTimeOffset.UtcNow.ToString("O");
+            var newUuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
+            using var insertCmd = connection.CreateCommand();
+            insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
+            insertCmd.Parameters.AddWithValue("@uuid", newUuid.ToString());
+            insertCmd.Parameters.AddWithValue("@name", name);
             insertCmd.Parameters.AddWithValue("@createdAt", now);
             insertCmd.Parameters.AddWithValue("@modifiedAt", now);
-            await insertCmd.ExecuteNonQueryAsync();
-        }
+            insertCmd.ExecuteNonQuery();
+
+            return newUuid;
+        }));
     }
 
-    public async Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid)
+    public Task SetBookAuthors(Guid bookUuid, List<string> authorNames)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            SELECT a.AuthorUuid, a.Name, a.CreatedAt, a.ModifiedAt
-            FROM Authors a
-            JOIN BookAuthors ba ON a.AuthorUuid = ba.AuthorUuid
-            WHERE ba.BookUuid = @bookUuid
-            ORDER BY a.Name
-            """;
-        cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        var authors = new List<Author>();
-        while (await reader.ReadAsync())
+        connectionProvider.Write(connection =>
         {
-            authors.Add(MapAuthor(reader));
-        }
+            using var deleteCmd = connection.CreateCommand();
+            deleteCmd.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @bookUuid";
+            deleteCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+            deleteCmd.ExecuteNonQuery();
 
-        return authors;
+            var now = DateTimeOffset.UtcNow.ToString("O");
+            for (var i = 0; i < authorNames.Count; i++)
+            {
+                var authorUuid = GetOrCreateWithConnection(connection, authorNames[i]);
+
+                using var insertCmd = connection.CreateCommand();
+                insertCmd.CommandText = "INSERT INTO BookAuthors (BookUuid, AuthorUuid, CreatedAt, ModifiedAt) VALUES (@bookUuid, @authorUuid, @createdAt, @modifiedAt)";
+                insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+                insertCmd.Parameters.AddWithValue("@authorUuid", authorUuid.ToString());
+                insertCmd.Parameters.AddWithValue("@createdAt", now);
+                insertCmd.Parameters.AddWithValue("@modifiedAt", now);
+                insertCmd.ExecuteNonQuery();
+            }
+        });
+        return Task.CompletedTask;
     }
 
-    public async Task RemoveOrphanedAuthors()
+    public Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid)
     {
-        var connection = connectionProvider.Connection;
+        return Task.FromResult(connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT a.AuthorUuid, a.Name, a.CreatedAt, a.ModifiedAt
+                FROM Authors a
+                JOIN BookAuthors ba ON a.AuthorUuid = ba.AuthorUuid
+                WHERE ba.BookUuid = @bookUuid
+                ORDER BY a.Name
+                """;
+            cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
 
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            DELETE FROM Authors
-            WHERE AuthorUuid NOT IN (SELECT DISTINCT AuthorUuid FROM BookAuthors)
-            """;
-        await cmd.ExecuteNonQueryAsync();
+            using var reader = cmd.ExecuteReader();
+            var authors = new List<Author>();
+            while (reader.Read())
+            {
+                authors.Add(MapAuthor(reader));
+            }
+
+            return authors;
+        }));
     }
 
-    private static async Task<Guid> GetOrCreateWithConnection(SqliteConnection connection, string name)
+    public Task RemoveOrphanedAuthors()
     {
-        await using var selectCmd = connection.CreateCommand();
+        connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                DELETE FROM Authors
+                WHERE AuthorUuid NOT IN (SELECT DISTINCT AuthorUuid FROM BookAuthors)
+                """;
+            cmd.ExecuteNonQuery();
+        });
+        return Task.CompletedTask;
+    }
+
+    private static Guid GetOrCreateWithConnection(SqliteConnection connection, string name)
+    {
+        using var selectCmd = connection.CreateCommand();
         selectCmd.CommandText = "SELECT AuthorUuid FROM Authors WHERE Name = @name COLLATE NOCASE";
         selectCmd.Parameters.AddWithValue("@name", name);
 
-        var existing = await selectCmd.ExecuteScalarAsync();
+        var existing = selectCmd.ExecuteScalar();
         if (existing is string uuidStr)
         {
             return Guid.Parse(uuidStr);
@@ -158,44 +163,48 @@ public class AuthorRepository(SqliteConnectionProvider connectionProvider) : IAu
 
         var now = DateTimeOffset.UtcNow.ToString("O");
         var newUuid = Guid.GenerateUuidV5(name.ToLowerInvariant().Trim());
-        await using var insertCmd = connection.CreateCommand();
+        using var insertCmd = connection.CreateCommand();
         insertCmd.CommandText = "INSERT INTO Authors (AuthorUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
         insertCmd.Parameters.AddWithValue("@uuid", newUuid.ToString());
         insertCmd.Parameters.AddWithValue("@name", name);
         insertCmd.Parameters.AddWithValue("@createdAt", now);
         insertCmd.Parameters.AddWithValue("@modifiedAt", now);
-        await insertCmd.ExecuteNonQueryAsync();
+        insertCmd.ExecuteNonQuery();
 
         return newUuid;
     }
 
-    public async Task Update(Author author)
+    public Task Update(Author author)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "UPDATE Authors SET Name = @name, ModifiedAt = @modifiedAt WHERE AuthorUuid = @uuid";
-        cmd.Parameters.AddWithValue("@name", author.Name);
-        cmd.Parameters.AddWithValue("@uuid", author.AuthorUuid.ToString());
-        cmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
-        await cmd.ExecuteNonQueryAsync();
+        connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE Authors SET Name = @name, ModifiedAt = @modifiedAt WHERE AuthorUuid = @uuid";
+            cmd.Parameters.AddWithValue("@name", author.Name);
+            cmd.Parameters.AddWithValue("@uuid", author.AuthorUuid.ToString());
+            cmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
+            cmd.ExecuteNonQuery();
+        });
+        return Task.CompletedTask;
     }
 
-    public async Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
+    public Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
     {
-        var connection = connectionProvider.Connection;
+        connectionProvider.Write(connection =>
+        {
+            using var updateCmd = connection.CreateCommand();
+            updateCmd.CommandText = "UPDATE BookAuthors SET AuthorUuid = @targetUuid, ModifiedAt = @modifiedAt WHERE AuthorUuid = @sourceUuid AND BookUuid NOT IN (SELECT BookUuid FROM BookAuthors WHERE AuthorUuid = @targetUuid)";
+            updateCmd.Parameters.AddWithValue("@sourceUuid", sourceUuid.ToString());
+            updateCmd.Parameters.AddWithValue("@targetUuid", targetUuid.ToString());
+            updateCmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
+            updateCmd.ExecuteNonQuery();
 
-        await using var updateCmd = connection.CreateCommand();
-        updateCmd.CommandText = "UPDATE BookAuthors SET AuthorUuid = @targetUuid, ModifiedAt = @modifiedAt WHERE AuthorUuid = @sourceUuid AND BookUuid NOT IN (SELECT BookUuid FROM BookAuthors WHERE AuthorUuid = @targetUuid)";
-        updateCmd.Parameters.AddWithValue("@sourceUuid", sourceUuid.ToString());
-        updateCmd.Parameters.AddWithValue("@targetUuid", targetUuid.ToString());
-        updateCmd.Parameters.AddWithValue("@modifiedAt", DateTimeOffset.UtcNow.ToString("O"));
-        await updateCmd.ExecuteNonQueryAsync();
-
-        await using var deleteCmd = connection.CreateCommand();
-        deleteCmd.CommandText = "DELETE FROM BookAuthors WHERE AuthorUuid = @sourceUuid";
-        deleteCmd.Parameters.AddWithValue("@sourceUuid", sourceUuid.ToString());
-        await deleteCmd.ExecuteNonQueryAsync();
+            using var deleteCmd = connection.CreateCommand();
+            deleteCmd.CommandText = "DELETE FROM BookAuthors WHERE AuthorUuid = @sourceUuid";
+            deleteCmd.Parameters.AddWithValue("@sourceUuid", sourceUuid.ToString());
+            deleteCmd.ExecuteNonQuery();
+        });
+        return Task.CompletedTask;
     }
 
     private static Author MapAuthor(SqliteDataReader reader)

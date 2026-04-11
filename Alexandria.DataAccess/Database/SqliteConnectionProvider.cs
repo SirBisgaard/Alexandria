@@ -1,56 +1,87 @@
-using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database;
 
-public class SqliteConnectionProvider(AlexandriaSettings settings) : IDatabasePersistence, IDisposable
+public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
 {
-    private readonly SqliteConnection connection = CreateAndLoad(settings.Database);
-    private readonly string diskPath = settings.Database;
-    private readonly SemaphoreSlim flushLock = new(1, 1);
+    private readonly string diskPath;
+    private readonly SqliteConnection connection;
+    private readonly ReaderWriterLockSlim rwLock = new();
 
-    public SqliteConnection Connection => connection;
-
-    public Task Flush() => FlushToDisk();
-
-    public async Task FlushToDisk()
+    public SqliteConnectionProvider(AlexandriaSettings settings)
     {
-        await flushLock.WaitAsync();
+        diskPath = settings.Database;
+        connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+
+        if (!File.Exists(diskPath))
+            return;
+        
+        using var diskConn = new SqliteConnection($"Data Source={diskPath}");
+        diskConn.Open();
+        diskConn.BackupDatabase(connection);
+    }
+
+    public T Read<T>(Func<SqliteConnection, T> operation)
+    {
+        rwLock.EnterReadLock();
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
-            await Task.Run(() =>
-            {
-                using var diskConn = new SqliteConnection($"Data Source={diskPath}");
-                diskConn.Open();
-                connection.BackupDatabase(diskConn);
-            });
+            return operation(connection);
         }
         finally
         {
-            flushLock.Release();
+            rwLock.ExitReadLock();
+        }
+    }
+
+    public void Write(Action<SqliteConnection> operation)
+    {
+        rwLock.EnterWriteLock();
+        try
+        {
+            operation(connection);
+        }
+        finally
+        {
+            rwLock.ExitWriteLock();
+        }
+    }
+
+    public T Write<T>(Func<SqliteConnection, T> operation)
+    {
+        rwLock.EnterWriteLock();
+        try
+        {
+            return operation(connection);
+        }
+        finally
+        {
+            rwLock.ExitWriteLock();
+        }
+    }
+
+    public Task Flush()
+    {
+        rwLock.EnterWriteLock();
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
+            using var diskConn = new SqliteConnection($"Data Source={diskPath}");
+            diskConn.Open();
+            connection.BackupDatabase(diskConn);
+            return Task.CompletedTask;
+        }
+        finally
+        {
+            rwLock.ExitWriteLock();
         }
     }
 
     public void Dispose()
     {
         connection.Dispose();
-        flushLock.Dispose();
-    }
-
-    private static SqliteConnection CreateAndLoad(string diskPath)
-    {
-        var memConn = new SqliteConnection("Data Source=:memory:");
-        memConn.Open();
-
-        if (File.Exists(diskPath))
-        {
-            using var diskConn = new SqliteConnection($"Data Source={diskPath}");
-            diskConn.Open();
-            diskConn.BackupDatabase(memConn);
-        }
-
-        return memConn;
+        rwLock.Dispose();
     }
 }

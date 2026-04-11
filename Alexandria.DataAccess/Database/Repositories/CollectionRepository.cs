@@ -5,103 +5,110 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class CollectionRepository(SqliteConnectionProvider connectionProvider) : ICollectionRepository
+public class CollectionRepository(ISqliteConnectionProvider connectionProvider) : ICollectionRepository
 {
-    public async Task<List<BookCollection>> GetAll()
+    public Task<List<BookCollection>> GetAll()
     {
-        var connection = connectionProvider.Connection;
-
-        var collections = await QueryCollections(connection, "SELECT * FROM Collections");
-        await HydrateBookUuids(connection, collections);
-        return collections;
-    }
-
-    public async Task<BookCollection?> FindByUuid(Guid uuid)
-    {
-        var connection = connectionProvider.Connection;
-
-        var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE CollectionUuid = @uuid", ("@uuid", uuid.ToString()));
-        if (collections.Count == 0)
+        return Task.FromResult(connectionProvider.Read(connection =>
         {
-            return null;
-        }
-
-        await HydrateBookUuids(connection, collections);
-        return collections[0];
+            var collections = QueryCollections(connection, "SELECT * FROM Collections");
+            HydrateBookUuids(connection, collections);
+            return collections;
+        }));
     }
 
-    public async Task Upsert(BookCollection collection)
+    public Task<BookCollection?> FindByUuid(Guid uuid)
     {
-        var connection = connectionProvider.Connection;
-        await using var transaction = await connection.BeginTransactionAsync();
-
-        await using var upsertCmd = connection.CreateCommand();
-        upsertCmd.CommandText = "INSERT OR REPLACE INTO Collections (CollectionUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
-        upsertCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
-        upsertCmd.Parameters.AddWithValue("@name", collection.Name);
-        upsertCmd.Parameters.AddWithValue("@createdAt", collection.CreatedAt.ToString("O"));
-        upsertCmd.Parameters.AddWithValue("@modifiedAt", collection.ModifiedAt.ToString("O"));
-        await upsertCmd.ExecuteNonQueryAsync();
-
-        await using var deleteCmd = connection.CreateCommand();
-        deleteCmd.CommandText = "DELETE FROM CollectionBooks WHERE CollectionUuid = @uuid";
-        deleteCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
-        await deleteCmd.ExecuteNonQueryAsync();
-
-        foreach (var bookUuid in collection.BookUuids)
+        return Task.FromResult(connectionProvider.Read(connection =>
         {
-            await using var insertCmd = connection.CreateCommand();
-            var now = DateTimeOffset.UtcNow.ToString("O");
-            insertCmd.CommandText = "INSERT INTO CollectionBooks (CollectionUuid, BookUuid, CreatedAt, ModifiedAt) VALUES (@collectionUuid, @bookUuid, @createdAt, @modifiedAt)";
-            insertCmd.Parameters.AddWithValue("@collectionUuid", collection.CollectionUuid.ToString());
-            insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
-            insertCmd.Parameters.AddWithValue("@createdAt", now);
-            insertCmd.Parameters.AddWithValue("@modifiedAt", now);
-            await insertCmd.ExecuteNonQueryAsync();
-        }
+            var collections = QueryCollections(connection, "SELECT * FROM Collections WHERE CollectionUuid = @uuid", ("@uuid", uuid.ToString()));
+            if (collections.Count == 0)
+                return (BookCollection?)null;
 
-        await transaction.CommitAsync();
+            HydrateBookUuids(connection, collections);
+            return (BookCollection?)collections[0];
+        }));
     }
 
-    public async Task Delete(Guid uuid)
+    public Task Upsert(BookCollection collection)
     {
-        var connection = connectionProvider.Connection;
-        await using var transaction = await connection.BeginTransactionAsync();
+        connectionProvider.Write(connection =>
+        {
+            using var transaction = connection.BeginTransaction();
 
-        await using var deleteBooksCmd = connection.CreateCommand();
-        deleteBooksCmd.CommandText = "DELETE FROM CollectionBooks WHERE CollectionUuid = @uuid";
-        deleteBooksCmd.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await deleteBooksCmd.ExecuteNonQueryAsync();
+            using var upsertCmd = connection.CreateCommand();
+            upsertCmd.CommandText = "INSERT OR REPLACE INTO Collections (CollectionUuid, Name, CreatedAt, ModifiedAt) VALUES (@uuid, @name, @createdAt, @modifiedAt)";
+            upsertCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
+            upsertCmd.Parameters.AddWithValue("@name", collection.Name);
+            upsertCmd.Parameters.AddWithValue("@createdAt", collection.CreatedAt.ToString("O"));
+            upsertCmd.Parameters.AddWithValue("@modifiedAt", collection.ModifiedAt.ToString("O"));
+            upsertCmd.ExecuteNonQuery();
 
-        await using var deleteCmd = connection.CreateCommand();
-        deleteCmd.CommandText = "DELETE FROM Collections WHERE CollectionUuid = @uuid";
-        deleteCmd.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await deleteCmd.ExecuteNonQueryAsync();
+            using var deleteCmd = connection.CreateCommand();
+            deleteCmd.CommandText = "DELETE FROM CollectionBooks WHERE CollectionUuid = @uuid";
+            deleteCmd.Parameters.AddWithValue("@uuid", collection.CollectionUuid.ToString());
+            deleteCmd.ExecuteNonQuery();
 
-        await transaction.CommitAsync();
+            foreach (var bookUuid in collection.BookUuids)
+            {
+                using var insertCmd = connection.CreateCommand();
+                var now = DateTimeOffset.UtcNow.ToString("O");
+                insertCmd.CommandText = "INSERT INTO CollectionBooks (CollectionUuid, BookUuid, CreatedAt, ModifiedAt) VALUES (@collectionUuid, @bookUuid, @createdAt, @modifiedAt)";
+                insertCmd.Parameters.AddWithValue("@collectionUuid", collection.CollectionUuid.ToString());
+                insertCmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+                insertCmd.Parameters.AddWithValue("@createdAt", now);
+                insertCmd.Parameters.AddWithValue("@modifiedAt", now);
+                insertCmd.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        });
+        return Task.CompletedTask;
     }
 
-    public async Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since)
+    public Task Delete(Guid uuid)
     {
-        var connection = connectionProvider.Connection;
+        connectionProvider.Write(connection =>
+        {
+            using var transaction = connection.BeginTransaction();
 
-        var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE ModifiedAt > @since", ("@since", since.ToString("O")));
-        await HydrateBookUuids(connection, collections);
-        return collections;
+            using var deleteBooksCmd = connection.CreateCommand();
+            deleteBooksCmd.CommandText = "DELETE FROM CollectionBooks WHERE CollectionUuid = @uuid";
+            deleteBooksCmd.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteBooksCmd.ExecuteNonQuery();
+
+            using var deleteCmd = connection.CreateCommand();
+            deleteCmd.CommandText = "DELETE FROM Collections WHERE CollectionUuid = @uuid";
+            deleteCmd.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteCmd.ExecuteNonQuery();
+
+            transaction.Commit();
+        });
+        return Task.CompletedTask;
     }
 
-    private static async Task<List<BookCollection>> QueryCollections(SqliteConnection connection, string sql, params (string Name, string Value)[] parameters)
+    public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since)
     {
-        await using var cmd = connection.CreateCommand();
+        return Task.FromResult(connectionProvider.Read(connection =>
+        {
+            var collections = QueryCollections(connection, "SELECT * FROM Collections WHERE ModifiedAt > @since", ("@since", since.ToString("O")));
+            HydrateBookUuids(connection, collections);
+            return collections;
+        }));
+    }
+
+    private static List<BookCollection> QueryCollections(SqliteConnection connection, string sql, params (string Name, string Value)[] parameters)
+    {
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = sql;
         foreach (var (name, value) in parameters)
         {
             cmd.Parameters.AddWithValue(name, value);
         }
 
-        await using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = cmd.ExecuteReader();
         var collections = new List<BookCollection>();
-        while (await reader.ReadAsync())
+        while (reader.Read())
         {
             collections.Add(new BookCollection
             {
@@ -115,19 +122,17 @@ public class CollectionRepository(SqliteConnectionProvider connectionProvider) :
         return collections;
     }
 
-    private static async Task HydrateBookUuids(SqliteConnection connection, List<BookCollection> collections)
+    private static void HydrateBookUuids(SqliteConnection connection, List<BookCollection> collections)
     {
         if (collections.Count == 0)
-        {
             return;
-        }
 
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT CollectionUuid, BookUuid FROM CollectionBooks";
-        await using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = cmd.ExecuteReader();
 
         var lookup = collections.ToDictionary(c => c.CollectionUuid);
-        while (await reader.ReadAsync())
+        while (reader.Read())
         {
             var collectionUuid = Guid.Parse(reader.GetString(0));
             if (lookup.TryGetValue(collectionUuid, out var collection))

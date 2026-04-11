@@ -85,7 +85,7 @@ public sealed class IndexerPerformanceTests
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubMetadataHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
         var settingsService = new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider));
-        var indexer = new AlexandriaIndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
+        var indexer = new AlexandriaIndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
 
         // Run full index with timing
         var totalSw = Stopwatch.StartNew();
@@ -219,10 +219,5 @@ public sealed class IndexerPerformanceTests
         if (bytes < 1024L * 1024 * 1024)
             return $"{bytes / 1024.0 / 1024.0:F1} MB";
         return $"{bytes / 1024.0 / 1024.0 / 1024.0:F2} GB";
-    }
-
-    private class NullDatabasePersistence : IDatabasePersistence
-    {
-        public Task Flush() => Task.CompletedTask;
     }
 }

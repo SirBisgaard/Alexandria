@@ -5,168 +5,201 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class BookRepository(SqliteConnectionProvider connectionProvider, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
+public class BookRepository(ISqliteConnectionProvider connectionProvider, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
 {
-    public async Task<List<Book>> GetAll()
+    public Task<List<Book>> GetAll()
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books";
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        var books = new List<Book>();
-        while (await reader.ReadAsync())
+        var books = connectionProvider.Read(connection =>
         {
-            books.Add(MapBook(reader));
-        }
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Books";
+
+            using var reader = cmd.ExecuteReader();
+            var result = new List<Book>();
+            while (reader.Read())
+            {
+                result.Add(MapBook(reader));
+            }
+
+            foreach (var book in result)
+                LoadSubTableData(connection, book);
+
+            return result;
+        });
 
         foreach (var book in books)
         {
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
-            await LoadSubTableData(connection, book);
+            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
         }
 
-        return books;
+        return Task.FromResult(books);
     }
 
-    public async Task<Book?> FindByUuid(Guid uuid)
+    public Task<Book?> FindByUuid(Guid uuid)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books WHERE BookUuid = @uuid";
-        cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
+        var book = connectionProvider.Read(connection =>
         {
-            var book = MapBook(reader);
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
-            await LoadSubTableData(connection, book);
-            return book;
-        }
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Books WHERE BookUuid = @uuid";
+            cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
 
-        return null;
-    }
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                var b = MapBook(reader);
+                LoadSubTableData(connection, b);
+                return b;
+            }
 
-    public async Task<Book?> FindByEntitlementUuid(Guid entitlementUuid)
-    {
-        var connection = connectionProvider.Connection;
+            return (Book?)null;
+        });
 
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books WHERE EntitlementUuid = @uuid";
-        cmd.Parameters.AddWithValue("@uuid", entitlementUuid.ToString());
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
+        if (book is not null)
         {
-            var book = MapBook(reader);
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
-            await LoadSubTableData(connection, book);
-            return book;
+            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
         }
 
-        return null;
+        return Task.FromResult(book);
     }
 
-    public async Task<Book?> FindByPath(string sourcePath)
+    public Task<Book?> FindByEntitlementUuid(Guid entitlementUuid)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books WHERE SourcePath = @path COLLATE NOCASE";
-        cmd.Parameters.AddWithValue("@path", sourcePath);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
+        var book = connectionProvider.Read(connection =>
         {
-            var book = MapBook(reader);
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
-            await LoadSubTableData(connection, book);
-            return book;
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Books WHERE EntitlementUuid = @uuid";
+            cmd.Parameters.AddWithValue("@uuid", entitlementUuid.ToString());
+
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                var b = MapBook(reader);
+                LoadSubTableData(connection, b);
+                return b;
+            }
+
+            return (Book?)null;
+        });
+
+        if (book is not null)
+        {
+            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
         }
 
-        return null;
+        return Task.FromResult(book);
     }
 
-    public async Task Add(Book book)
+    public Task<Book?> FindByPath(string sourcePath)
     {
-        var connection = connectionProvider.Connection;
+        var book = connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Books WHERE SourcePath = @path COLLATE NOCASE";
+            cmd.Parameters.AddWithValue("@path", sourcePath);
 
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
-            VALUES (@bookUuid, @entitlementUuid, @mediaType, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
-            """;
-        AddBookParameters(cmd, book);
-        await cmd.ExecuteNonQueryAsync();
-        await SaveSubTableData(connection, book);
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                var b = MapBook(reader);
+                LoadSubTableData(connection, b);
+                return b;
+            }
+
+            return (Book?)null;
+        });
+
+        if (book is not null)
+        {
+            book.Authors = authorRepository.GetAuthorsByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+            book.Series = seriesRepository.GetSeriesByBookUuid(book.BookUuid).GetAwaiter().GetResult();
+        }
+
+        return Task.FromResult(book);
     }
 
-    public async Task Update(Book book)
+    public Task Add(Book book)
     {
-        var connection = connectionProvider.Connection;
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
-            WHERE BookUuid = @bookUuid
-            """;
-        AddBookParameters(cmd, book);
-        await cmd.ExecuteNonQueryAsync();
-        await DeleteSubTableData(connection, book.BookUuid);
-        await SaveSubTableData(connection, book);
+        connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
+                VALUES (@bookUuid, @entitlementUuid, @mediaType, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
+                """;
+            AddBookParameters(cmd, book);
+            cmd.ExecuteNonQuery();
+            SaveSubTableData(connection, book);
+        });
+        return Task.CompletedTask;
     }
 
-    public async Task Remove(Guid uuid)
+    public Task Update(Book book)
     {
-        var connection = connectionProvider.Connection;
-
-        await DeleteSubTableData(connection, uuid);
-
-        await using var deleteBookSeries = connection.CreateCommand();
-        deleteBookSeries.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @uuid";
-        deleteBookSeries.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await deleteBookSeries.ExecuteNonQueryAsync();
-
-        await using var deleteBookAuthors = connection.CreateCommand();
-        deleteBookAuthors.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @uuid";
-        deleteBookAuthors.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await deleteBookAuthors.ExecuteNonQueryAsync();
-
-        await using var deleteCollectionBooks = connection.CreateCommand();
-        deleteCollectionBooks.CommandText = "DELETE FROM CollectionBooks WHERE BookUuid = @uuid";
-        deleteCollectionBooks.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await deleteCollectionBooks.ExecuteNonQueryAsync();
-
-        await using var deleteReadingStates = connection.CreateCommand();
-        deleteReadingStates.CommandText = "DELETE FROM KoboReadingStates WHERE BookUuid = @uuid";
-        deleteReadingStates.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await deleteReadingStates.ExecuteNonQueryAsync();
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "DELETE FROM Books WHERE BookUuid = @uuid";
-        cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
-        await cmd.ExecuteNonQueryAsync();
+        connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
+                WHERE BookUuid = @bookUuid
+                """;
+            AddBookParameters(cmd, book);
+            cmd.ExecuteNonQuery();
+            DeleteSubTableData(connection, book.BookUuid);
+            SaveSubTableData(connection, book);
+        });
+        return Task.CompletedTask;
     }
 
-    public async Task<List<string>> GetPublishers()
+    public Task Remove(Guid uuid)
     {
-        var connection = connectionProvider.Connection;
+        connectionProvider.Write(connection =>
+        {
+            DeleteSubTableData(connection, uuid);
 
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT DISTINCT Publisher FROM Books WHERE Publisher IS NOT NULL AND Publisher != '' ORDER BY Publisher";
+            using var deleteBookSeries = connection.CreateCommand();
+            deleteBookSeries.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @uuid";
+            deleteBookSeries.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteBookSeries.ExecuteNonQuery();
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        var publishers = new List<string>();
-        while (await reader.ReadAsync())
-            publishers.Add(reader.GetString(0));
-        return publishers;
+            using var deleteBookAuthors = connection.CreateCommand();
+            deleteBookAuthors.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @uuid";
+            deleteBookAuthors.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteBookAuthors.ExecuteNonQuery();
+
+            using var deleteCollectionBooks = connection.CreateCommand();
+            deleteCollectionBooks.CommandText = "DELETE FROM CollectionBooks WHERE BookUuid = @uuid";
+            deleteCollectionBooks.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteCollectionBooks.ExecuteNonQuery();
+
+            using var deleteReadingStates = connection.CreateCommand();
+            deleteReadingStates.CommandText = "DELETE FROM KoboReadingStates WHERE BookUuid = @uuid";
+            deleteReadingStates.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteReadingStates.ExecuteNonQuery();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM Books WHERE BookUuid = @uuid";
+            cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
+            cmd.ExecuteNonQuery();
+        });
+        return Task.CompletedTask;
+    }
+
+    public Task<List<string>> GetPublishers()
+    {
+        return Task.FromResult(connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT DISTINCT Publisher FROM Books WHERE Publisher IS NOT NULL AND Publisher != '' ORDER BY Publisher";
+
+            using var reader = cmd.ExecuteReader();
+            var publishers = new List<string>();
+            while (reader.Read())
+                publishers.Add(reader.GetString(0));
+            return publishers;
+        }));
     }
 
     private static void AddBookParameters(SqliteCommand cmd, Book book)
@@ -234,37 +267,37 @@ public class BookRepository(SqliteConnectionProvider connectionProvider, IAuthor
         };
     }
 
-    private static async Task LoadSubTableData(SqliteConnection connection, Book book)
+    private static void LoadSubTableData(SqliteConnection connection, Book book)
     {
-        book.Identifiers = await LoadStringSubTable(connection, "BookIdentifiers", book.BookUuid);
-        book.Subjects = await LoadStringSubTable(connection, "BookSubjects", book.BookUuid);
-        book.Contributors = await LoadContributors(connection, book.BookUuid);
+        book.Identifiers = LoadStringSubTable(connection, "BookIdentifiers", book.BookUuid);
+        book.Subjects = LoadStringSubTable(connection, "BookSubjects", book.BookUuid);
+        book.Contributors = LoadContributors(connection, book.BookUuid);
         if (book.MediaType == MediaType.Audiobook)
-            book.Chapters = await LoadChapters(connection, book.BookUuid);
+            book.Chapters = LoadChapters(connection, book.BookUuid);
     }
 
-    private static async Task<List<string>> LoadStringSubTable(SqliteConnection connection, string tableName, Guid bookUuid)
+    private static List<string> LoadStringSubTable(SqliteConnection connection, string tableName, Guid bookUuid)
     {
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = $"SELECT Value FROM {tableName} WHERE BookUuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
 
-        await using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = cmd.ExecuteReader();
         var values = new List<string>();
-        while (await reader.ReadAsync())
+        while (reader.Read())
             values.Add(reader.GetString(0));
         return values;
     }
 
-    private static async Task<List<Contributor>> LoadContributors(SqliteConnection connection, Guid bookUuid)
+    private static List<Contributor> LoadContributors(SqliteConnection connection, Guid bookUuid)
     {
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT Name, Role FROM BookContributors WHERE BookUuid = @uuid";
         cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
 
-        await using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = cmd.ExecuteReader();
         var contributors = new List<Contributor>();
-        while (await reader.ReadAsync())
+        while (reader.Read())
         {
             contributors.Add(new Contributor
             {
@@ -275,15 +308,15 @@ public class BookRepository(SqliteConnectionProvider connectionProvider, IAuthor
         return contributors;
     }
 
-    private static async Task<List<AudiobookChapter>> LoadChapters(SqliteConnection connection, Guid bookUuid)
+    private static List<AudiobookChapter> LoadChapters(SqliteConnection connection, Guid bookUuid)
     {
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT ChapterIndex, Title, Duration, StartTime, EndTime FROM AudiobookChapters WHERE BookUuid = @uuid ORDER BY ChapterIndex";
         cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
 
-        await using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = cmd.ExecuteReader();
         var chapters = new List<AudiobookChapter>();
-        while (await reader.ReadAsync())
+        while (reader.Read())
         {
             chapters.Add(new AudiobookChapter
             {
@@ -297,45 +330,45 @@ public class BookRepository(SqliteConnectionProvider connectionProvider, IAuthor
         return chapters;
     }
 
-    private static async Task SaveSubTableData(SqliteConnection connection, Book book)
+    private static void SaveSubTableData(SqliteConnection connection, Book book)
     {
-        await SaveStringSubTable(connection, "BookIdentifiers", book.BookUuid, book.Identifiers);
-        await SaveStringSubTable(connection, "BookSubjects", book.BookUuid, book.Subjects);
-        await SaveContributors(connection, book.BookUuid, book.Contributors);
+        SaveStringSubTable(connection, "BookIdentifiers", book.BookUuid, book.Identifiers);
+        SaveStringSubTable(connection, "BookSubjects", book.BookUuid, book.Subjects);
+        SaveContributors(connection, book.BookUuid, book.Contributors);
         if (book.Chapters.Count > 0)
-            await SaveChapters(connection, book.BookUuid, book.Chapters);
+            SaveChapters(connection, book.BookUuid, book.Chapters);
     }
 
-    private static async Task SaveStringSubTable(SqliteConnection connection, string tableName, Guid bookUuid, List<string> values)
+    private static void SaveStringSubTable(SqliteConnection connection, string tableName, Guid bookUuid, List<string> values)
     {
         foreach (var value in values)
         {
-            await using var cmd = connection.CreateCommand();
+            using var cmd = connection.CreateCommand();
             cmd.CommandText = $"INSERT OR IGNORE INTO {tableName} (BookUuid, Value) VALUES (@uuid, @value)";
             cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
             cmd.Parameters.AddWithValue("@value", value);
-            await cmd.ExecuteNonQueryAsync();
+            cmd.ExecuteNonQuery();
         }
     }
 
-    private static async Task SaveContributors(SqliteConnection connection, Guid bookUuid, List<Contributor> contributors)
+    private static void SaveContributors(SqliteConnection connection, Guid bookUuid, List<Contributor> contributors)
     {
         foreach (var contributor in contributors)
         {
-            await using var cmd = connection.CreateCommand();
+            using var cmd = connection.CreateCommand();
             cmd.CommandText = "INSERT OR IGNORE INTO BookContributors (BookUuid, Name, Role) VALUES (@uuid, @name, @role)";
             cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
             cmd.Parameters.AddWithValue("@name", contributor.Name);
             cmd.Parameters.AddWithValue("@role", (object?)contributor.Role ?? DBNull.Value);
-            await cmd.ExecuteNonQueryAsync();
+            cmd.ExecuteNonQuery();
         }
     }
 
-    private static async Task SaveChapters(SqliteConnection connection, Guid bookUuid, List<AudiobookChapter> chapters)
+    private static void SaveChapters(SqliteConnection connection, Guid bookUuid, List<AudiobookChapter> chapters)
     {
         foreach (var chapter in chapters)
         {
-            await using var cmd = connection.CreateCommand();
+            using var cmd = connection.CreateCommand();
             cmd.CommandText = "INSERT OR REPLACE INTO AudiobookChapters (BookUuid, ChapterIndex, Title, Duration, StartTime, EndTime) VALUES (@uuid, @index, @title, @duration, @startTime, @endTime)";
             cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
             cmd.Parameters.AddWithValue("@index", chapter.ChapterIndex);
@@ -343,18 +376,18 @@ public class BookRepository(SqliteConnectionProvider connectionProvider, IAuthor
             cmd.Parameters.AddWithValue("@duration", chapter.Duration);
             cmd.Parameters.AddWithValue("@startTime", chapter.StartTime);
             cmd.Parameters.AddWithValue("@endTime", chapter.EndTime);
-            await cmd.ExecuteNonQueryAsync();
+            cmd.ExecuteNonQuery();
         }
     }
 
-    private static async Task DeleteSubTableData(SqliteConnection connection, Guid bookUuid)
+    private static void DeleteSubTableData(SqliteConnection connection, Guid bookUuid)
     {
         foreach (var table in new[] { "BookIdentifiers", "BookSubjects", "BookContributors", "AudiobookChapters" })
         {
-            await using var cmd = connection.CreateCommand();
+            using var cmd = connection.CreateCommand();
             cmd.CommandText = $"DELETE FROM {table} WHERE BookUuid = @uuid";
             cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
-            await cmd.ExecuteNonQueryAsync();
+            cmd.ExecuteNonQuery();
         }
     }
 }

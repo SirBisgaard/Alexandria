@@ -73,7 +73,7 @@ public sealed class AudiobookIndexerTests
         var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
         var audioIndexer = new FileAudiobookIndexer(settings, mediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
+        var indexer = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
         return (indexer, contentManager);
     }
 
@@ -346,10 +346,5 @@ public sealed class AudiobookIndexerTests
         Directory.CreateDirectory(extractDir);
         var coverPath = mediaHandler.ExtractCover(filePath, extractDir, Guid.NewGuid());
         Assert.IsNull(coverPath, "Cover should not exist after removal.");
-    }
-
-    private class NullDatabasePersistence : IDatabasePersistence
-    {
-        public Task Flush() => Task.CompletedTask;
     }
 }

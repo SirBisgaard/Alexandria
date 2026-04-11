@@ -4,63 +4,66 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Database;
 
-public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
+public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
-    public async Task Initialize()
+    public Task Initialize()
     {
-        logger.LogInformation("Database initialization started.");
-
-        var connection = connectionProvider.Connection;
-
-        await EnsureSchemaVersionTable(connection);
-        var currentVersion = await GetCurrentVersion(connection);
-        logger.LogInformation("Current schema version: {Version}", currentVersion);
-
-        var migrations = new (int Version, Func<SqliteConnection, Task> Apply)[]
+        connectionProvider.Write(connection =>
         {
-            (1, MigrateV1_UnifiedSchema)
-        };
+            logger.LogInformation("Database initialization started.");
 
-        foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
-        {
-            logger.LogInformation("Applying migration V{Version}", migration.Version);
-            await using var transaction = await connection.BeginTransactionAsync();
-            await migration.Apply(connection);
-            await SetVersion(connection, migration.Version);
-            await transaction.CommitAsync();
-            logger.LogInformation("Migration V{Version} applied successfully", migration.Version);
-        }
+            EnsureSchemaVersionTable(connection);
+            var currentVersion = GetCurrentVersion(connection);
+            logger.LogInformation("Current schema version: {Version}", currentVersion);
 
-        logger.LogInformation("Database initialization complete");
+            var migrations = new (int Version, Action<SqliteConnection> Apply)[]
+            {
+                (1, MigrateV1_UnifiedSchema)
+            };
+
+            foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
+            {
+                logger.LogInformation("Applying migration V{Version}", migration.Version);
+                using var transaction = connection.BeginTransaction();
+                migration.Apply(connection);
+                SetVersion(connection, migration.Version);
+                transaction.Commit();
+                logger.LogInformation("Migration V{Version} applied successfully", migration.Version);
+            }
+
+            logger.LogInformation("Database initialization complete");
+        });
+
+        return Task.CompletedTask;
     }
 
-    private static async Task EnsureSchemaVersionTable(SqliteConnection connection)
+    private static void EnsureSchemaVersionTable(SqliteConnection connection)
     {
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = "CREATE TABLE IF NOT EXISTS SchemaVersion (Version INTEGER PRIMARY KEY, AppliedAt TEXT NOT NULL)";
-        await cmd.ExecuteNonQueryAsync();
+        cmd.ExecuteNonQuery();
     }
 
-    private static async Task<int> GetCurrentVersion(SqliteConnection connection)
+    private static int GetCurrentVersion(SqliteConnection connection)
     {
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT COALESCE(MAX(Version), 0) FROM SchemaVersion";
-        var result = await cmd.ExecuteScalarAsync();
+        var result = cmd.ExecuteScalar();
         return Convert.ToInt32(result);
     }
 
-    private static async Task SetVersion(SqliteConnection connection, int version)
+    private static void SetVersion(SqliteConnection connection, int version)
     {
-        await using var cmd = connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = "INSERT INTO SchemaVersion (Version, AppliedAt) VALUES (@version, @appliedAt)";
         cmd.Parameters.AddWithValue("@version", version);
         cmd.Parameters.AddWithValue("@appliedAt", DateTimeOffset.UtcNow.ToString("O"));
-        await cmd.ExecuteNonQueryAsync();
+        cmd.ExecuteNonQuery();
     }
 
-    private static async Task MigrateV1_UnifiedSchema(SqliteConnection connection)
+    private static void MigrateV1_UnifiedSchema(SqliteConnection connection)
     {
-        await using var seriesCmd = connection.CreateCommand();
+        using var seriesCmd = connection.CreateCommand();
         seriesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Series (
                 SeriesUuid TEXT PRIMARY KEY,
@@ -69,9 +72,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 ModifiedAt TEXT NOT NULL
             )
             """;
-        await seriesCmd.ExecuteNonQueryAsync();
+        seriesCmd.ExecuteNonQuery();
 
-        await using var authorsCmd = connection.CreateCommand();
+        using var authorsCmd = connection.CreateCommand();
         authorsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Authors (
                 AuthorUuid TEXT PRIMARY KEY,
@@ -80,9 +83,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 ModifiedAt TEXT NOT NULL
             )
             """;
-        await authorsCmd.ExecuteNonQueryAsync();
+        authorsCmd.ExecuteNonQuery();
 
-        await using var booksCmd = connection.CreateCommand();
+        using var booksCmd = connection.CreateCommand();
         booksCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Books (
                 BookUuid TEXT PRIMARY KEY,
@@ -114,9 +117,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 Format TEXT
             )
             """;
-        await booksCmd.ExecuteNonQueryAsync();
+        booksCmd.ExecuteNonQuery();
 
-        await using var bookIdentifiersCmd = connection.CreateCommand();
+        using var bookIdentifiersCmd = connection.CreateCommand();
         bookIdentifiersCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS BookIdentifiers (
                 BookUuid TEXT NOT NULL,
@@ -125,9 +128,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
-        await bookIdentifiersCmd.ExecuteNonQueryAsync();
+        bookIdentifiersCmd.ExecuteNonQuery();
 
-        await using var bookSubjectsCmd = connection.CreateCommand();
+        using var bookSubjectsCmd = connection.CreateCommand();
         bookSubjectsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS BookSubjects (
                 BookUuid TEXT NOT NULL,
@@ -136,9 +139,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
-        await bookSubjectsCmd.ExecuteNonQueryAsync();
+        bookSubjectsCmd.ExecuteNonQuery();
 
-        await using var bookContributorsCmd = connection.CreateCommand();
+        using var bookContributorsCmd = connection.CreateCommand();
         bookContributorsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS BookContributors (
                 BookUuid TEXT NOT NULL,
@@ -148,9 +151,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
-        await bookContributorsCmd.ExecuteNonQueryAsync();
+        bookContributorsCmd.ExecuteNonQuery();
 
-        await using var audiobookChaptersCmd = connection.CreateCommand();
+        using var audiobookChaptersCmd = connection.CreateCommand();
         audiobookChaptersCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS AudiobookChapters (
                 BookUuid TEXT NOT NULL,
@@ -163,9 +166,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
-        await audiobookChaptersCmd.ExecuteNonQueryAsync();
+        audiobookChaptersCmd.ExecuteNonQuery();
 
-        await using var bookSeriesCmd = connection.CreateCommand();
+        using var bookSeriesCmd = connection.CreateCommand();
         bookSeriesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS BookSeries (
                 BookUuid TEXT NOT NULL,
@@ -178,9 +181,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (SeriesUuid) REFERENCES Series(SeriesUuid)
             )
             """;
-        await bookSeriesCmd.ExecuteNonQueryAsync();
+        bookSeriesCmd.ExecuteNonQuery();
 
-        await using var bookAuthorsCmd = connection.CreateCommand();
+        using var bookAuthorsCmd = connection.CreateCommand();
         bookAuthorsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS BookAuthors (
                 BookUuid TEXT NOT NULL,
@@ -192,9 +195,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (AuthorUuid) REFERENCES Authors(AuthorUuid)
             )
             """;
-        await bookAuthorsCmd.ExecuteNonQueryAsync();
+        bookAuthorsCmd.ExecuteNonQuery();
 
-        await using var readingStatesCmd = connection.CreateCommand();
+        using var readingStatesCmd = connection.CreateCommand();
         readingStatesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS KoboReadingStates (
                 BookUuid TEXT PRIMARY KEY,
@@ -218,9 +221,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 ModifiedAt TEXT NOT NULL
             )
             """;
-        await readingStatesCmd.ExecuteNonQueryAsync();
+        readingStatesCmd.ExecuteNonQuery();
 
-        await using var collectionsCmd = connection.CreateCommand();
+        using var collectionsCmd = connection.CreateCommand();
         collectionsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Collections (
                 CollectionUuid TEXT PRIMARY KEY,
@@ -229,9 +232,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 ModifiedAt TEXT NOT NULL
             )
             """;
-        await collectionsCmd.ExecuteNonQueryAsync();
+        collectionsCmd.ExecuteNonQuery();
 
-        await using var collectionBooksCmd = connection.CreateCommand();
+        using var collectionBooksCmd = connection.CreateCommand();
         collectionBooksCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS CollectionBooks (
                 CollectionUuid TEXT NOT NULL,
@@ -243,9 +246,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )
             """;
-        await collectionBooksCmd.ExecuteNonQueryAsync();
+        collectionBooksCmd.ExecuteNonQuery();
 
-        await using var syncedFilesCmd = connection.CreateCommand();
+        using var syncedFilesCmd = connection.CreateCommand();
         syncedFilesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS KoboDeviceSyncedFiles (
                 DeviceId TEXT NOT NULL,
@@ -256,9 +259,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 PRIMARY KEY (DeviceId, BookUuid)
             )
             """;
-        await syncedFilesCmd.ExecuteNonQueryAsync();
+        syncedFilesCmd.ExecuteNonQuery();
 
-        await using var logsCmd = connection.CreateCommand();
+        using var logsCmd = connection.CreateCommand();
         logsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS KoboTrafficLogs (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -273,9 +276,9 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 DurationMs INTEGER NOT NULL
             )
             """;
-        await logsCmd.ExecuteNonQueryAsync();
+        logsCmd.ExecuteNonQuery();
 
-        await using var settingsCreateCmd = connection.CreateCommand();
+        using var settingsCreateCmd = connection.CreateCommand();
         settingsCreateCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS Settings (
                 Id INTEGER PRIMARY KEY CHECK (Id = 1),
@@ -287,13 +290,13 @@ public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, IL
                 SyncLibraryAtBoot INTEGER NOT NULL DEFAULT 0
             )
             """;
-        await settingsCreateCmd.ExecuteNonQueryAsync();
+        settingsCreateCmd.ExecuteNonQuery();
 
-        await using var settingsSeedCmd = connection.CreateCommand();
+        using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot)
             VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 1, 250, 0)
             """;
-        await settingsSeedCmd.ExecuteNonQueryAsync();
+        settingsSeedCmd.ExecuteNonQuery();
     }
 }

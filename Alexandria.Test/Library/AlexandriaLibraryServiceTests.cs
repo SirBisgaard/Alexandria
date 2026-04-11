@@ -74,7 +74,7 @@ public sealed class AlexandriaLibraryServiceTests
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
+        var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
         var collectionRepository = new FakeCollectionRepository();
         var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, contentManager, indexerService, authorRepository, seriesRepository);
@@ -267,10 +267,5 @@ public sealed class AlexandriaLibraryServiceTests
         public Task Upsert(BookCollection collection) => Task.CompletedTask;
         public Task Delete(Guid uuid) => Task.CompletedTask;
         public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
-    }
-
-    private class NullDatabasePersistence : IDatabasePersistence
-    {
-        public Task Flush() => Task.CompletedTask;
     }
 }
