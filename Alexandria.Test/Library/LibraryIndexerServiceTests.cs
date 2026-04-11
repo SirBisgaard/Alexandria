@@ -89,7 +89,6 @@ public sealed class AlexandriaIndexerServiceTests
         {
             Assert.AreNotEqual(string.Empty, book.Title);
             Assert.IsNotEmpty(book.Authors);
-            Assert.StartsWith("sha256:", book.FileHash);
             Assert.IsNotNull(book.KepubFilePath);
             Assert.IsTrue(File.Exists(book.KepubFilePath), $"KEPUB should exist for {book.Title}");
             Assert.IsGreaterThan(0, book.TotalFileSize, $"TotalFileSize should be positive for {book.Title}");
@@ -190,11 +189,12 @@ public sealed class AlexandriaIndexerServiceTests
 
         var originalCreatedAt = books[0].CreatedAt;
         var originalModifiedAt = books[0].ModifiedAt;
-        var originalHash = books[0].FileHash;
 
-        // Simulate a file change by tampering with the stored hash.
-        books[0].FileHash = "sha256:fake";
-        await bookRepository.Update(books[0]);
+        // Simulate a file change by modifying the epub's metadata.
+        var handler = new EpubMetadataHandler();
+        var metadata = handler.ExtractMetadata(books[0].SourcePath);
+        metadata.Title = "Modified Title For Change Test";
+        handler.EmbedMetadata(books[0].SourcePath, metadata);
 
         await Task.Delay(50);
 
@@ -206,7 +206,6 @@ public sealed class AlexandriaIndexerServiceTests
         var book = books[0];
         Assert.AreEqual(originalCreatedAt, book.CreatedAt, "CreatedAt must be preserved.");
         Assert.IsTrue(book.ModifiedAt > originalModifiedAt, "LastModified must be updated.");
-        Assert.AreEqual(originalHash, book.FileHash, "FileHash should be the real hash again.");
         Assert.IsGreaterThan(0, book.TotalFileSize, "TotalFileSize must be set.");
     }
 

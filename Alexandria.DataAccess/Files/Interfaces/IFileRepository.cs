@@ -9,6 +9,5 @@ public interface IFileRepository
     void DeleteCover(Book book);
     void DeleteKepub(Book book);
     string[] GetEpubFiles();
-    Task<string> ComputeFileHash(string filePath);
     long GetFileSize(string path);
 }

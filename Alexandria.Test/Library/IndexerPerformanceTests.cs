@@ -101,7 +101,6 @@ public sealed class IndexerPerformanceTests
         foreach (var book in books)
         {
             Assert.AreNotEqual(string.Empty, book.Title);
-            Assert.StartsWith("sha256:", book.FileHash);
         }
 
         var m4bBooks = books.Where(b => b.MediaType == MediaType.Audiobook).ToList();
@@ -110,55 +109,6 @@ public sealed class IndexerPerformanceTests
             Assert.IsGreaterThan(0, book.Duration!.Value, $"Audiobook '{book.Title}' should have duration.");
             Assert.IsNotEmpty(book.Chapters, $"Audiobook '{book.Title}' should have chapters.");
         }
-    }
-
-    [TestMethod]
-    [Timeout(600_000)]
-    public async Task HashPerformance_LargeM4B_MeasuresIO()
-    {
-        if (!Directory.Exists(AudiobookFolder))
-            Assert.Inconclusive("Audiobook folder not available — skipping.");
-
-        var m4bFiles = Directory.GetFiles(AudiobookFolder, "*.m4b");
-        if (m4bFiles.Length == 0)
-            Assert.Inconclusive("No M4B files found — skipping.");
-
-        var settings = CreateSettings();
-        var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
-        var fileRepository = new FileRepository(settings, coverThumbnailService);
-
-        // Sample: 10 largest + 5 smallest to show the range
-        var sorted = m4bFiles.Select(f => new FileInfo(f)).OrderByDescending(f => f.Length).ToList();
-        var sample = sorted.Take(10).Concat(sorted.TakeLast(5)).DistinctBy(f => f.FullName).ToList();
-
-        Console.WriteLine("=== SHA256 HASH PERFORMANCE (M4B FILES — SAMPLED) ===");
-        Console.WriteLine($"Total M4B files: {m4bFiles.Length}, sampling {sample.Count}");
-        Console.WriteLine($"{"File",-60} {"Size",10} {"Time",10} {"MB/s",8}");
-
-        long totalBytes = 0, totalMs = 0;
-        foreach (var fileInfo in sample)
-        {
-            var sw = Stopwatch.StartNew();
-            var hash = await fileRepository.ComputeFileHash(fileInfo.FullName);
-            sw.Stop();
-
-            totalBytes += fileInfo.Length;
-            totalMs += sw.ElapsedMilliseconds;
-
-            var throughput = sw.ElapsedMilliseconds > 0 ? fileInfo.Length / 1024.0 / 1024.0 / (sw.ElapsedMilliseconds / 1000.0) : 0;
-            var name = fileInfo.Name;
-            if (name.Length > 58)
-                name = name[..55] + "...";
-
-            Console.WriteLine($"{name,-60} {FormatBytes(fileInfo.Length),10} {FormatMs(sw.ElapsedMilliseconds),10} {throughput:F1}");
-            Assert.StartsWith("sha256:", hash);
-        }
-
-        var totalSize = sorted.Sum(f => f.Length);
-        var avgThroughput = totalMs > 0 ? totalBytes / 1024.0 / 1024.0 / (totalMs / 1000.0) : 0;
-        Console.WriteLine();
-        Console.WriteLine($"Sampled: {FormatBytes(totalBytes)} in {FormatMs(totalMs)} ({avgThroughput:F1} MB/s avg)");
-        Console.WriteLine($"Total library: {FormatBytes(totalSize)} — estimated full hash time: {FormatMs((long)(totalSize / (double)totalBytes * totalMs))}");
     }
 
     [TestMethod]

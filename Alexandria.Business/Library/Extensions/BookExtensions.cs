@@ -28,9 +28,9 @@ public static class BookExtensions
                 && Normalize(book.Series?.Name) == Normalize(other.Series?.Name)
                 && book.Series?.Index == other.Series?.Index
                 && book.Authors.Select(a => a.Name).Order().SequenceEqual(other.Authors.Select(a => a.Name).Order(), StringComparer.Ordinal)
-                && book.Contributors.Select(c => (c.Name, c.Role)).OrderBy(c =>c.Name).SequenceEqual(other.Contributors.Select(c => (c.Name, c.Role)).OrderBy(c => c.Name))
+                && book.Contributors.Select(c => (c.Name, Role: Normalize(c.Role))).OrderBy(c => c.Name).SequenceEqual(other.Contributors.Select(c => (c.Name, Role: Normalize(c.Role))).OrderBy(c => c.Name))
                 && book.Subjects.Order().SequenceEqual(other.Subjects.Order())
-                && book.Identifiers.Order().SequenceEqual(other.Identifiers.Order());
+                && book.Identifiers.Distinct().Order().SequenceEqual(other.Identifiers.Distinct().Order());
         }
     }
 

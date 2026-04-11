@@ -42,11 +42,19 @@ public class TimingFileContentIndexer(IFileContentIndexer inner, ConcurrentBag<T
 
     public string[] GetContentFiles() => inner.GetContentFiles();
 
-    public async Task<string> ComputeFileHash(string filePath)
+    public Book ExtractMetadata(string filePath)
     {
         var sw = Stopwatch.StartNew();
-        var result = await inner.ComputeFileHash(filePath);
-        timings.Add(new TimingRecord("hash", filePath, sw.ElapsedMilliseconds, new FileInfo(filePath).Length));
+        var result = inner.ExtractMetadata(filePath);
+        timings.Add(new TimingRecord("extract-metadata", filePath, sw.ElapsedMilliseconds, new FileInfo(filePath).Length));
+        return result;
+    }
+
+    public byte[]? ExtractCoverBytes(string filePath)
+    {
+        var sw = Stopwatch.StartNew();
+        var result = inner.ExtractCoverBytes(filePath);
+        timings.Add(new TimingRecord("extract-cover-bytes", filePath, sw.ElapsedMilliseconds, new FileInfo(filePath).Length));
         return result;
     }
 
@@ -94,7 +102,6 @@ public class InstrumentedBookRepository(IBookRepository inner, ConcurrentBag<Tim
 
     public Task<Book?> FindByUuid(Guid uuid) => inner.FindByUuid(uuid);
     public Task<Book?> FindByEntitlementUuid(Guid entitlementUuid) => inner.FindByEntitlementUuid(entitlementUuid);
-    public Task<Book?> FindByHash(string fileHash) => inner.FindByHash(fileHash);
     public Task<Book?> FindByPath(string sourcePath) => inner.FindByPath(sourcePath);
     public Task Remove(Guid uuid) => inner.Remove(uuid);
     public Task<List<string>> GetPublishers() => inner.GetPublishers();

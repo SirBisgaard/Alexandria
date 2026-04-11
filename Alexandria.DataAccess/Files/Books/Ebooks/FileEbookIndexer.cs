@@ -12,7 +12,15 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
 
     public string[] GetContentFiles() => fileRepository.GetEpubFiles();
 
-    public Task<string> ComputeFileHash(string filePath) => fileRepository.ComputeFileHash(filePath);
+    public Book ExtractMetadata(string filePath) => epubMetadataHandler.ExtractMetadata(filePath);
+
+    public byte[]? ExtractCoverBytes(string filePath)
+    {
+        var raw = epubMetadataHandler.ExtractCoverBytes(filePath);
+        if (raw is null)
+            return null;
+        return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
+    }
 
     public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
     {
@@ -57,6 +65,8 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
             }
         }
     }
+
+    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
 
     private string? ConvertCoverToJpeg(string? coverFilePath)
     {

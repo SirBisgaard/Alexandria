@@ -6,7 +6,8 @@ public interface IFileContentIndexer
 {
     string[] SupportedExtensions { get; }
     string[] GetContentFiles();
-    Task<string> ComputeFileHash(string filePath);
+    Book ExtractMetadata(string filePath);
+    byte[]? ExtractCoverBytes(string filePath);
     (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid);
     Task CreateDerivativeFiles(Book book, string sourcePath);
     void DeleteDerivedFiles(Book book);

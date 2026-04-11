@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -9,22 +10,15 @@ namespace Alexandria.DataAccess.Files;
 
 public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnumerable<IFileContentMediaHandler> handlers, ILogger<FileContentManager> logger) : IFileContentManager
 {
-    public async Task<List<Book>> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null)
+    public async Task<(List<Book> Books, HashSet<Guid> UnchangedUuids)> GetAllBooks(List<Book>? existingBooks = null, IProgress<(int current, int total)>? progress = null)
     {
+        var unchangedUuids = new ConcurrentBag<Guid>();
         var books = new ConcurrentBag<Book>();
         var allFiles = indexers.SelectMany(i => i.GetContentFiles()).ToArray();
         logger.LogInformation("Indexing {Count} files from {IndexerCount} indexer(s)", allFiles.Length, indexers.Count());
 
         var existingByPath = existingBooks?.ToDictionary(b => b.SourcePath, StringComparer.OrdinalIgnoreCase) ?? [];
-        var existingByHash = new Dictionary<string, Book>();
-        if (existingBooks is not null)
-        {
-            foreach (var book in existingBooks)
-            {
-                if (!string.IsNullOrEmpty(book.FileHash))
-                    existingByHash.TryAdd(book.FileHash, book);
-            }
-        }
+        var discoveredPaths = new ConcurrentBag<string>();
         var processed = 0;
 
         await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, ct) =>
@@ -33,23 +27,24 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
             progress?.Report((current, allFiles.Length * 2));
             var indexer = GetIndexerFor(filePath);
             var fileName = Path.GetFileName(filePath);
+            discoveredPaths.Add(filePath);
 
-            var fileHash = await indexer.ComputeFileHash(filePath);
-            if (existingByPath.TryGetValue(filePath, out var existing) && existing.FileHash == fileHash)
+            var freshMetadata = indexer.ExtractMetadata(filePath);
+
+            if (existingByPath.TryGetValue(filePath, out var existing) && existing.MetadataEquals(freshMetadata) && CoverUnchanged(existing, indexer.ExtractCoverBytes(filePath)))
             {
                 logger.LogDebug("Skipping unchanged [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
+                unchangedUuids.Add(existing.BookUuid);
                 books.Add(existing);
                 return;
             }
 
             logger.LogDebug("Indexing [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
 
-            var bookUuid = existing?.BookUuid
-                ?? (existingByHash.TryGetValue(fileHash, out var hashMatch) ? hashMatch.BookUuid : Guid.NewGuid());
+            var bookUuid = existing?.BookUuid ?? FindMovedBookUuid(freshMetadata, existingBooks, discoveredPaths) ?? Guid.NewGuid();
 
             var (book, coverFilePath) = indexer.ExtractAll(filePath, bookUuid);
             book.BookUuid = bookUuid;
-            book.FileHash = fileHash;
             book.SourcePath = filePath;
             book.CoverFilePath = coverFilePath;
 
@@ -61,7 +56,27 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         CleanupStaleDerivatives(bookList, existingBooks);
         logger.LogInformation("Indexing complete: {Count} books", bookList.Count);
 
-        return bookList;
+        return (bookList, unchangedUuids.ToHashSet());
+    }
+
+    private static bool CoverUnchanged(Book existing, byte[]? freshCoverBytes)
+    {
+        if (existing.CoverFilePath is null && freshCoverBytes is null)
+            return true;
+        if (existing.CoverFilePath is null || freshCoverBytes is null)
+            return false;
+        if (!File.Exists(existing.CoverFilePath))
+            return false;
+        var existingBytes = File.ReadAllBytes(existing.CoverFilePath);
+        return existingBytes.AsSpan().SequenceEqual(freshCoverBytes);
+    }
+
+    private static Guid? FindMovedBookUuid(Book freshMetadata, List<Book>? existingBooks, ConcurrentBag<string> discoveredPaths)
+    {
+        if (existingBooks is null)
+            return null;
+        var paths = discoveredPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return existingBooks.FirstOrDefault(b => !paths.Contains(b.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
     }
 
     public async Task<Book> GetBook(Book book)
@@ -72,7 +87,6 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         freshBook.SourcePath = book.SourcePath;
         freshBook.CoverFilePath = coverFilePath;
         await indexer.CreateDerivativeFiles(freshBook, book.SourcePath);
-        freshBook.FileHash = await indexer.ComputeFileHash(book.SourcePath);
         return freshBook;
     }
 

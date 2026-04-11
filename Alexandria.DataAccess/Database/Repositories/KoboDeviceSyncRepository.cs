@@ -8,26 +8,26 @@ public class KoboDeviceSyncRepository(AlexandriaSettings settings) : IKoboDevice
 {
     private readonly string connectionString = $"Data Source={settings.Database}";
 
-    public async Task<Dictionary<Guid, string>> GetSyncedFileHashes(string deviceId)
+    public async Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceId)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT BookUuid, FileHash FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId";
+        cmd.CommandText = "SELECT BookUuid, BookModifiedAt FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId";
         cmd.Parameters.AddWithValue("@deviceId", deviceId);
 
         await using var reader = await cmd.ExecuteReaderAsync();
-        var result = new Dictionary<Guid, string>();
+        var result = new Dictionary<Guid, DateTimeOffset>();
         while (await reader.ReadAsync())
         {
-            result[Guid.Parse(reader.GetString(0))] = reader.GetString(1);
+            result[Guid.Parse(reader.GetString(0))] = DateTimeOffset.Parse(reader.GetString(1));
         }
 
         return result;
     }
 
-    public async Task UpsertSyncedFile(string deviceId, Guid bookUuid, string fileHash)
+    public async Task UpsertSyncedFile(string deviceId, Guid bookUuid, DateTimeOffset bookModifiedAt)
     {
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
@@ -35,13 +35,13 @@ public class KoboDeviceSyncRepository(AlexandriaSettings settings) : IKoboDevice
         var now = DateTimeOffset.UtcNow.ToString("O");
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO KoboDeviceSyncedFiles (DeviceId, BookUuid, FileHash, CreatedAt, ModifiedAt)
-            VALUES (@deviceId, @bookUuid, @fileHash, @createdAt, @modifiedAt)
-            ON CONFLICT (DeviceId, BookUuid) DO UPDATE SET FileHash = @fileHash, ModifiedAt = @modifiedAt
+            INSERT INTO KoboDeviceSyncedFiles (DeviceId, BookUuid, BookModifiedAt, CreatedAt, ModifiedAt)
+            VALUES (@deviceId, @bookUuid, @bookModifiedAt, @createdAt, @modifiedAt)
+            ON CONFLICT (DeviceId, BookUuid) DO UPDATE SET BookModifiedAt = @bookModifiedAt, ModifiedAt = @modifiedAt
             """;
         cmd.Parameters.AddWithValue("@deviceId", deviceId);
         cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
-        cmd.Parameters.AddWithValue("@fileHash", fileHash);
+        cmd.Parameters.AddWithValue("@bookModifiedAt", bookModifiedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@createdAt", now);
         cmd.Parameters.AddWithValue("@modifiedAt", now);
         await cmd.ExecuteNonQueryAsync();

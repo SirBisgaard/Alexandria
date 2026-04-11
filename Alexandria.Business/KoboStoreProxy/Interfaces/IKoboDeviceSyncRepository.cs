@@ -2,7 +2,7 @@ namespace Alexandria.Business.KoboStoreProxy.Interfaces;
 
 public interface IKoboDeviceSyncRepository
 {
-    Task<Dictionary<Guid, string>> GetSyncedFileHashes(string deviceId);
-    Task UpsertSyncedFile(string deviceId, Guid bookUuid, string fileHash);
+    Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceId);
+    Task UpsertSyncedFile(string deviceId, Guid bookUuid, DateTimeOffset bookModifiedAt);
     Task RemoveSyncedFile(string deviceId, Guid bookUuid);
 }

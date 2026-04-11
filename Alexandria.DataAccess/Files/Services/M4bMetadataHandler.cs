@@ -94,6 +94,8 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return book;
     }
 
+    public Task<byte[]?> ExtractCoverBytes(string filePath) => ffmpegHandler.ExtractCoverImage(filePath);
+
     public async Task<string?> ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid)
     {
         var coverData = await ffmpegHandler.ExtractCoverImage(filePath);

@@ -17,7 +17,15 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
         return Directory.GetFiles(settings.AudiobookFolder, "*.m4b");
     }
 
-    public Task<string> ComputeFileHash(string filePath) => fileRepository.ComputeFileHash(filePath);
+    public Book ExtractMetadata(string filePath) => mediaHandler.ExtractMetadata(filePath);
+
+    public byte[]? ExtractCoverBytes(string filePath)
+    {
+        var raw = mediaHandler.ExtractCoverBytes(filePath);
+        if (raw is null)
+            return null;
+        return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
+    }
 
     public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
     {
@@ -42,6 +50,8 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
     public void CleanupOrphanedFiles(HashSet<Guid> validBookUuids, HashSet<string> validCoverPaths)
     {
     }
+
+    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
 
     private string? ConvertCoverToJpeg(string? coverFilePath)
     {

@@ -5,7 +5,6 @@ public class Book
     public Guid BookUuid { get; set; }
     public Guid EntitlementUuid { get; set; }
     public MediaType MediaType { get; set; } = MediaType.Ebook;
-    public string FileHash { get; set; } = string.Empty;
     public string SourcePath { get; set; } = string.Empty;
     public string FileName => Path.GetFileName(SourcePath);
     public string Title { get; set; } = string.Empty;

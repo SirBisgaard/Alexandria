@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -58,13 +57,6 @@ public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService 
             return [];
         }
         return Directory.GetFiles(settings.EbookFolder, "*.epub");
-    }
-
-    public async Task<string> ComputeFileHash(string filePath)
-    {
-        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        var hash = await SHA256.HashDataAsync(stream);
-        return $"sha256:{Convert.ToHexStringLower(hash)}";
     }
 
     public long GetFileSize(string path)

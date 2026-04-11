@@ -96,7 +96,6 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 BookUuid TEXT PRIMARY KEY,
                 EntitlementUuid TEXT NOT NULL,
                 MediaType TEXT NOT NULL DEFAULT 'Ebook',
-                FileHash TEXT NOT NULL,
                 SourcePath TEXT NOT NULL,
                 Title TEXT NOT NULL,
                 Subtitle TEXT,
@@ -259,7 +258,7 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
             CREATE TABLE IF NOT EXISTS KoboDeviceSyncedFiles (
                 DeviceId TEXT NOT NULL,
                 BookUuid TEXT NOT NULL,
-                FileHash TEXT NOT NULL,
+                BookModifiedAt TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL,
                 PRIMARY KEY (DeviceId, BookUuid)

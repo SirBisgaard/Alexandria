@@ -30,6 +30,8 @@ public class FileAudiobookMediaHandler(IM4BMetadataHandler m4BMetadataHandler) :
 
     public Book ExtractMetadata(string filePath) => m4BMetadataHandler.ExtractMetadata(filePath).GetAwaiter().GetResult();
 
+    public byte[]? ExtractCoverBytes(string filePath) => m4BMetadataHandler.ExtractCoverBytes(filePath).GetAwaiter().GetResult();
+
     public bool MetadataEquals(Book desired, string filePath)
     {
         var current = ExtractMetadata(filePath);

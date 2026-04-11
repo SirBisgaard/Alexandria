@@ -19,15 +19,10 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
             var existingBooks = await bookRepository.GetAll();
             var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
-            var existingByHash = new Dictionary<string, Book>();
             foreach (var book in existingBooks)
-            {
                 existingByPath[book.SourcePath] = book;
-                if (!string.IsNullOrEmpty(book.FileHash))
-                    existingByHash.TryAdd(book.FileHash, book);
-            }
 
-            var discoveredBooks = await contentManager.GetAllBooks(existingBooks, progress);
+            var (discoveredBooks, unchangedUuids) = await contentManager.GetAllBooks(existingBooks, progress);
             var discoveredPaths = discoveredBooks.Select(b => b.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var claimedUuids = new HashSet<Guid>();
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
@@ -38,15 +33,15 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 progress?.Report((discoveredBooks.Count + ++dbProcessed, discoveredBooks.Count * 2));
                 var existingAtPath = existingByPath.GetValueOrDefault(discovered.SourcePath);
 
-                // Path+hash matched — unchanged. FileContentManager returned the existing record.
-                if (existingAtPath is not null && existingAtPath.FileHash == discovered.FileHash)
+                // Unchanged — FileContentManager confirmed metadata + cover match.
+                if (unchangedUuids.Contains(discovered.BookUuid))
                 {
                     await contentManager.CreateDerivativeFiles(discovered);
                     claimedUuids.Add(discovered.BookUuid);
                     continue;
                 }
 
-                // Path match + hash mismatch — file was modified externally.
+                // Path match — file was modified externally.
                 if (existingAtPath is not null)
                 {
                     logger.LogInformation("File modified externally: {Title} ({SourcePath})", existingAtPath.Title, discovered.SourcePath);
@@ -56,12 +51,13 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                     continue;
                 }
 
-                // Path miss + hash match, and original path no longer exists — file was moved/renamed.
-                if (existingByHash.TryGetValue(discovered.FileHash, out var hashMatch) && !discoveredPaths.Contains(hashMatch.SourcePath))
+                // Path miss + metadata match with missing-path book — file was moved/renamed.
+                var existingMatch = existingBooks.FirstOrDefault(b => b.BookUuid == discovered.BookUuid);
+                if (existingMatch is not null && !discoveredPaths.Contains(existingMatch.SourcePath))
                 {
-                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", hashMatch.Title, hashMatch.SourcePath, discovered.SourcePath);
+                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, discovered.SourcePath);
                     await contentManager.CreateDerivativeFiles(discovered);
-                    await HandleMovedBook(discovered, hashMatch, wordsPerPage);
+                    await HandleMovedBook(discovered, existingMatch, wordsPerPage);
                     claimedUuids.Add(discovered.BookUuid);
                     continue;
                 }

@@ -91,7 +91,6 @@ public sealed class AudiobookIndexerTests
         Assert.AreEqual("Fantastic Beasts and Where to Find Them", book.Title);
         Assert.AreEqual(MediaType.Audiobook, book.MediaType);
         Assert.IsNotEmpty(book.Authors);
-        Assert.StartsWith("sha256:", book.FileHash);
         Assert.IsGreaterThan(0, book.Duration!.Value);
         Assert.IsGreaterThan(0, book.TotalFileSize);
         Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt);

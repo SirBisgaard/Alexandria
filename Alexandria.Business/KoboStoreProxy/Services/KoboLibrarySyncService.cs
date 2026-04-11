@@ -71,12 +71,12 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         }
 
         var allBooks = await alexandriaLibraryService.GetBooks();
-        var syncedHashes = await koboDeviceSyncRepository.GetSyncedFileHashes(deviceId);
+        var syncedDates = await koboDeviceSyncRepository.GetSyncedModifiedDates(deviceId);
 
         if (!koboDeviceSyncTokenService.IsActive(deviceId))
         {
             var lastSync = alexandriaToken.LastSync;
-            var books = allBooks.Where(b => b.ModifiedAt > lastSync || !syncedHashes.ContainsKey(b.BookUuid)).ToList();
+            var books = allBooks.Where(b => b.ModifiedAt > lastSync || !syncedDates.ContainsKey(b.BookUuid)).ToList();
             if (books.Count == 0)
             {
                 var collections = await GetCollectionSyncItems(lastSync, allBooks);
@@ -105,7 +105,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
             if (book is null)
                 continue;
 
-            var previouslySynced = syncedHashes.TryGetValue(book.BookUuid, out var storedHash);
+            var previouslySynced = syncedDates.TryGetValue(book.BookUuid, out var storedModifiedAt);
 
             if (!previouslySynced)
             {
@@ -119,7 +119,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
                 var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, readingState, relatedGroupId);
                 syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement });
-                await koboDeviceSyncRepository.UpsertSyncedFile(deviceId, book.BookUuid, book.FileHash);
+                await koboDeviceSyncRepository.UpsertSyncedFile(deviceId, book.BookUuid, book.ModifiedAt);
             }
             else if (book.IsArchived)
             {
@@ -127,7 +127,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
                 await koboDeviceSyncRepository.RemoveSyncedFile(deviceId, book.BookUuid);
             }
-            else if (storedHash != book.FileHash)
+            else if (storedModifiedAt != book.ModifiedAt)
             {
                 var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
                 if (readingState is not null)
@@ -140,7 +140,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                 syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement with { ReadingState = null } });
                 if (readingState is not null)
                     syncResults.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
-                await koboDeviceSyncRepository.UpsertSyncedFile(deviceId, book.BookUuid, book.FileHash);
+                await koboDeviceSyncRepository.UpsertSyncedFile(deviceId, book.BookUuid, book.ModifiedAt);
             }
             else
             {

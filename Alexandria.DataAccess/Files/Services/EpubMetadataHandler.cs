@@ -35,6 +35,25 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         return book;
     }
 
+    public byte[]? ExtractCoverBytes(string epubPath)
+    {
+        if (!File.Exists(epubPath))
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        using var opfStream = opfEntry.Open();
+        var opfDoc = XDocument.Load(opfStream);
+
+        var (_, metadataEl) = ParseMetadata(opfDoc);
+        return ReadCoverBytes(zip, opfDoc, opfPath, metadataEl);
+    }
+
     /// <summary>
     /// Extracts metadata and cover from an EPUB in a single ZIP open.
     /// </summary>
@@ -607,24 +626,35 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         return contributors;
     }
 
-    private static string? WriteCoverToDisk(ZipArchive zip, XDocument opfDoc, string opfPath, string outputDirectory, XElement metadataEl, Guid uuid)
+    private static byte[]? ReadCoverBytes(ZipArchive zip, XDocument opfDoc, string opfPath, XElement metadataEl)
+    {
+        var coverEntry = FindCoverEntry(zip, opfDoc, opfPath, metadataEl);
+        if (coverEntry is null)
+            return null;
+
+        using var entryStream = coverEntry.Open();
+        using var ms = new MemoryStream();
+        entryStream.CopyTo(ms);
+        return ms.ToArray();
+    }
+
+    private static ZipArchiveEntry? FindCoverEntry(ZipArchive zip, XDocument opfDoc, string opfPath, XElement metadataEl)
     {
         var coverHref = FindCoverHref(opfDoc, metadataEl);
         if (coverHref is null)
             return null;
 
-        // The href in the OPF manifest is relative to the OPF file's directory.
         var opfDirectory = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
-        var coverEntryPath = string.IsNullOrEmpty(opfDirectory)
-            ? coverHref
-            : $"{opfDirectory}/{coverHref}";
-
-        // Normalise path separators and try to locate the entry.
+        var coverEntryPath = string.IsNullOrEmpty(opfDirectory) ? coverHref : $"{opfDirectory}/{coverHref}";
         coverEntryPath = coverEntryPath.Replace('\\', '/');
-        var coverEntry = zip.GetEntry(coverEntryPath)
-            ?? zip.Entries.FirstOrDefault(e =>
-                string.Equals(e.FullName, coverEntryPath, StringComparison.OrdinalIgnoreCase));
 
+        return zip.GetEntry(coverEntryPath)
+            ?? zip.Entries.FirstOrDefault(e => string.Equals(e.FullName, coverEntryPath, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? WriteCoverToDisk(ZipArchive zip, XDocument opfDoc, string opfPath, string outputDirectory, XElement metadataEl, Guid uuid)
+    {
+        var coverEntry = FindCoverEntry(zip, opfDoc, opfPath, metadataEl);
         if (coverEntry is null)
             return null;
 

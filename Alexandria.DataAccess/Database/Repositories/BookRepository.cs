@@ -79,28 +79,6 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         return null;
     }
 
-    public async Task<Book?> FindByHash(string fileHash)
-    {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books WHERE FileHash = @hash";
-        cmd.Parameters.AddWithValue("@hash", fileHash);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            var book = MapBook(reader);
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
-            await LoadSubTableData(connection, book);
-            return book;
-        }
-
-        return null;
-    }
-
     public async Task<Book?> FindByPath(string sourcePath)
     {
         await using var connection = new SqliteConnection(connectionString);
@@ -130,8 +108,8 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, FileHash, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
-            VALUES (@bookUuid, @entitlementUuid, @mediaType, @fileHash, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
+            INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
+            VALUES (@bookUuid, @entitlementUuid, @mediaType, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
@@ -145,7 +123,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
+            UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
             WHERE BookUuid = @bookUuid
             """;
         AddBookParameters(cmd, book);
@@ -207,7 +185,6 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         cmd.Parameters.AddWithValue("@bookUuid", book.BookUuid.ToString());
         cmd.Parameters.AddWithValue("@entitlementUuid", book.EntitlementUuid.ToString());
         cmd.Parameters.AddWithValue("@mediaType", book.MediaType.ToString());
-        cmd.Parameters.AddWithValue("@fileHash", book.FileHash);
         cmd.Parameters.AddWithValue("@sourcePath", book.SourcePath);
         cmd.Parameters.AddWithValue("@title", book.Title);
         cmd.Parameters.AddWithValue("@subtitle", (object?)book.Subtitle ?? DBNull.Value);
@@ -241,7 +218,6 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             BookUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("BookUuid"))),
             EntitlementUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("EntitlementUuid"))),
             MediaType = Enum.Parse<MediaType>(reader.GetString(reader.GetOrdinal("MediaType"))),
-            FileHash = reader.GetString(reader.GetOrdinal("FileHash")),
             SourcePath = reader.GetString(reader.GetOrdinal("SourcePath")),
             Title = reader.GetString(reader.GetOrdinal("Title")),
             Subtitle = reader.IsDBNull(reader.GetOrdinal("Subtitle")) ? null : reader.GetString(reader.GetOrdinal("Subtitle")),
