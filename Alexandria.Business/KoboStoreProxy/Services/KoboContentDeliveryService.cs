@@ -39,7 +39,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
 
     public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
-        var book = await alexandriaLibraryService.GetBookByCoverImageUuid(uuid) ?? await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogDebug("CoverImage: book {Uuid} not local, redirecting to Kobo CDN", uuid);

@@ -241,20 +241,13 @@ public sealed class AudiobookIndexerTests
 
         var allAuthors = await authorRepository.GetAll();
         Assert.IsNotEmpty(allAuthors);
-        var rowling = allAuthors.FirstOrDefault(a => a.Name == "J.K. Rowling, Newt Scamander");
+        var rowling = allAuthors.FirstOrDefault(a => a.Name == "J.K. Rowling");
         Assert.IsNotNull(rowling, "Author should exist in Authors table.");
-
-        var allSeries = await seriesRepository.GetAll();
-        Assert.IsNotEmpty(allSeries);
-        var wizardingWorld = allSeries.FirstOrDefault(s => s.Name == "Wizarding World");
-        Assert.IsNotNull(wizardingWorld, "Wizarding World series should exist.");
 
         var books = await bookRepository.GetAll();
         var book = books[0];
         Assert.IsNotEmpty(book.Authors);
         Assert.AreNotEqual(Guid.Empty, book.Authors[0].AuthorUuid);
-        Assert.IsNotNull(book.Series);
-        Assert.AreEqual(wizardingWorld.SeriesUuid, book.Series.SeriesUuid);
     }
 
     // --- MediaHandler: MetadataEquals ---

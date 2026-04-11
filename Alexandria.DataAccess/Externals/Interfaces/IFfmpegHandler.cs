@@ -1,4 +1,6 @@
-namespace Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Models;
+
+namespace Alexandria.DataAccess.Externals.Interfaces;
 
 public interface IFfmpegHandler
 {

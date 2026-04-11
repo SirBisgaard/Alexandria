@@ -19,12 +19,11 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
 
     public Task<string> ComputeFileHash(string filePath) => fileRepository.ComputeFileHash(filePath);
 
-    public (Book Book, string? CoverFilePath) ExtractAll(string filePath)
+    public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
     {
         var book = mediaHandler.ExtractMetadata(filePath);
-        var coverUuid = Guid.GenerateUuidV5("cover:" + filePath);
         Directory.CreateDirectory(settings.CoversFolder);
-        var coverFilePath = mediaHandler.ExtractCover(filePath, settings.CoversFolder, coverUuid);
+        var coverFilePath = mediaHandler.ExtractCover(filePath, settings.CoversFolder, bookUuid);
         coverFilePath = ConvertCoverToJpeg(coverFilePath);
         return (book, coverFilePath);
     }

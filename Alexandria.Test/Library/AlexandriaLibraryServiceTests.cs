@@ -144,7 +144,7 @@ public sealed class AlexandriaLibraryServiceTests
 
         // Verify the EPUB file itself was modified by re-extracting metadata directly.
         var handler = new EpubMetadataHandler();
-        var (freshMetadata, _) = handler.ExtractAll(original.SourcePath, coversDir);
+        var (freshMetadata, _) = handler.ExtractAll(original.SourcePath, coversDir, Guid.NewGuid());
         Assert.AreEqual("Roundtrip Title", freshMetadata.Title);
         Assert.HasCount(1, freshMetadata.Authors);
         Assert.AreEqual("Roundtrip Author", freshMetadata.Authors[0].Name);

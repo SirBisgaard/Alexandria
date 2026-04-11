@@ -39,16 +39,6 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
         return book;
     }
 
-    public async Task<Book?> GetBookByCoverImageUuid(Guid uuid)
-    {
-        var book = await bookRepository.FindByCoverImageUuid(uuid);
-        if (book is not null)
-        {
-            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
-        }
-        return book;
-    }
-
     public async Task SetBookArchiveStatus(Guid uuid, bool isArchived)
     {
         var book = await bookRepository.FindByUuid(uuid);

@@ -6,7 +6,6 @@ public class BookResponse
 {
     public Guid BookUuid { get; set; }
     public Guid EntitlementUuid { get; set; }
-    public Guid? CoverImageUuid { get; set; }
     public MediaType MediaType { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Subtitle { get; set; }

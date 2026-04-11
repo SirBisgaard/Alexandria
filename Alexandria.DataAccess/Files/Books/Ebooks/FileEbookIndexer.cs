@@ -1,6 +1,7 @@
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Ebooks;
@@ -13,9 +14,9 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
 
     public Task<string> ComputeFileHash(string filePath) => fileRepository.ComputeFileHash(filePath);
 
-    public (Book Book, string? CoverFilePath) ExtractAll(string filePath)
+    public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
     {
-        var (book, coverFilePath) = epubMetadataHandler.ExtractAll(filePath, settings.CoversFolder);
+        var (book, coverFilePath) = epubMetadataHandler.ExtractAll(filePath, settings.CoversFolder, bookUuid);
         coverFilePath = ConvertCoverToJpeg(coverFilePath);
         return (book, coverFilePath);
     }

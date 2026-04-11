@@ -1,4 +1,4 @@
-namespace Alexandria.DataAccess.Externals;
+namespace Alexandria.DataAccess.Externals.Interfaces;
 
 public interface IKepubifyConverter
 {

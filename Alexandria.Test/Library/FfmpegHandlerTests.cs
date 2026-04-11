@@ -1,5 +1,6 @@
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Models;
 using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 

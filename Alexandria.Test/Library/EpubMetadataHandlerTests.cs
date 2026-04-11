@@ -68,7 +68,7 @@ public sealed class EpubMetadataHandlerTests
         foreach (var epub in epubs)
         {
             var coverDir = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(epub));
-            var (_, coverFilePath) = extractor.ExtractAll(epub, coverDir);
+            var (_, coverFilePath) = extractor.ExtractAll(epub, coverDir, Guid.NewGuid());
 
             Assert.IsNotNull(coverFilePath, $"Cover should have been extracted for {Path.GetFileName(epub)}.");
             Assert.IsTrue(File.Exists(coverFilePath), $"Cover file should exist for {Path.GetFileName(epub)}.");
@@ -83,7 +83,7 @@ public sealed class EpubMetadataHandlerTests
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
-            () => extractor.ExtractAll(bogusPath, outputDir));
+            () => extractor.ExtractAll(bogusPath, outputDir, Guid.NewGuid()));
     }
 
     [TestMethod]
@@ -92,7 +92,7 @@ public sealed class EpubMetadataHandlerTests
         var extractor = new EpubMetadataHandler();
         var inputPath = Path.Combine(ContentBooksDir, "Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var (book, _) = extractor.ExtractAll(inputPath, outputDir);
+        var (book, _) = extractor.ExtractAll(inputPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual(Guid.Empty, book.BookUuid, "Extracted BookUuid should be Empty — identity comes from the database, not the file.");
     }
@@ -102,7 +102,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         var modified = new Book
         {
@@ -116,7 +116,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual("New Title", result.Title);
         Assert.HasCount(original.Authors.Count, result.Authors);
@@ -129,7 +129,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         var modified = new Book
         {
@@ -140,7 +140,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.HasCount(2, result.Authors);
         Assert.Contains("Author One", result.Authors.Select(a => a.Name));
@@ -165,7 +165,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual("Test Title", result.Title);
         Assert.HasCount(1, result.Authors);
@@ -183,7 +183,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         var modified = new Book
         {
@@ -194,7 +194,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual("New Series Name", result.Series?.Name);
         Assert.AreEqual(7, result.Series?.Index);
@@ -206,7 +206,7 @@ public sealed class EpubMetadataHandlerTests
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
         Assert.IsNotNull(original.Series?.Name, "Test book should have a series.");
 
         var modified = new Book
@@ -218,7 +218,7 @@ public sealed class EpubMetadataHandlerTests
         };
 
         handler.EmbedMetadata(epubPath, modified);
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         // EPUB3 series tags are cleared, but calibre tags are preserved (we don't touch other tools' data).
         // The calibre fallback kicks in on re-read.
@@ -243,7 +243,7 @@ public sealed class EpubMetadataHandlerTests
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var originalCoverDir = Path.Combine(outputDir, "original-cover");
-        var (_, originalCoverFilePath) = handler.ExtractAll(epubPath, originalCoverDir);
+        var (_, originalCoverFilePath) = handler.ExtractAll(epubPath, originalCoverDir, Guid.NewGuid());
         Assert.IsNotNull(originalCoverFilePath);
         var originalCoverSize = new FileInfo(originalCoverFilePath).Length;
 
@@ -253,7 +253,7 @@ public sealed class EpubMetadataHandlerTests
         handler.EmbedCover(epubPath, fakeCover, "image/jpeg");
 
         var newCoverDir = Path.Combine(outputDir, "new-cover");
-        var (_, newCoverFilePath) = handler.ExtractAll(epubPath, newCoverDir);
+        var (_, newCoverFilePath) = handler.ExtractAll(epubPath, newCoverDir, Guid.NewGuid());
         Assert.IsNotNull(newCoverFilePath);
 
         var newCoverSize = new FileInfo(newCoverFilePath).Length;
@@ -408,14 +408,14 @@ public sealed class EpubMetadataHandlerTests
 
         // Verify cover exists before removal.
         var beforeDir = Path.Combine(outputDir, "before-cover");
-        var (_, beforeCoverFilePath) = handler.ExtractAll(epubPath, beforeDir);
+        var (_, beforeCoverFilePath) = handler.ExtractAll(epubPath, beforeDir, Guid.NewGuid());
         Assert.IsNotNull(beforeCoverFilePath, "Test book should have a cover before removal.");
 
         handler.RemoveCover(epubPath);
 
         // Verify cover is gone after removal.
         var afterDir = Path.Combine(outputDir, "after-cover");
-        var (_, afterCoverFilePath) = handler.ExtractAll(epubPath, afterDir);
+        var (_, afterCoverFilePath) = handler.ExtractAll(epubPath, afterDir, Guid.NewGuid());
         Assert.IsNull(afterCoverFilePath, "Cover should be null after removal.");
     }
 
@@ -482,7 +482,7 @@ public sealed class EpubMetadataHandlerTests
 
         InjectDcIdentifier(epubPath, $"alexandria:{Guid.NewGuid()}");
 
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual(Guid.Empty, result.BookUuid, "Alexandria UUID in dc:identifier should be ignored — identity comes from the database.");
     }
@@ -495,7 +495,7 @@ public sealed class EpubMetadataHandlerTests
 
         InjectDcIdentifier(epubPath, $"alexandria:{Guid.NewGuid()}");
 
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
         var modified = new Book
         {
             Title = "Changed Title",
@@ -578,7 +578,7 @@ public sealed class EpubMetadataHandlerTests
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
         var modified = new Book
         {
             Title = original.Title,
@@ -615,7 +615,7 @@ public sealed class EpubMetadataHandlerTests
         handler.EmbedMetadata(epubPath, modified);
 
         // Now the EPUB has calibre:series="The Last Kingdom" + belongs-to-collection="EPUB3 Wins".
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual("EPUB3 Wins", result.Series?.Name);
         Assert.AreEqual(99, result.Series?.Index);
@@ -632,7 +632,7 @@ public sealed class EpubMetadataHandlerTests
         // Remove EPUB3 series tags, leaving only calibre.
         RemoveEpub3SeriesFromEpub(epubPath);
 
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
         Assert.AreEqual("The Last Kingdom", result.Series?.Name);
         Assert.AreEqual(1, result.Series?.Index);
@@ -644,7 +644,7 @@ public sealed class EpubMetadataHandlerTests
         var handler = new EpubMetadataHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        var (original, _) = handler.ExtractAll(epubPath, outputDir);
+        var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
         Assert.IsNotEmpty(original.Subjects);
         Assert.IsNotNull(original.Rights);
 
@@ -658,7 +658,7 @@ public sealed class EpubMetadataHandlerTests
 
         handler.EmbedMetadata(epubPath, modified);
 
-        var (result, _) = handler.ExtractAll(epubPath, outputDir);
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
         Assert.IsNotEmpty(result.Subjects);
         Assert.Contains("Fantasy", result.Subjects);
         Assert.IsNotNull(result.Rights);
@@ -668,7 +668,7 @@ public sealed class EpubMetadataHandlerTests
     {
         var extractor = new EpubMetadataHandler();
         var inputPath = Path.Combine(ContentBooksDir, fileName);
-        return extractor.ExtractAll(inputPath, outputDir).Book;
+        return extractor.ExtractAll(inputPath, outputDir, Guid.NewGuid()).Book;
     }
 
     private static string ReadOpfXml(string epubPath)

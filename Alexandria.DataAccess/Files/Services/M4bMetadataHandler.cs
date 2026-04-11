@@ -2,7 +2,8 @@ using System.Globalization;
 using System.Text.Json;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
-using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Interfaces;
+using Alexandria.DataAccess.Externals.Models;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Services;
@@ -41,13 +42,13 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         if (format.TryGetProperty("duration", out var dur) && double.TryParse(dur.GetString(), CultureInfo.InvariantCulture, out var duration))
             book.Duration = (int)Math.Round(duration);
 
-        var artist = GetTag(tags, "artist") ?? GetTag(tags, "album_artist");
-        if (artist is not null)
-            book.Authors = [new Author { Name = artist }];
+        var artists = GetTag(tags, "artist") ?? GetTag(tags, "album_artist");
+        if (artists is not null)
+            book.Authors = artists.Split(",").Select(artist => new Author { Name = artist.Trim() }).ToList();
 
-        var narrator = GetTag(tags, "composer");
-        if (narrator is not null)
-            book.Contributors = [new Contributor { Name = narrator, Role = "Narrator" }];
+        var narrators = GetTag(tags, "composer");
+        if (narrators is not null)
+            book.Contributors = narrators.Split(",").Select(narrator => new Contributor { Name = narrator.Trim(), Role = "Narrator" }).ToList();
 
         var grouping = GetTag(tags, "grouping");
         if (grouping is not null)

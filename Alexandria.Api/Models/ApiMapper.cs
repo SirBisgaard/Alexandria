@@ -14,7 +14,6 @@ public static class ApiMapper
     {
         BookUuid = book.BookUuid,
         EntitlementUuid = book.EntitlementUuid,
-        CoverImageUuid = book.CoverImageUuid,
         Title = book.Title,
         Authors = book.Authors.Select(ToAuthorResponse).ToList(),
         Language = book.Language,

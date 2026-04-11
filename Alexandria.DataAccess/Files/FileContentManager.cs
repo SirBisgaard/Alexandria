@@ -16,9 +16,18 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         logger.LogInformation("Indexing {Count} files from {IndexerCount} indexer(s)", allFiles.Length, indexers.Count());
 
         var existingByPath = existingBooks?.ToDictionary(b => b.SourcePath, StringComparer.OrdinalIgnoreCase) ?? [];
+        var existingByHash = new Dictionary<string, Book>();
+        if (existingBooks is not null)
+        {
+            foreach (var book in existingBooks)
+            {
+                if (!string.IsNullOrEmpty(book.FileHash))
+                    existingByHash.TryAdd(book.FileHash, book);
+            }
+        }
         var processed = 0;
 
-        await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (filePath, ct) =>
+        await Parallel.ForEachAsync(allFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, ct) =>
         {
             var current = Interlocked.Increment(ref processed);
             progress?.Report((current, allFiles.Length * 2));
@@ -35,9 +44,11 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
             logger.LogDebug("Indexing [{Index}/{Total}]: {FileName}", current, allFiles.Length, fileName);
 
-            var (book, coverFilePath) = indexer.ExtractAll(filePath);
-            book.FileHash = fileHash;
+            var bookUuid = existing?.BookUuid
+                ?? (existingByHash.TryGetValue(fileHash, out var hashMatch) ? hashMatch.BookUuid : Guid.NewGuid());
 
+            var (book, coverFilePath) = indexer.ExtractAll(filePath, bookUuid);
+            book.BookUuid = bookUuid;
             book.FileHash = fileHash;
             book.SourcePath = filePath;
             book.CoverFilePath = coverFilePath;
@@ -56,7 +67,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     public async Task<Book> GetBook(Book book)
     {
         var indexer = GetIndexerFor(book.SourcePath);
-        var (freshBook, coverFilePath) = indexer.ExtractAll(book.SourcePath);
+        var (freshBook, coverFilePath) = indexer.ExtractAll(book.SourcePath, book.BookUuid);
         freshBook.BookUuid = book.BookUuid;
         freshBook.SourcePath = book.SourcePath;
         freshBook.CoverFilePath = coverFilePath;

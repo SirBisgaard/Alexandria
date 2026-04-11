@@ -54,8 +54,9 @@ public sealed class M4BMetadataHandlerTests
     public async Task Extract_FantasticBeasts_ReturnsCorrectAuthor()
     {
         var book = await ExtractBook(FantasticBeastsFileName);
-        Assert.IsNotEmpty(book.Authors);
-        Assert.AreEqual("J.K. Rowling, Newt Scamander", book.Authors[0].Name);
+        Assert.HasCount(2, book.Authors);
+        Assert.AreEqual("J.K. Rowling", book.Authors[0].Name);
+        Assert.AreEqual("Newt Scamander", book.Authors[1].Name);
     }
 
     [TestMethod]

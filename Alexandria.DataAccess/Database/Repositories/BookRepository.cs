@@ -79,28 +79,6 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         return null;
     }
 
-    public async Task<Book?> FindByCoverImageUuid(Guid uuid)
-    {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
-
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Books WHERE CoverImageUuid = @uuid";
-        cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            var book = MapBook(reader);
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
-            await LoadSubTableData(connection, book);
-            return book;
-        }
-
-        return null;
-    }
-
     public async Task<Book?> FindByHash(string fileHash)
     {
         await using var connection = new SqliteConnection(connectionString);
@@ -152,8 +130,8 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, FileHash, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CoverImageUuid, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
-            VALUES (@bookUuid, @entitlementUuid, @mediaType, @fileHash, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @coverImageUuid, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
+            INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, FileHash, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
+            VALUES (@bookUuid, @entitlementUuid, @mediaType, @fileHash, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
             """;
         AddBookParameters(cmd, book);
         await cmd.ExecuteNonQueryAsync();
@@ -167,7 +145,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CoverImageUuid = @coverImageUuid, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
+            UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, FileHash = @fileHash, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
             WHERE BookUuid = @bookUuid
             """;
         AddBookParameters(cmd, book);
@@ -245,7 +223,6 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
         cmd.Parameters.AddWithValue("@wordCount", (object?)book.WordCount ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@duration", (object?)book.Duration ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@isAbridged", book.IsAbridged.HasValue ? (book.IsAbridged.Value ? 1 : 0) : DBNull.Value);
-        cmd.Parameters.AddWithValue("@coverImageUuid", (object?)book.CoverImageUuid?.ToString() ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@createdAt", book.CreatedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@modifiedAt", book.ModifiedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@isArchived", book.IsArchived ? 1 : 0);
@@ -280,7 +257,6 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
             WordCount = reader.IsDBNull(reader.GetOrdinal("WordCount")) ? null : reader.GetInt32(reader.GetOrdinal("WordCount")),
             Duration = reader.IsDBNull(reader.GetOrdinal("Duration")) ? null : reader.GetInt32(reader.GetOrdinal("Duration")),
             IsAbridged = reader.IsDBNull(reader.GetOrdinal("IsAbridged")) ? null : reader.GetInt32(reader.GetOrdinal("IsAbridged")) == 1,
-            CoverImageUuid = reader.IsDBNull(reader.GetOrdinal("CoverImageUuid")) ? null : Guid.Parse(reader.GetString(reader.GetOrdinal("CoverImageUuid"))),
             CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
             ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt"))),
             IsArchived = reader.GetInt32(reader.GetOrdinal("IsArchived")) == 1,

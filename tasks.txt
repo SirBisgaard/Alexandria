@@ -1,0 +1,15 @@
+Viewing a sereis details should show the index number on the book for easy identification
+
+Enable default language for audibooks. 
+Or able to not select one in the edit view.
+
+Enable edit of contributers of audibooks and books. 
+
+Make ffmpeg use gpu for faster processing.
+Updating audiobooks is painfully slow, maybe cachebusting? 
+
+
+Lydbøg sync af status virker ikke? 
+
+En ny side i indstillinger der viser hvordan data er mappet.
+

@@ -8,7 +8,6 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
 {
     private readonly RepositoryCache<Guid, Book> cache = new();
     private readonly ConcurrentDictionary<Guid, Book> byEntitlementUuid = new();
-    private readonly ConcurrentDictionary<Guid, Book> byCoverImageUuid = new();
     private readonly ConcurrentDictionary<string, Book> byHash = new();
     private readonly ConcurrentDictionary<string, Book> byPath = new(StringComparer.OrdinalIgnoreCase);
     private volatile List<string>? publishersCache;
@@ -42,18 +41,6 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
         var loaded = await inner.FindByEntitlementUuid(entitlementUuid);
         if (loaded is not null)
             byEntitlementUuid[entitlementUuid] = loaded;
-
-        return loaded;
-    }
-
-    public async Task<Book?> FindByCoverImageUuid(Guid uuid)
-    {
-        if (byCoverImageUuid.TryGetValue(uuid, out var cached))
-            return cached;
-
-        var loaded = await inner.FindByCoverImageUuid(uuid);
-        if (loaded is not null)
-            byCoverImageUuid[uuid] = loaded;
 
         return loaded;
     }
@@ -114,15 +101,12 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
     private void RebuildSecondaryIndexes(List<Book> books)
     {
         byEntitlementUuid.Clear();
-        byCoverImageUuid.Clear();
         byHash.Clear();
         byPath.Clear();
 
         foreach (var book in books)
         {
             byEntitlementUuid[book.EntitlementUuid] = book;
-            if (book.CoverImageUuid.HasValue)
-                byCoverImageUuid[book.CoverImageUuid.Value] = book;
             if (!string.IsNullOrEmpty(book.FileHash))
                 byHash[book.FileHash] = book;
             if (!string.IsNullOrEmpty(book.SourcePath))
@@ -134,7 +118,6 @@ public class CachingBookRepository(IBookRepository inner, CacheInvalidator cache
     {
         cache.Invalidate();
         byEntitlementUuid.Clear();
-        byCoverImageUuid.Clear();
         byHash.Clear();
         byPath.Clear();
         publishersCache = null;

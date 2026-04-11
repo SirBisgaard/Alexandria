@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text;
+using Alexandria.DataAccess.Externals.Interfaces;
+using Alexandria.DataAccess.Externals.Models;
 
 namespace Alexandria.DataAccess.Externals;
 

@@ -112,7 +112,6 @@ public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseIn
                 WordCount INTEGER,
                 Duration INTEGER,
                 IsAbridged INTEGER,
-                CoverImageUuid TEXT,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL,
                 IsArchived INTEGER NOT NULL DEFAULT 0,

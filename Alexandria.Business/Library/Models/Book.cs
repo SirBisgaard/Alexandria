@@ -36,7 +36,6 @@ public class Book
     public List<AudiobookChapter> Chapters { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ModifiedAt { get; set; }
-    public Guid? CoverImageUuid { get; set; }
     public bool IsArchived { get; set; }
 
     public ReadingProgress? ReadingProgress { get; set; }

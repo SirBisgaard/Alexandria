@@ -38,7 +38,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     /// <summary>
     /// Extracts metadata and cover from an EPUB in a single ZIP open.
     /// </summary>
-    public (Book Book, string? CoverFilePath) ExtractAll(string epubPath, string coverOutputDirectory)
+    public (Book Book, string? CoverFilePath) ExtractAll(string epubPath, string coverOutputDirectory, Guid coverUuid)
     {
         if (!File.Exists(epubPath))
         {
@@ -58,7 +58,6 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
         var book = ToBook(metadata);
         book.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
-        var coverUuid = Guid.GenerateUuidV5("cover:" + epubPath);
         var coverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, coverUuid);
 
         return (book, coverFilePath);
