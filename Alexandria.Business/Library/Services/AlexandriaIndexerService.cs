@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class AlexandriaIndexerService(IFileContentManager contentManager, IBookRepository bookRepository, IAlexandriaSettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, ILogger<AlexandriaIndexerService> logger) : ILibraryIndexerService
+public class AlexandriaIndexerService(IFileContentManager contentManager, IBookRepository bookRepository, IAlexandriaSettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, ILogger<AlexandriaIndexerService> logger) : ILibraryIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
@@ -70,6 +70,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
             await HandleStaleBooks(existingBooks, claimedUuids);
             await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
+            await databasePersistence.Flush();
             logger.LogInformation("Library indexing complete. Total files: {Count}", discoveredBooks.Count);
             return discoveredBooks.Count;
         }
@@ -105,6 +106,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             ComputePageCount(refreshed, wordsPerPage);
 
             await PersistBook(refreshed, false);
+            await databasePersistence.Flush();
 
             logger.LogInformation("Reindexed: {Title} by {Authors}", refreshed.Title, string.Join(", ", refreshed.Authors.Select(a => a.Name)));
         }

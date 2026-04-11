@@ -2,19 +2,15 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
+public class SeriesRepository(SqliteConnectionProvider connectionProvider) : ISeriesRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<List<Series>> GetAll()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series ORDER BY Name";
@@ -31,8 +27,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task<Series?> FindByUuid(Guid seriesUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series WHERE SeriesUuid = @uuid";
@@ -49,8 +44,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task<Guid> GetOrCreate(string name)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var selectCmd = connection.CreateCommand();
         selectCmd.CommandText = "SELECT SeriesUuid FROM Series WHERE Name = @name COLLATE NOCASE";
@@ -77,8 +71,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var deleteCmd = connection.CreateCommand();
         deleteCmd.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @bookUuid";
@@ -98,9 +91,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task RemoveBookSeries(Guid bookUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
-
+        var connection = connectionProvider.Connection;
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "DELETE FROM BookSeries WHERE BookUuid = @bookUuid";
         cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
@@ -109,8 +100,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task<Series?> GetSeriesByBookUuid(Guid bookUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -139,8 +129,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task RemoveOrphanedSeries()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -152,8 +141,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task<Series?> FindByName(string name)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT SeriesUuid, Name, CreatedAt, ModifiedAt FROM Series WHERE Name = @name COLLATE NOCASE";
@@ -168,8 +156,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task Update(Series series)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Series SET Name = @name, ModifiedAt = @modifiedAt WHERE SeriesUuid = @uuid";
@@ -181,8 +168,7 @@ public class SeriesRepository(AlexandriaSettings settings) : ISeriesRepository
 
     public async Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var updateCmd = connection.CreateCommand();
         updateCmd.CommandText = "UPDATE BookSeries SET SeriesUuid = @targetUuid, ModifiedAt = @modifiedAt WHERE SeriesUuid = @sourceUuid AND BookUuid NOT IN (SELECT BookUuid FROM BookSeries WHERE SeriesUuid = @targetUuid)";

@@ -2,19 +2,15 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class ReadingStateRepository(AlexandriaSettings settings) : IReadingStateRepository
+public class ReadingStateRepository(SqliteConnectionProvider connectionProvider) : IReadingStateRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<KoboStoreReadingState?> GetByBookUuid(Guid bookUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT * FROM KoboReadingStates WHERE BookUuid = @bookUuid";
@@ -31,8 +27,7 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
 
     public async Task<ReadingProgress?> GetReadingProgress(Guid bookUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT StatusInfoStatus, ProgressPercent, SpentReadingMinutes, RemainingTimeMinutes, CreatedAt, ModifiedAt FROM KoboReadingStates WHERE BookUuid = @bookUuid";
@@ -57,8 +52,7 @@ public class ReadingStateRepository(AlexandriaSettings settings) : IReadingState
 
     public async Task Upsert(Guid bookUuid, KoboStoreReadingState state)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """

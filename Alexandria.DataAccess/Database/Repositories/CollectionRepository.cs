@@ -1,19 +1,15 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepository
+public class CollectionRepository(SqliteConnectionProvider connectionProvider) : ICollectionRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<List<BookCollection>> GetAll()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         var collections = await QueryCollections(connection, "SELECT * FROM Collections");
         await HydrateBookUuids(connection, collections);
@@ -22,8 +18,7 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
 
     public async Task<BookCollection?> FindByUuid(Guid uuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE CollectionUuid = @uuid", ("@uuid", uuid.ToString()));
         if (collections.Count == 0)
@@ -37,8 +32,7 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
 
     public async Task Upsert(BookCollection collection)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
         await using var transaction = await connection.BeginTransactionAsync();
 
         await using var upsertCmd = connection.CreateCommand();
@@ -71,8 +65,7 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
 
     public async Task Delete(Guid uuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
         await using var transaction = await connection.BeginTransactionAsync();
 
         await using var deleteBooksCmd = connection.CreateCommand();
@@ -90,8 +83,7 @@ public class CollectionRepository(AlexandriaSettings settings) : ICollectionRepo
 
     public async Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         var collections = await QueryCollections(connection, "SELECT * FROM Collections WHERE ModifiedAt > @since", ("@since", since.ToString("O")));
         await HydrateBookUuids(connection, collections);

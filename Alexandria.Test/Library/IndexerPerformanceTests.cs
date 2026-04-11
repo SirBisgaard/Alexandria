@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
@@ -56,13 +57,14 @@ public sealed class IndexerPerformanceTests
         RequireProductionLibrary();
 
         var settings = CreateSettings();
-        var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
+        var connectionProvider = new SqliteConnectionProvider(settings);
+        var initializer = new DatabaseInitializer(connectionProvider, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
 
         // Raw repositories (no caching layer)
-        var authorRepository = new AuthorRepository(settings);
-        var seriesRepository = new SeriesRepository(settings);
-        var bookRepository = new BookRepository(settings, authorRepository, seriesRepository);
+        var authorRepository = new AuthorRepository(connectionProvider);
+        var seriesRepository = new SeriesRepository(connectionProvider);
+        var bookRepository = new BookRepository(connectionProvider, authorRepository, seriesRepository);
 
         // Instrumented wrappers around raw repos
         var instrumentedBookRepo = new InstrumentedBookRepository(bookRepository, timings);
@@ -82,8 +84,8 @@ public sealed class IndexerPerformanceTests
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubMetadataHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var settingsService = new AlexandriaSettingsService(new SettingsRepository(settings), new KoboTrafficLogRepository(settings));
-        var indexer = new AlexandriaIndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, NullLogger<AlexandriaIndexerService>.Instance);
+        var settingsService = new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider));
+        var indexer = new AlexandriaIndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
 
         // Run full index with timing
         var totalSw = Stopwatch.StartNew();
@@ -217,5 +219,10 @@ public sealed class IndexerPerformanceTests
         if (bytes < 1024L * 1024 * 1024)
             return $"{bytes / 1024.0 / 1024.0:F1} MB";
         return $"{bytes / 1024.0 / 1024.0 / 1024.0:F2} GB";
+    }
+
+    private class NullDatabasePersistence : IDatabasePersistence
+    {
+        public Task Flush() => Task.CompletedTask;
     }
 }

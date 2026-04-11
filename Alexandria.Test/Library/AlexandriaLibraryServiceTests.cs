@@ -58,11 +58,12 @@ public sealed class AlexandriaLibraryServiceTests
     private async Task<(AlexandriaLibraryService service, BookRepository bookRepository)> CreateService()
     {
         var settings = CreateSettings();
-        var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
+        var connectionProvider = new SqliteConnectionProvider(settings);
+        var initializer = new DatabaseInitializer(connectionProvider, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
-        var authorRepository = new AuthorRepository(settings);
-        var seriesRepository = new SeriesRepository(settings);
-        var bookRepository = new BookRepository(settings, authorRepository, seriesRepository);
+        var authorRepository = new AuthorRepository(connectionProvider);
+        var seriesRepository = new SeriesRepository(connectionProvider);
+        var bookRepository = new BookRepository(connectionProvider, authorRepository, seriesRepository);
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubMetadataHandler = new EpubMetadataHandler();
@@ -73,7 +74,7 @@ public sealed class AlexandriaLibraryServiceTests
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings), new KoboTrafficLogRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
+        var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
         var collectionRepository = new FakeCollectionRepository();
         var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, contentManager, indexerService, authorRepository, seriesRepository);
@@ -266,5 +267,10 @@ public sealed class AlexandriaLibraryServiceTests
         public Task Upsert(BookCollection collection) => Task.CompletedTask;
         public Task Delete(Guid uuid) => Task.CompletedTask;
         public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
+    }
+
+    private class NullDatabasePersistence : IDatabasePersistence
+    {
+        public Task Flush() => Task.CompletedTask;
     }
 }

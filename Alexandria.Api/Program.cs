@@ -29,6 +29,11 @@ builder.Services.AddSingleton(alexandriaSettings);
 // Http client for KoboStoreApi
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
+// In-memory SQLite with periodic flush to disk.
+builder.Services.AddSingleton<SqliteConnectionProvider>();
+builder.Services.AddSingleton<IDatabasePersistence>(sp => sp.GetRequiredService<SqliteConnectionProvider>());
+builder.Services.AddHostedService<DatabaseFlushService>();
+
 // Add repositories to the container.
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();

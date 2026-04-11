@@ -1,24 +1,16 @@
 using Alexandria.DataAccess.Database.Interfaces;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Database;
 
-public class DatabaseInitializer(AlexandriaSettings settings, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
+public class DatabaseInitializer(SqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
     public async Task Initialize()
     {
-        logger.LogInformation("Database initialization started. Database: {Database}", settings.Database);
+        logger.LogInformation("Database initialization started.");
 
-        var directory = Path.GetDirectoryName(settings.Database);
-        if (directory is not null)
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        await using var connection = new SqliteConnection($"Data Source={settings.Database}");
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await EnsureSchemaVersionTable(connection);
         var currentVersion = await GetCurrentVersion(connection);

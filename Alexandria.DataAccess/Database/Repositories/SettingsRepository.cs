@@ -5,14 +5,11 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class SettingsRepository(AlexandriaSettings settings) : ISettingsRepository
+public class SettingsRepository(SqliteConnectionProvider connectionProvider) : ISettingsRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<AppSettings> Get()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot FROM Settings WHERE Id = 1";
@@ -33,8 +30,7 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
 
     public async Task UpdateLastIndexedTimestamp(DateTimeOffset timestamp)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Settings SET LastIndexedTimestamp = @timestamp WHERE Id = 1";
@@ -44,8 +40,7 @@ public class SettingsRepository(AlexandriaSettings settings) : ISettingsReposito
 
     public async Task UpdateSettings(AppSettings settings)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage, SyncLibraryAtBoot = @syncLibraryAtBoot WHERE Id = 1";

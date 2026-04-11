@@ -1,3 +1,4 @@
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
@@ -53,17 +54,18 @@ public sealed class AudiobookIndexerTests
 
     private AlexandriaSettings CreateSettings(string? audiobookFolder = null) => new() { PublicUrl = "http://localhost", DataFolder = testDir, EbookFolder = Path.Combine(testDir, "empty-ebooks"), AudiobookFolder = audiobookFolder ?? audiobookDir };
 
-    private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)> CreateRepositories(AlexandriaSettings settings)
+    private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)> CreateRepositories(AlexandriaSettings settings)
     {
-        var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
+        var connectionProvider = new SqliteConnectionProvider(settings);
+        var initializer = new DatabaseInitializer(connectionProvider, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
-        var authorRepository = new AuthorRepository(settings);
-        var seriesRepository = new SeriesRepository(settings);
-        var bookRepository = new BookRepository(settings, authorRepository, seriesRepository);
-        return (bookRepository, authorRepository, seriesRepository);
+        var authorRepository = new AuthorRepository(connectionProvider);
+        var seriesRepository = new SeriesRepository(connectionProvider);
+        var bookRepository = new BookRepository(connectionProvider, authorRepository, seriesRepository);
+        return (bookRepository, authorRepository, seriesRepository, connectionProvider);
     }
 
-    private static (AlexandriaIndexerService indexer, FileContentManager contentManager) CreateIndexerAndContentManager(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)
+    private static (AlexandriaIndexerService indexer, FileContentManager contentManager) CreateIndexerAndContentManager(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
     {
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
@@ -71,7 +73,7 @@ public sealed class AudiobookIndexerTests
         var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
         var audioIndexer = new FileAudiobookIndexer(settings, mediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings), new KoboTrafficLogRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
+        var indexer = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
         return (indexer, contentManager);
     }
 
@@ -80,8 +82,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -102,8 +104,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -118,8 +120,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -138,8 +140,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, contentManager) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, contentManager) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -157,8 +159,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, contentManager) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, contentManager) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -174,8 +176,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
         var firstRunBooks = await bookRepository.GetAll();
@@ -197,8 +199,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
         var books = await bookRepository.GetAll();
@@ -219,8 +221,8 @@ public sealed class AudiobookIndexerTests
     public async Task Index_EmptyAudiobookFolder_NoErrors()
     {
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -233,8 +235,8 @@ public sealed class AudiobookIndexerTests
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var (indexer, _) = CreateIndexerAndContentManager(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -344,5 +346,10 @@ public sealed class AudiobookIndexerTests
         Directory.CreateDirectory(extractDir);
         var coverPath = mediaHandler.ExtractCover(filePath, extractDir, Guid.NewGuid());
         Assert.IsNull(coverPath, "Cover should not exist after removal.");
+    }
+
+    private class NullDatabasePersistence : IDatabasePersistence
+    {
+        public Task Flush() => Task.CompletedTask;
     }
 }

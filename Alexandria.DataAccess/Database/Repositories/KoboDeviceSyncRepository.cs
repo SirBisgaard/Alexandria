@@ -1,17 +1,13 @@
 using Alexandria.Business.KoboStoreProxy.Interfaces;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class KoboDeviceSyncRepository(AlexandriaSettings settings) : IKoboDeviceSyncRepository
+public class KoboDeviceSyncRepository(SqliteConnectionProvider connectionProvider) : IKoboDeviceSyncRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceId)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT BookUuid, BookModifiedAt FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId";
@@ -29,8 +25,7 @@ public class KoboDeviceSyncRepository(AlexandriaSettings settings) : IKoboDevice
 
     public async Task UpsertSyncedFile(string deviceId, Guid bookUuid, DateTimeOffset bookModifiedAt)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         var now = DateTimeOffset.UtcNow.ToString("O");
         await using var cmd = connection.CreateCommand();
@@ -49,8 +44,7 @@ public class KoboDeviceSyncRepository(AlexandriaSettings settings) : IKoboDevice
 
     public async Task RemoveSyncedFile(string deviceId, Guid bookUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "DELETE FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId AND BookUuid = @bookUuid";

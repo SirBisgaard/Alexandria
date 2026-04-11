@@ -1,3 +1,4 @@
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
@@ -47,17 +48,18 @@ public sealed class AlexandriaIndexerServiceTests
 
     private AlexandriaSettings CreateSettings(string? booksFolder = null) => new() { PublicUrl = "http://localhost", DataFolder = testDir, EbookFolder = booksFolder ?? ContentBooksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
 
-    private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)> CreateRepositories(AlexandriaSettings settings)
+    private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)> CreateRepositories(AlexandriaSettings settings)
     {
-        var initializer = new DatabaseInitializer(settings, NullLogger<DatabaseInitializer>.Instance);
+        var connectionProvider = new SqliteConnectionProvider(settings);
+        var initializer = new DatabaseInitializer(connectionProvider, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
-        var authorRepository = new AuthorRepository(settings);
-        var seriesRepository = new SeriesRepository(settings);
-        var bookRepository = new BookRepository(settings, authorRepository, seriesRepository);
-        return (bookRepository, authorRepository, seriesRepository);
+        var authorRepository = new AuthorRepository(connectionProvider);
+        var seriesRepository = new SeriesRepository(connectionProvider);
+        var bookRepository = new BookRepository(connectionProvider, authorRepository, seriesRepository);
+        return (bookRepository, authorRepository, seriesRepository, connectionProvider);
     }
 
-    private AlexandriaIndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository)
+    private AlexandriaIndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
     {
         var epubMetadataHandler = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
@@ -69,15 +71,15 @@ public sealed class AlexandriaIndexerServiceTests
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        return new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(settings), new KoboTrafficLogRepository(settings)), authorRepository, seriesRepository, NullLogger<AlexandriaIndexerService>.Instance);
+        return new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider)), authorRepository, seriesRepository, new NullDatabasePersistence(), NullLogger<AlexandriaIndexerService>.Instance);
     }
 
     [TestMethod]
     public async Task Index_NewBooks_IndexesAll()
     {
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -102,8 +104,8 @@ public sealed class AlexandriaIndexerServiceTests
     public async Task Index_ExistingBooks_SkipsUnchanged()
     {
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
         var firstRunBooks = await bookRepository.GetAll();
@@ -128,8 +130,8 @@ public sealed class AlexandriaIndexerServiceTests
         Directory.CreateDirectory(emptyBooksDir);
 
         var settings = CreateSettings(emptyBooksDir);
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -149,8 +151,8 @@ public sealed class AlexandriaIndexerServiceTests
         File.Copy(sourceEpub, tempEpub);
 
         var settings = CreateSettings(booksDir);
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         // Index the book.
         await indexer.Index();
@@ -180,8 +182,8 @@ public sealed class AlexandriaIndexerServiceTests
         File.Copy(sourceEpub, tempEpub);
 
         var settings = CreateSettings(booksDir);
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
         var books = await bookRepository.GetAll();
@@ -213,8 +215,8 @@ public sealed class AlexandriaIndexerServiceTests
     public async Task Index_NewBooks_PersistsAuthorsAndSeries()
     {
         var settings = CreateSettings();
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
@@ -253,12 +255,17 @@ public sealed class AlexandriaIndexerServiceTests
     public async Task Index_NonExistentFolder_NoErrors()
     {
         var settings = CreateSettings(Path.Combine(testDir, "does-not-exist"));
-        var (bookRepository, authorRepository, seriesRepository) = await CreateRepositories(settings);
-        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository);
+        var (bookRepository, authorRepository, seriesRepository, connectionProvider) = await CreateRepositories(settings);
+        var indexer = CreateIndexer(settings, bookRepository, authorRepository, seriesRepository, connectionProvider);
 
         await indexer.Index();
 
         var books = await bookRepository.GetAll();
         Assert.IsEmpty(books);
+    }
+
+    private class NullDatabasePersistence : IDatabasePersistence
+    {
+        public Task Flush() => Task.CompletedTask;
     }
 }

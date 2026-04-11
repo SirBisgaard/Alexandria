@@ -2,19 +2,15 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
+public class AuthorRepository(SqliteConnectionProvider connectionProvider) : IAuthorRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<List<Author>> GetAll()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors ORDER BY Name";
@@ -31,8 +27,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task<Author?> FindByUuid(Guid authorUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE AuthorUuid = @uuid";
@@ -47,8 +42,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task<Author?> FindByName(string name)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT AuthorUuid, Name, CreatedAt, ModifiedAt FROM Authors WHERE Name = @name COLLATE NOCASE";
@@ -65,8 +59,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task<Guid> GetOrCreate(string name)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var selectCmd = connection.CreateCommand();
         selectCmd.CommandText = "SELECT AuthorUuid FROM Authors WHERE Name = @name COLLATE NOCASE";
@@ -93,8 +86,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task SetBookAuthors(Guid bookUuid, List<string> authorNames)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var deleteCmd = connection.CreateCommand();
         deleteCmd.CommandText = "DELETE FROM BookAuthors WHERE BookUuid = @bookUuid";
@@ -118,8 +110,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -143,8 +134,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task RemoveOrphanedAuthors()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -181,8 +171,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task Update(Author author)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "UPDATE Authors SET Name = @name, ModifiedAt = @modifiedAt WHERE AuthorUuid = @uuid";
@@ -194,8 +183,7 @@ public class AuthorRepository(AlexandriaSettings settings) : IAuthorRepository
 
     public async Task ReassignBooks(Guid sourceUuid, Guid targetUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var updateCmd = connection.CreateCommand();
         updateCmd.CommandText = "UPDATE BookAuthors SET AuthorUuid = @targetUuid, ModifiedAt = @modifiedAt WHERE AuthorUuid = @sourceUuid AND BookUuid NOT IN (SELECT BookUuid FROM BookAuthors WHERE AuthorUuid = @targetUuid)";

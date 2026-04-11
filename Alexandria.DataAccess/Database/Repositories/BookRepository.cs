@@ -1,19 +1,15 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
-using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
-public class BookRepository(AlexandriaSettings settings, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
+public class BookRepository(SqliteConnectionProvider connectionProvider, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
 {
-    private readonly string connectionString = $"Data Source={settings.Database}";
-
     public async Task<List<Book>> GetAll()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT * FROM Books";
@@ -37,8 +33,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task<Book?> FindByUuid(Guid uuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT * FROM Books WHERE BookUuid = @uuid";
@@ -59,8 +54,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task<Book?> FindByEntitlementUuid(Guid entitlementUuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT * FROM Books WHERE EntitlementUuid = @uuid";
@@ -81,8 +75,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task<Book?> FindByPath(string sourcePath)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT * FROM Books WHERE SourcePath = @path COLLATE NOCASE";
@@ -103,8 +96,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task Add(Book book)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -118,8 +110,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task Update(Book book)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -134,8 +125,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task Remove(Guid uuid)
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await DeleteSubTableData(connection, uuid);
 
@@ -167,8 +157,7 @@ public class BookRepository(AlexandriaSettings settings, IAuthorRepository autho
 
     public async Task<List<string>> GetPublishers()
     {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
+        var connection = connectionProvider.Connection;
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT DISTINCT Publisher FROM Books WHERE Publisher IS NOT NULL AND Publisher != '' ORDER BY Publisher";
