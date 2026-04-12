@@ -47,7 +47,7 @@ public static class KoboStoreEntityMapper
 
         var metadata = new KoboStoreBookMetadata
         {
-            CoverImageId = entitlementUuid,
+            CoverImageId = $"{entitlementUuid}--v{book.ModifiedAt.ToUnixTimeSeconds()}",
             CrossRevisionId = entitlementUuid,
             Description = book.Description,
             DownloadUrls =
@@ -170,7 +170,7 @@ public static class KoboStoreEntityMapper
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
         PublisherName = book.Publisher,
-        ImageId = book.EntitlementUuid.ToString(),
+        ImageId = $"{book.EntitlementUuid}--v{book.ModifiedAt.ToUnixTimeSeconds()}",
         SeriesName = book.Series?.Name,
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),
@@ -190,7 +190,7 @@ public static class KoboStoreEntityMapper
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
         PublisherName = book.Publisher,
-        ImageId = book.EntitlementUuid.ToString(),
+        ImageId = $"{book.EntitlementUuid}--v{book.ModifiedAt.ToUnixTimeSeconds()}",
         SeriesName = book.Series?.Name,
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),

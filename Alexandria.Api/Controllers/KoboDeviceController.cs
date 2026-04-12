@@ -80,10 +80,12 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     /// Serves cover images for local books. Unknown books are redirected (307) to Kobo's CDN.
     /// Matches the image_url_template rewritten during initialization.
     /// </summary>
-    [HttpGet("{uuid}/{width}/{height}/{greyscale}/image.jpg")]
-    [HttpGet("{uuid}/{width}/{height}/{quality}/{greyscale}/image.jpg")]
-    public async Task CoverImage(Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
+    [HttpGet("{imageId}/{width}/{height}/{greyscale}/image.jpg")]
+    [HttpGet("{imageId}/{width}/{height}/{quality}/{greyscale}/image.jpg")]
+    public async Task CoverImage(string imageId, int width, int height, string? quality = null, string? greyscale = null)
     {
+        var uuidString = imageId.Contains("--") ? imageId[..imageId.IndexOf("--", StringComparison.Ordinal)] : imageId;
+        var uuid = Guid.Parse(uuidString);
         logger.LogInformation("Kobo: requesting cover for {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await contentDeliveryService.CoverImage(request, uuid, width, height, quality, greyscale);

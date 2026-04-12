@@ -72,7 +72,7 @@ public sealed class AlexandriaLibraryServiceTests
         var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
         var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
-        var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
+        var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
         var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<AlexandriaSettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();

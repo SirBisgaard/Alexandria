@@ -71,7 +71,7 @@ public sealed class AudiobookIndexerTests
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var m4BHandler = new M4BMetadataHandler(new FfmpegHandler());
         var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
-        var audioIndexer = new FileAudiobookIndexer(settings, mediaHandler, fileRepository, coverThumbnailService);
+        var audioIndexer = new FileAudiobookIndexer(settings, mediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
         var indexer = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<AlexandriaSettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
         return (indexer, contentManager);

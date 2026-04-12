@@ -79,7 +79,7 @@ public sealed class IndexerPerformanceTests
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubMetadataHandler(), new KepubifyConverter(), coverThumbnailService), timings);
-        var audiobookIndexer = new TimingFileContentIndexer(new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService), timings);
+        var audiobookIndexer = new TimingFileContentIndexer(new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService), timings);
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubMetadataHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);

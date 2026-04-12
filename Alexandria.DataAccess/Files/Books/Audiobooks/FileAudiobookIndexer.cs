@@ -5,7 +5,7 @@ using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMediaHandler mediaHandler, IFileRepository fileRepository, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
+public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
 {
     public string[] SupportedExtensions => [".m4b"];
 
