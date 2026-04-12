@@ -78,7 +78,9 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
 
     /// <summary>
     /// Serves cover images for local books. Unknown books are redirected (307) to Kobo's CDN.
-    /// Matches the image_url_template rewritten during initialization.
+    /// Matches the image_url_template rewritten during initialization. The imageId parameter
+    /// may contain a "--v{timestamp}" cache-bust suffix (set by KoboStoreEntityMapper) which
+    /// is stripped before parsing the UUID.
     /// </summary>
     [HttpGet("{imageId}/{width}/{height}/{greyscale}/image.jpg")]
     [HttpGet("{imageId}/{width}/{height}/{quality}/{greyscale}/image.jpg")]

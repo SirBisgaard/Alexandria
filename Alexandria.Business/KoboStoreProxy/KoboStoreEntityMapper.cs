@@ -32,6 +32,8 @@ public static class KoboStoreEntityMapper
     /// <summary>
     /// Creates Kobo metadata for a book. Download format is "MANIFEST" for audiobooks (two-step:
     /// manifest then chapters on demand) or "KEPUB" for ebooks (single-file download).
+    /// CoverImageId uses "{uuid}--v{unix seconds}" format so cover URL changes when metadata/cover
+    /// is updated — the Kobo device caches covers by URL and won't re-fetch without a URL change.
     /// Series index uses "G29" format (no trailing zeros: 1.0→"1", 2.5→"2.5") to match Kobo's display.
     /// Timestamps must be ISO 8601 with "Z" suffix — Kobo rejects "+00:00" format.
     /// </summary>
