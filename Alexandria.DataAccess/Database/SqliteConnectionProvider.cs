@@ -6,6 +6,7 @@ namespace Alexandria.DataAccess.Database;
 
 public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
 {
+    private bool isLastWriteFlush;
     private readonly string diskPath;
     private readonly SqliteConnection connection;
     private readonly SemaphoreSlim dbLock = new(1, 1);
@@ -29,6 +30,7 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         await dbLock.WaitAsync();
         try
         {
+            isLastWriteFlush = false;
             return operation(connection);
         }
         finally
@@ -42,6 +44,7 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         await dbLock.WaitAsync();
         try
         {
+            isLastWriteFlush = false;
             operation(connection);
         }
         finally
@@ -55,6 +58,7 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         await dbLock.WaitAsync();
         try
         {
+            isLastWriteFlush = false;
             return operation(connection);
         }
         finally
@@ -63,18 +67,23 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         }
     }
 
-    public async Task Flush()
+    public async Task<bool> Flush()
     {
         await dbLock.WaitAsync();
         try
         {
+            if (isLastWriteFlush)
+                return false;
+
             Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
             await using var diskConn = new SqliteConnection($"Data Source={diskPath}");
             diskConn.Open();
             connection.BackupDatabase(diskConn);
+            return true;
         }
         finally
         {
+            isLastWriteFlush = true;
             dbLock.Release();
         }
     }

@@ -2,5 +2,5 @@ namespace Alexandria.Business.Interfaces;
 
 public interface IDatabasePersistence
 {
-    Task Flush();
+    Task<bool> Flush();
 }

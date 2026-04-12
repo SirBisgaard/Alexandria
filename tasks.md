@@ -1,4 +1,4 @@
-# Tasks for Alexandria
+_# Tasks for Alexandria
 
 
 **FAQ and how Alexandria works**
@@ -26,8 +26,10 @@
 - Authentication
   - Use Framework as much as possible. Fx JWT tokens. Save in cookie in frontend.
   - All Alexandria controllers (Not Kobo device controllers) should use Authentication.
-
-
+  - Devices that is added should get a signed device cookie — HMAC(deviceId + issuedAt, serverSecret), verified on every request_
+  - Our Cookie should not be forwarded to kobo at all. 
+  - Method to allow unknown device to connect.
+  - Block all unknown device ids
 
 - Device Table
   - DeviceUuid 

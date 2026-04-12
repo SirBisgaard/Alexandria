@@ -1,9 +1,10 @@
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Database;
 
-public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<DatabaseFlushService> logger) : IHostedService, IDisposable
+public class DatabaseFlushService(ISqliteConnectionProvider provider, ILogger<DatabaseFlushService> logger) : IHostedService, IDisposable
 {
     private Timer? timer;
 
@@ -24,8 +25,8 @@ public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<Dat
     {
         try
         {
-            await provider.Flush();
-            logger.LogInformation("Flushing database to disk");
+            if (await provider.Flush())
+                logger.LogInformation("Flushing database to disk");
         }
         catch (Exception ex)
         {
