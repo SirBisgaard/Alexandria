@@ -11,6 +11,13 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
+    /// <summary>
+    /// Full library scan: discovers all book files, extracts metadata, assigns UUIDs, creates
+    /// derivatives (kepub, thumbnails), and cleans up stale entries. UUID resolution priority:
+    /// path match (same location) → metadata match at different path (moved file) → new UUID.
+    /// This preserves BookUuid across file moves, keeping reading state and device sync intact.
+    /// Unchanged books (metadata + cover identical) take a fast path that skips reprocessing.
+    /// </summary>
     public async Task<int> Index(IProgress<(int current, int total)>? progress = null)
     {
         await IndexLock.WaitAsync();
@@ -88,6 +95,11 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         }
     }
 
+    /// <summary>
+    /// Re-extracts metadata from a single book's source file after an edit. If desiredMetadata or
+    /// coverUpdate is provided, embeds those changes into the source file first. Preserves the
+    /// original EntitlementUuid and CreatedAt so existing device syncs and reading state remain valid.
+    /// </summary>
     public async Task ReindexBook(Guid uuid, Book? desiredMetadata = null, CoverUpdate? coverUpdate = null)
     {
         await IndexLock.WaitAsync();
@@ -202,11 +214,20 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         return existingBytes.AsSpan().SequenceEqual(freshCoverBytes);
     }
 
+    /// <summary>
+    /// Detects moved files by matching metadata (title, authors, etc.) against existing books whose
+    /// source paths no longer exist on disk. Prevents duplicate entries when files are reorganized.
+    /// </summary>
     private static Guid? FindMovedBookUuid(Book freshMetadata, List<Book> existingBooks, HashSet<string> discoveredPaths)
     {
         return existingBooks.FirstOrDefault(b => !discoveredPaths.Contains(b.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
     }
 
+    /// <summary>
+    /// Restores user-edited fields that can't round-trip through the source file format. EPUB supports
+    /// all Dublin Core fields so nothing extra is needed. M4B only supports standard ID3/MP4 tags, so
+    /// Language, Identifiers, Source, Type, Relation, Coverage, and Format are preserved from the database.
+    /// </summary>
     private static void PreserveUserEdits(Book discovered, Book existing)
     {
         discovered.Subtitle = existing.Subtitle;

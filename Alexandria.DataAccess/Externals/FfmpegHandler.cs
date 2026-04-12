@@ -89,6 +89,13 @@ public class FfmpegHandler : IFfmpegHandler
         return data.Length > 0 ? data : null;
     }
 
+    /// <summary>
+    /// Writes metadata and chapters to an M4B file using FFMETADATA1 format. The ";FFMETADATA1"
+    /// header line is mandatory — without it, ffmpeg treats the file as INI and silently drops chapters.
+    /// TIMEBASE=1/1000 sets chapter times to milliseconds (the default nanoseconds causes integer
+    /// overflow on long audiobooks). -map 0:a preserves all audio streams; -map 0:v? preserves
+    /// optional existing cover art; -c copy avoids re-encoding.
+    /// </summary>
     public async Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters)
     {
         var metadataPath = outputPath + ".ffmetadata";
@@ -104,6 +111,11 @@ public class FfmpegHandler : IFfmpegHandler
         }
     }
 
+    /// <summary>
+    /// Writes metadata with a new cover image. -disposition:v:0 attached_pic marks the video stream
+    /// as album art instead of a video track — without this, media players show a video player UI.
+    /// -map 2:v attaches the cover from the third input (pipe). -map 0:a preserves audio unchanged.
+    /// </summary>
     public async Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData)
     {
         var metadataPath = outputPath + ".ffmetadata";
@@ -123,6 +135,10 @@ public class FfmpegHandler : IFfmpegHandler
         }
     }
 
+    /// <summary>
+    /// Writes metadata while stripping the cover image. Omitting -map 0:v (no video stream mapping)
+    /// effectively removes the embedded cover art.
+    /// </summary>
     public async Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters)
     {
         var metadataPath = outputPath + ".ffmetadata";
@@ -159,6 +175,10 @@ public class FfmpegHandler : IFfmpegHandler
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Escapes special characters for FFMETADATA1 format. The characters =, ;, # and \ have
+    /// syntactic meaning in FFMETADATA — unescaped values cause metadata injection or parsing errors.
+    /// </summary>
     private static string EscapeFfMetadataValue(string value)
     {
         return value

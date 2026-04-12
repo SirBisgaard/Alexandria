@@ -13,6 +13,11 @@ namespace Alexandria.Business.KoboStoreProxy.Services;
 
 public class KoboReadingStateService(IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IReadingStateRepository readingStateRepository, ILogger<KoboReadingStateService> logger) : IKoboReadingStateService
 {
+    /// <summary>
+    /// Handles GET/PUT for reading state on local books. Store books are proxied to Kobo.
+    /// PriorityTimestamp is always set to server "now" regardless of client time — Kobo uses
+    /// this for cross-device conflict resolution.
+    /// </summary>
     public async Task<KoboProxyResponse> ReadingState(KoboProxyRequest request, Guid uuid)
     {
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
@@ -50,6 +55,13 @@ public class KoboReadingStateService(IKoboProxyService koboProxyService, IAlexan
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { defaultState });
     }
 
+    /// <summary>
+    /// Merges an incoming reading state update with stored state. Stale updates (incoming timestamp
+    /// older than stored) are silently dropped — returns 200 OK, not 409, because Kobo doesn't
+    /// retry on conflict and an error would permanently desync reading state.
+    /// TimesStartedReading only increments on transition TO "Reading" status, not every PUT.
+    /// Response shape must exactly match Kobo's format — the device parses specific fields by name.
+    /// </summary>
     private async Task<KoboProxyResponse> HandleReadingStatePut(KoboProxyRequest request, Book book, string entitlementUuidStr, string now)
     {
         var rawBody = Encoding.UTF8.GetString(request.Body);

@@ -6,6 +6,12 @@ using Alexandria.Business.KoboStoreProxy.Models;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
+/// <summary>
+/// Manages sync tokens and batched pagination sessions for Kobo device syncs.
+/// Sessions are in-memory only — a server restart forces devices to do a full re-sync,
+/// which is the correct recovery behavior. Sessions time out after 5 minutes to clean up
+/// abandoned syncs (e.g., device disconnected mid-sync).
+/// </summary>
 public class KoboDeviceSyncTokenService : IKoboDeviceSyncTokenService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -13,6 +19,11 @@ public class KoboDeviceSyncTokenService : IKoboDeviceSyncTokenService
 
     private readonly ConcurrentDictionary<string, SyncSession> sessions = new();
 
+    /// <summary>
+    /// Dual-mode token parsing: Alexandria wraps its sync state as base64 JSON with a version marker (V >= 1).
+    /// If decoding fails or the version is missing, the raw header value is treated as a Kobo store token —
+    /// this happens on the device's first sync or after a factory reset.
+    /// </summary>
     public KoboDeviceSyncToken ParseToken(string? headerValue)
     {
         if (string.IsNullOrEmpty(headerValue))

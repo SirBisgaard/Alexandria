@@ -28,6 +28,10 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         });
     }
 
+    /// <summary>
+    /// Returns an empty recommendations stub to suppress Kobo's "Recommended for you" section,
+    /// which would otherwise show store advertisements.
+    /// </summary>
     public Task<KoboProxyResponse> Recommendations(KoboProxyRequest request)
     {
         return Task.FromResult(KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new KoboStoreProductRecommendations { ItemsPerPage = 50 }));
@@ -84,6 +88,12 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, KoboStoreEntityMapper.ToEbookProduct(book));
     }
 
+    /// <summary>
+    /// Handles batch price lookups (comma-separated UUIDs). Local books return price=0 (free).
+    /// If the batch contains a mix of local and store books, only local prices are returned —
+    /// the device will separately request store prices. If none are local, the entire request
+    /// is proxied to Kobo unchanged.
+    /// </summary>
     public async Task<KoboProxyResponse> ProductPrices(KoboProxyRequest request, string uuids)
     {
         var uuidList = uuids.Split(',', StringSplitOptions.RemoveEmptyEntries);

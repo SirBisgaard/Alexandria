@@ -62,6 +62,12 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         return freshBook;
     }
 
+    /// <summary>
+    /// Updates a book's source file with new metadata and/or cover. Compares metadata before
+    /// embedding to avoid unnecessary file writes — each write triggers file timestamp change,
+    /// kepub reconversion, and device re-sync. Extension-based dispatch routes to the correct
+    /// IFileContentMediaHandler implementation (one per media type, matched by SupportedExtensions).
+    /// </summary>
     public async Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null)
     {
         var handler = GetHandlerFor(book.SourcePath);

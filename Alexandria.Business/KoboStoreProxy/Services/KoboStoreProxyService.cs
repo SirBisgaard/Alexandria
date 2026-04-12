@@ -36,6 +36,12 @@ public class KoboStoreProxyService(HttpClient httpClient, ILogger<KoboStoreProxy
         };
     }
 
+    /// <summary>
+    /// Forwards a request to Kobo's store API. Hop-by-hop headers (RFC 2616 §13.5.1) are filtered
+    /// including "host" since we change the target. Gzip responses are decompressed here because
+    /// downstream services need to read/modify the body (e.g., merging local books into sync results).
+    /// Content-Encoding header is stripped from the response so it isn't double-decompressed.
+    /// </summary>
     private async Task<(HttpResponseMessage response, byte[] body)> ForwardRequest(string targetUrl, KoboProxyRequest request)
     {
         var upstream = new HttpRequestMessage(new HttpMethod(request.Method), targetUrl);

@@ -3,10 +3,20 @@ using Alexandria.Business.Library.Models;
 
 namespace Alexandria.Business.KoboStoreProxy;
 
+/// <summary>
+/// Maps Alexandria Book models to Kobo store protocol entities. The Kobo device expects specific
+/// JSON shapes, timestamp formats, and property names — deviations cause silent sync failures.
+/// </summary>
 public static class KoboStoreEntityMapper
 {
     private static string ToKoboTimestamp(DateTimeOffset dateTime) => dateTime.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
+    /// <summary>
+    /// Creates a Kobo entitlement record. CrossRevisionId, Id, and RevisionId are all set to
+    /// EntitlementUuid — Kobo uses these for deduplication and they must be consistent.
+    /// OriginCategory is "Purchase" for audiobooks (routes to audiobook player) or "Imported"
+    /// for ebooks (routes to standard reader). Using the wrong category breaks playback.
+    /// </summary>
     public static KoboStoreBookEntitlement ToEntitlement(Book book) => new()
     {
         ActivePeriod = new KoboStoreActivePeriod { From = ToKoboTimestamp(book.CreatedAt) },
@@ -19,6 +29,12 @@ public static class KoboStoreEntityMapper
         RevisionId = book.EntitlementUuid.ToString()
     };
 
+    /// <summary>
+    /// Creates Kobo metadata for a book. Download format is "MANIFEST" for audiobooks (two-step:
+    /// manifest then chapters on demand) or "KEPUB" for ebooks (single-file download).
+    /// Series index uses "G29" format (no trailing zeros: 1.0→"1", 2.5→"2.5") to match Kobo's display.
+    /// Timestamps must be ISO 8601 with "Z" suffix — Kobo rejects "+00:00" format.
+    /// </summary>
     public static KoboStoreBookMetadata ToMetadata(Book book, string baseUrl, Guid? relatedGroupId = null)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
@@ -81,6 +97,11 @@ public static class KoboStoreEntityMapper
         return metadata;
     }
 
+    /// <summary>
+    /// Wraps entitlement + metadata into the polymorphic sync structure. Kobo uses separate JSON
+    /// properties for ebook (BookEntitlement/BookMetadata) vs audiobook (AudiobookEntitlement/AudiobookMetadata).
+    /// Using the wrong property type causes the device to silently ignore the item during sync.
+    /// </summary>
     public static KoboStoreEntitlement ToStoreEntitlement(Book book, string baseUrl, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null)
     {
         var entitlement = ToEntitlement(book);
@@ -100,6 +121,12 @@ public static class KoboStoreEntityMapper
         return entitlement with { BookEntitlement = entitlement.BookEntitlement! with { IsRemoved = true } };
     }
 
+    /// <summary>
+    /// Creates an audiobook manifest mimicking Kobo's DRM-free format. Empty Drm object with
+    /// DrmType="" signals no DRM. Navigation provides the table of contents; Spine provides
+    /// the audio stream URLs with per-chapter download endpoints. Both sections are required
+    /// even though they contain largely redundant information.
+    /// </summary>
     public static KoboStoreAudiobookManifest ToManifest(Book book, string baseUrl)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();

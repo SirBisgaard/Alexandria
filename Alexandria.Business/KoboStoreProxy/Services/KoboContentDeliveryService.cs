@@ -11,6 +11,11 @@ namespace Alexandria.Business.KoboStoreProxy.Services;
 
 public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
 {
+    /// <summary>
+    /// Serves KEPUB file for local books, proxies to Kobo for store books.
+    /// Content-Disposition uses ".kepub.epub" extension — Kobo devices reject downloads without it.
+    /// UTF-8 filename encoding (RFC 5987) handles non-ASCII titles.
+    /// </summary>
     public async Task<KoboProxyResponse> Download(KoboProxyRequest request, Guid uuid)
     {
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
@@ -37,6 +42,11 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         };
     }
 
+    /// <summary>
+    /// Serves cover images for local books. Unknown books get a 307 redirect to Kobo's CDN.
+    /// 307 (not 302) preserves the HTTP method — Kobo devices make HEAD requests for cover
+    /// probing and 302 would downgrade them to GET.
+    /// </summary>
     public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
@@ -65,6 +75,11 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         };
     }
 
+    /// <summary>
+    /// Serves the audiobook manifest JSON for local audiobooks. Audiobook downloads are two-step:
+    /// the device fetches this manifest first, then streams individual chapters on demand via
+    /// the AudiobookChapter endpoint. Store audiobooks are proxied to Kobo.
+    /// </summary>
     public async Task<KoboProxyResponse> DownloadManifest(KoboProxyRequest request, Guid uuid)
     {
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);

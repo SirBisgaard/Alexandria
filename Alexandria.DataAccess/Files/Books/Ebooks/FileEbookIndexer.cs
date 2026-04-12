@@ -33,6 +33,12 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
         return path;
     }
 
+    /// <summary>
+    /// Creates a KEPUB derivative from the source EPUB via kepubify. Created once at index time
+    /// and reused — existence check avoids expensive re-conversion on subsequent runs.
+    /// TotalFileSize is reported from the KEPUB derivative (not source EPUB) because the device
+    /// uses this for download progress and storage estimates.
+    /// </summary>
     public async Task CreateDerivativeFiles(Book book, string sourcePath)
     {
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{book.BookUuid}.kepub.epub");
@@ -70,6 +76,10 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
         }
     }
 
+    /// <summary>
+    /// Detects JPEG by SOI magic bytes (0xFF 0xD8). Non-JPEG covers (PNG, GIF) are converted
+    /// to JPEG because Kobo devices display JPEG covers most reliably.
+    /// </summary>
     private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
 
     private string? ConvertCoverToJpeg(string? coverFilePath)

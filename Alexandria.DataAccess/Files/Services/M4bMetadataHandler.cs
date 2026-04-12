@@ -18,6 +18,14 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return await ExtractMetadataViaFfprobe(filePath);
     }
 
+    /// <summary>
+    /// Extracts metadata from an M4B file via ffprobe JSON output. Authors are split from the
+    /// "artist" or "album_artist" tag by commas. Narrators are mapped from the "composer" tag —
+    /// M4B/MP4 has no dedicated narrator field, and "composer" is the de facto convention used
+    /// by audiobook tools (Audiobookshelf, mp3tag, etc.). Series is parsed from the "grouping"
+    /// tag in "Series Name #N" format, using LastIndexOf('#') to handle names containing '#'
+    /// (e.g., "C# Programming"). SERIES/PART custom tags are the fallback.
+    /// </summary>
     private async Task<Book> ExtractMetadataViaFfprobe(string filePath)
     {
         var json = await ffmpegHandler.GetMetadataJson(filePath);
@@ -112,6 +120,12 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return await ffmpegHandler.ExtractChapterAsMp3ToMemory(sourcePath, chapter.StartTime, chapter.EndTime);
     }
 
+    /// <summary>
+    /// Writes metadata into the M4B file via ffmpeg. Only standard ID3/MP4 tags are written —
+    /// non-standard tags (custom TXXX frames, etc.) can cause media players to fail reading
+    /// cover art. Uses atomic write via temp file because ffmpeg can't read and write the same file.
+    /// Existing chapters are re-extracted and re-embedded to prevent loss during the rewrite.
+    /// </summary>
     public async Task EmbedMetadata(string filePath, Book book)
     {
         var existing = await ExtractMetadata(filePath);

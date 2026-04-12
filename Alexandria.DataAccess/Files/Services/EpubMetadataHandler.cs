@@ -55,7 +55,10 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     }
 
     /// <summary>
-    /// Extracts metadata and cover from an EPUB in a single ZIP open.
+    /// Extracts metadata and cover from an EPUB in a single ZIP open. Uses FileShare.ReadWrite
+    /// to allow concurrent readers during indexing — never use ZipFile.OpenRead which takes an
+    /// exclusive lock. EPUB structure: META-INF/container.xml declares the OPF location, which
+    /// varies between EPUBs. The OPF contains Dublin Core metadata and a manifest of all files.
     /// </summary>
     public (Book Book, string? CoverFilePath) ExtractAll(string epubPath, string coverOutputDirectory, Guid coverUuid)
     {
@@ -82,6 +85,13 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         return (book, coverFilePath);
     }
 
+    /// <summary>
+    /// Writes metadata into the EPUB's OPF file. Uses FileShare.Read to allow concurrent readers
+    /// but block other writers. Skips embedding if metadata is unchanged — avoids modifying the
+    /// file's last-write time, which would trigger unnecessary kepub reconversion and device re-sync.
+    /// Series is always written as EPUB3 "belongs-to-collection" (not calibre custom tags) for
+    /// forward compatibility. Legacy alexandria: identifier tags are stripped.
+    /// </summary>
     public void EmbedMetadata(string epubPath, Book book)
     {
         if (!File.Exists(epubPath))
@@ -174,6 +184,13 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         ReplaceOpfEntry(zip, opfPath, opfDoc);
     }
 
+    /// <summary>
+    /// Embeds or replaces the cover image in the EPUB ZIP archive. Cover is stored with
+    /// CompressionLevel.NoCompression — JPEG/PNG are already compressed, and some readers
+    /// struggle with double-compressed images. Also generates a cover.xhtml wrapper page as
+    /// the first spine item — kepubify checks if the first spine item's filename contains
+    /// "cover" or "title", and without this it inserts a blank "Page intentionally left blank" page.
+    /// </summary>
     public void EmbedCover(string epubPath, byte[] coverData, string mediaType)
     {
         if (!File.Exists(epubPath))
@@ -357,6 +374,10 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         };
     }
 
+    /// <summary>
+    /// Extracts ISBN from dc:identifier elements. Tries prefixed formats first (ISBN:, urn:isbn:
+    /// per Dublin Core conventions), then falls back to bare 10 or 13-digit numeric strings.
+    /// </summary>
     private static string? ExtractIsbn(List<string> identifiers)
     {
         foreach (var id in identifiers)
@@ -542,7 +563,9 @@ public class EpubMetadataHandler : IEpubMetadataHandler
     }
 
     /// <summary>
-    /// Reads series using priority: EPUB3 standard > calibre fallback.
+    /// Extracts series information with priority: EPUB3 "belongs-to-collection" metadata first,
+    /// falling back to calibre:series custom meta tags. Many older EPUBs (especially calibre-produced
+    /// ones) only have the calibre format. Write always uses EPUB3 standard for forward compatibility.
     /// </summary>
     private static void ParseSeriesAndCustomProperties(XElement metadataEl, EpubMetadata result)
     {
@@ -636,6 +659,11 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
     private static readonly Dictionary<string, string> MarcRelatorCodes = MarcRelatorRoles.ToDictionary(kvp => kvp.Value, kvp => kvp.Key, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Extracts contributors with MARC relator codes (Library of Congress standard, e.g., "nrt"=Narrator,
+    /// "edt"=Editor). EPUB 3 stores roles via &lt;meta refines&gt; elements; EPUB 2 uses opf:role attributes.
+    /// Only contributors with recognized MARC codes are included — unrecognized roles are typically artifacts.
+    /// </summary>
     private static List<Contributor> ParseContributors(XElement metadataEl)
     {
         var contributors = new List<Contributor>();
@@ -838,6 +866,11 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         return coverItem?.Attribute("href")?.Value;
     }
 
+    /// <summary>
+    /// Counts words across all XHTML content files in the EPUB. Only visible body text is counted —
+    /// script, style, and head elements are excluded. Malformed XHTML entries are silently skipped.
+    /// Result is a rough estimate for progress bars, not an exact count.
+    /// </summary>
     private static int CountWordsInZip(ZipArchive zip, XDocument opfDoc, string opfPath)
     {
         var manifest = opfDoc.Descendants(Opf + "manifest").FirstOrDefault();

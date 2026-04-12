@@ -15,6 +15,12 @@ namespace Alexandria.Business.KoboStoreProxy.Services;
 
 public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
 {
+    /// <summary>
+    /// Rewrites 4 resource URLs (library_sync, image_host, image_url_template, image_url_quality_template)
+    /// in Kobo's initialization response so the device routes sync/image/download requests through Alexandria.
+    /// All other resource URLs are left unchanged. Response includes x-kobo-apitoken header set to "e30="
+    /// (base64 for empty JSON "{}") — Kobo requires a non-empty token but doesn't validate contents.
+    /// </summary>
     public async Task<KoboProxyResponse> Initialization(KoboProxyRequest request)
     {
         logger.LogInformation("Initialization: rewriting resource URLs to route through Alexandria");
@@ -37,6 +43,26 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, json!, headers);
     }
 
+    /// <summary>
+    /// Merges local Alexandria books into Kobo's library sync response using batched pagination.
+    ///
+    /// Sync flow:
+    /// 1. Forward request to Kobo store with the original (unwrapped) sync token.
+    /// 2. If Kobo is still paginating (x-kobo-sync: continue), pass through without merging — mixing
+    ///    partial Kobo results with local books confuses the device's sync state machine.
+    /// 3. Otherwise, check for local books modified since last sync. If none, return store results + collections.
+    /// 4. If local books need syncing, start a batched session (keyed by device ID, 5-minute timeout)
+    ///    and drain it across multiple requests using configurable batch size.
+    ///
+    /// Book sync states:
+    /// - New: device has never seen this book → NewEntitlement (archived books skipped entirely).
+    /// - Archived: send ChangedEntitlement with IsRemoved=true, delete sync record for clean un-archive.
+    /// - Changed: send Remove + New (two items) — Kobo ignores metadata updates on existing entitlements.
+    ///   Reading state sent as separate ChangedReadingState because device ignores it in entitlements.
+    /// - Unchanged: re-send as ChangedEntitlement to confirm device still has it.
+    ///
+    /// Collections are only sent in the final batch — sending earlier creates empty shelves before books arrive.
+    /// </summary>
     public async Task<KoboProxyResponse> LibrarySync(KoboProxyRequest request)
     {
         logger.LogInformation("LibrarySync: fetching store results and merging local books");
@@ -178,6 +204,10 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, syncResults, responseHeaders);
     }
 
+    /// <summary>
+    /// Returns metadata for a local book, or proxies to Kobo for store-purchased books.
+    /// Includes RelatedGroupId when the same work exists as both ebook and audiobook.
+    /// </summary>
     public async Task<KoboProxyResponse> Metadata(KoboProxyRequest request, Guid uuid)
     {
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
@@ -193,6 +223,10 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, alexandriaSettings.KoboApiUrl, relatedGroupId) });
     }
 
+    /// <summary>
+    /// Archives a local book (sets IsArchived=true) instead of deleting it — preserves metadata,
+    /// reading state, and allows un-deletion. Returns 204 No Content. Store books are proxied to Kobo.
+    /// </summary>
     public async Task<KoboProxyResponse> DeleteBook(KoboProxyRequest request, Guid uuid)
     {
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
@@ -223,6 +257,11 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
 
     private static bool HasKoboContinuation(KoboProxyResponse response) => response.Headers.TryGetValue("x-kobo-sync", out var values) && values.Any(v => string.Equals(v, "continue", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Builds collection sync items for the Kobo device. Collections reference books by EntitlementUuid
+    /// in the Kobo protocol, but Alexandria stores them by BookUuid — the entitlementLookup translates
+    /// between these ID spaces. Falls back to the raw BookUuid if no entitlement mapping exists.
+    /// </summary>
     private async Task<List<KoboStoreSyncResultItem>> GetCollectionSyncItems(DateTimeOffset lastSync, List<Book> allBooks)
     {
         var collections = lastSync == DateTimeOffset.MinValue ? await alexandriaLibraryService.GetCollections() : await alexandriaLibraryService.GetCollectionsModifiedSince(lastSync);
@@ -268,6 +307,11 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         }
     }
 
+    /// <summary>
+    /// Identifies works that exist in multiple media types (e.g., same title+authors as both ebook
+    /// and audiobook). The device uses RelatedGroupId to show "switch format" navigation.
+    /// Single-format works don't need a group ID.
+    /// </summary>
     private static HashSet<Guid> BuildWorkGroupLookup(List<Book> books)
     {
         return books

@@ -12,6 +12,15 @@ namespace Alexandria.Business.KoboStoreProxy.Services;
 
 public class KoboAnalyticsService(IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IReadingStateRepository readingStateRepository, ILogger<KoboAnalyticsService> logger) : IKoboAnalyticsService
 {
+    /// <summary>
+    /// Intercepts analytics events to handle local book state changes. Events are split: local book
+    /// events are handled here; store-purchased book events are collected and proxied to Kobo.
+    /// Only MarkAsFinished is handled for local books — all other local event types (BookOpened, etc.)
+    /// are dropped as they're cosmetic with no local-side effect. When all events are local, returns
+    /// 200 OK with empty body (device expects success and doesn't inspect content). Mixed batches
+    /// are rebuilt with only store events before proxying — Content-Length header removed so it
+    /// recalculates for the new body size.
+    /// </summary>
     public async Task<KoboProxyResponse> AnalyticsEvent(KoboProxyRequest request)
     {
         KoboStoreAnalyticsRequest? analyticsRequest;
