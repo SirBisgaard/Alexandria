@@ -8,25 +8,29 @@ namespace Alexandria.DataAccess.Files;
 
 public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnumerable<IFileContentMediaHandler> handlers, ILogger<FileContentManager> logger) : IFileContentManager
 {
-    public string[] GetContentFiles()
+    public int GetBookFilesCount()
     {
-        var files = indexers.SelectMany(i => i.GetContentFiles()).ToArray();
-        logger.LogInformation("Discovered {Count} files from {IndexerCount} indexer(s)", files.Length, indexers.Count());
-        return files;
+        return indexers.SelectMany(i => i.GetContentFiles()).Count();
     }
 
-    public Book ExtractMetadata(string filePath) => GetIndexerFor(filePath).ExtractMetadata(filePath);
-
-    public byte[]? ExtractCoverBytes(string filePath) => GetIndexerFor(filePath).ExtractCoverBytes(filePath);
-
-    public (Book Book, string? CoverFilePath) ExtractBook(string filePath, Guid bookUuid)
+    public async IAsyncEnumerable<(Book Metadata, byte[]? CoverBytes)> GetAllBooks()
     {
-        var indexer = GetIndexerFor(filePath);
-        var (book, coverFilePath) = indexer.ExtractAll(filePath, bookUuid);
-        book.BookUuid = bookUuid;
-        book.SourcePath = filePath;
-        book.CoverFilePath = coverFilePath;
-        return (book, coverFilePath);
+        var allFiles = indexers.SelectMany(i => i.GetContentFiles()).ToArray();
+        logger.LogInformation("Indexing {Count} files from {IndexerCount} indexer(s)", allFiles.Length, indexers.Count());
+
+        foreach (var filePath in allFiles)
+        {
+            var indexer = GetIndexerFor(filePath);
+            var metadata = indexer.ExtractMetadata(filePath);
+            metadata.SourcePath = filePath;
+            var coverBytes = indexer.ExtractCoverBytes(filePath);
+            yield return (metadata, coverBytes);
+        }
+    }
+
+    public string? SaveCover(string filePath, byte[]? coverBytes, Guid bookUuid)
+    {
+        return GetIndexerFor(filePath).SaveCover(coverBytes, bookUuid);
     }
 
     public void CleanupStaleDerivatives(List<Book> currentBooks, List<Book>? previousBooks)
@@ -50,10 +54,10 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     public async Task<Book> GetBook(Book book)
     {
         var indexer = GetIndexerFor(book.SourcePath);
-        var (freshBook, coverFilePath) = indexer.ExtractAll(book.SourcePath, book.BookUuid);
+        var freshBook = indexer.ExtractMetadata(book.SourcePath);
         freshBook.BookUuid = book.BookUuid;
         freshBook.SourcePath = book.SourcePath;
-        freshBook.CoverFilePath = coverFilePath;
+        freshBook.CoverFilePath = indexer.SaveCover(indexer.ExtractCoverBytes(book.SourcePath), book.BookUuid);
         await indexer.CreateDerivativeFiles(freshBook, book.SourcePath);
         return freshBook;
     }

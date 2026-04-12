@@ -58,12 +58,9 @@ public class TimingFileContentIndexer(IFileContentIndexer inner, ConcurrentBag<T
         return result;
     }
 
-    public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
+    public string? SaveCover(byte[]? coverBytes, Guid bookUuid)
     {
-        var sw = Stopwatch.StartNew();
-        var result = inner.ExtractAll(filePath, bookUuid);
-        timings.Add(new TimingRecord("extract-all", filePath, sw.ElapsedMilliseconds, new FileInfo(filePath).Length));
-        return result;
+        return inner.SaveCover(coverBytes, bookUuid);
     }
 
     public Task CreateDerivativeFiles(Book book, string sourcePath) => inner.CreateDerivativeFiles(book, sourcePath);
@@ -185,8 +182,8 @@ public static class PerformanceReport
         var sb = new StringBuilder();
         var records = timings.ToList();
 
-        var epubCount = records.Count(r => r.Phase == "hash" && r.FilePath.EndsWith(".epub", StringComparison.OrdinalIgnoreCase));
-        var m4bCount = records.Count(r => r.Phase == "hash" && r.FilePath.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase));
+        var epubCount = records.Count(r => r.Phase == "extract-metadata" && r.FilePath.EndsWith(".epub", StringComparison.OrdinalIgnoreCase));
+        var m4bCount = records.Count(r => r.Phase == "extract-metadata" && r.FilePath.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase));
 
         sb.AppendLine("=== ALEXANDRIA INDEXER PERFORMANCE REPORT ===");
         sb.AppendLine($"Ebooks:     {ebookFolder}");
@@ -196,29 +193,28 @@ public static class PerformanceReport
         sb.AppendLine();
 
         // Phase totals
-        var hashTotal = records.Where(r => r.Phase == "hash").Sum(r => r.ElapsedMs);
+        var extractMetadataTotal = records.Where(r => r.Phase == "extract-metadata").Sum(r => r.ElapsedMs);
+        var extractCoverBytesTotal = records.Where(r => r.Phase == "extract-cover-bytes").Sum(r => r.ElapsedMs);
         var ffprobeTotal = records.Where(r => r.Phase == "ffprobe").Sum(r => r.ElapsedMs);
         var ffmpegCoverTotal = records.Where(r => r.Phase == "ffmpeg-cover").Sum(r => r.ElapsedMs);
-        var extractAllTotal = records.Where(r => r.Phase == "extract-all").Sum(r => r.ElapsedMs);
         var dbTotal = records.Where(r => r.Phase.StartsWith("db-")).Sum(r => r.ElapsedMs);
 
-        sb.AppendLine("--- PHASE TOTALS (wall-clock sum across parallel threads) ---");
-        AppendPhase(sb, "SHA256 Hashing", hashTotal, totalElapsedMs);
-        AppendPhase(sb, "ExtractAll (meta+cover)", extractAllTotal, totalElapsedMs);
+        sb.AppendLine("--- PHASE TOTALS ---");
+        AppendPhase(sb, "ExtractMetadata", extractMetadataTotal, totalElapsedMs);
+        AppendPhase(sb, "ExtractCoverBytes", extractCoverBytesTotal, totalElapsedMs);
         AppendPhase(sb, "  ffprobe Metadata", ffprobeTotal, totalElapsedMs);
         AppendPhase(sb, "  ffmpeg Cover", ffmpegCoverTotal, totalElapsedMs);
         AppendPhase(sb, "DB Operations", dbTotal, totalElapsedMs);
         sb.AppendLine();
 
-        // Slowest files by hash
-        sb.AppendLine("--- SLOWEST FILES (SHA256 HASH) ---");
-        sb.AppendLine($"{"File",-60} {"Size",10} {"Time",10} {"MB/s",8}");
-        foreach (var r in records.Where(r => r.Phase == "hash").OrderByDescending(r => r.ElapsedMs).Take(15))
+        // Slowest files by ExtractMetadata
+        sb.AppendLine("--- SLOWEST FILES (EXTRACT METADATA) ---");
+        sb.AppendLine($"{"File",-60} {"Size",10} {"Time",10}");
+        foreach (var r in records.Where(r => r.Phase == "extract-metadata").OrderByDescending(r => r.ElapsedMs).Take(15))
         {
             var name = TruncateFileName(r.FilePath, 58);
             var size = r.FileSizeBytes.HasValue ? FormatBytes(r.FileSizeBytes.Value) : "?";
-            var throughput = r.FileSizeBytes.HasValue && r.ElapsedMs > 0 ? $"{r.FileSizeBytes.Value / 1024.0 / 1024.0 / (r.ElapsedMs / 1000.0):F1}" : "?";
-            sb.AppendLine($"{name,-60} {size,10} {FormatMs(r.ElapsedMs),10} {throughput,8}");
+            sb.AppendLine($"{name,-60} {size,10} {FormatMs(r.ElapsedMs),10}");
         }
         sb.AppendLine();
 
@@ -249,17 +245,6 @@ public static class PerformanceReport
             }
             sb.AppendLine();
         }
-
-        // ExtractAll breakdown
-        sb.AppendLine("--- SLOWEST FILES (EXTRACT ALL = metadata + cover) ---");
-        sb.AppendLine($"{"File",-60} {"Size",10} {"Time",10}");
-        foreach (var r in records.Where(r => r.Phase == "extract-all").OrderByDescending(r => r.ElapsedMs).Take(15))
-        {
-            var name = TruncateFileName(r.FilePath, 58);
-            var size = r.FileSizeBytes.HasValue ? FormatBytes(r.FileSizeBytes.Value) : "?";
-            sb.AppendLine($"{name,-60} {size,10} {FormatMs(r.ElapsedMs),10}");
-        }
-        sb.AppendLine();
 
         // DB operation counts
         if (bookRepo is not null && authorRepo is not null && seriesRepo is not null)

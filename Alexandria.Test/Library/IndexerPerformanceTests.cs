@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
@@ -18,7 +17,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Library;
 
 [TestClass]
-// [Ignore("Performance tests — run manually")]
 public sealed class IndexerPerformanceTests
 {
     private const string EbookFolder = "/path/to/books/Ebooks";
@@ -173,35 +171,6 @@ public sealed class IndexerPerformanceTests
             Console.WriteLine($"{name,-60} {FormatBytes(fileInfo.Length),10} {FormatMs(sw.ElapsedMilliseconds),10} {coverSize,8}");
         }
         Console.WriteLine($"{"TOTAL",-60} {"",10} {FormatMs(coverTotal),10}");
-    }
-
-    private FileContentManager CreateContentManager(AlexandriaSettings settings)
-    {
-        var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
-        var fileRepository = new FileRepository(settings, coverThumbnailService);
-        var epubIndexer = new FileEbookIndexer(settings, fileRepository, new EpubMetadataHandler(), new KepubifyConverter(), coverThumbnailService);
-        var m4bHandler = new M4BMetadataHandler(new FfmpegHandler());
-        var audiobookMediaHandler = new FileAudiobookMediaHandler(m4bHandler);
-        var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, fileRepository, coverThumbnailService);
-        var epubMediaHandler = new FileEbbokMediaHandler(new EpubMetadataHandler(), fileRepository);
-        return new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-    }
-
-    private static void AppendDbBreakdown(System.Text.StringBuilder sb, ConcurrentBag<TimingRecord> records, InstrumentedBookRepository bookRepo, InstrumentedAuthorRepository authorRepo, InstrumentedSeriesRepository seriesRepo)
-    {
-        sb.AppendLine($"  Book Add:                {bookRepo.AddCount,5} calls  {SumMs(records, "db-add-book"),10}");
-        sb.AppendLine($"  Book Update:             {bookRepo.UpdateCount,5} calls  {SumMs(records, "db-update-book"),10}");
-        sb.AppendLine($"  Author GetOrCreate:      {authorRepo.GetOrCreateCount,5} calls  {SumMs(records, "db-author-getorcreate"),10}");
-        sb.AppendLine($"  Author SetBookAuthors:   {authorRepo.SetBookAuthorsCount,5} calls  {SumMs(records, "db-author-setbookauthors"),10}");
-        sb.AppendLine($"  Series GetOrCreate:      {seriesRepo.GetOrCreateCount,5} calls  {SumMs(records, "db-series-getorcreate"),10}");
-        sb.AppendLine($"  Series SetBookSeries:    {seriesRepo.SetBookSeriesCount,5} calls  {SumMs(records, "db-series-setbookseries"),10}");
-        sb.AppendLine($"  Series RemoveBookSeries: {seriesRepo.RemoveBookSeriesCount,5} calls  {SumMs(records, "db-series-removebookseries"),10}");
-    }
-
-    private static string SumMs(ConcurrentBag<TimingRecord> records, string phase)
-    {
-        var total = records.Where(r => r.Phase == phase).Sum(r => r.ElapsedMs);
-        return FormatMs(total);
     }
 
     private static string FormatMs(long ms)

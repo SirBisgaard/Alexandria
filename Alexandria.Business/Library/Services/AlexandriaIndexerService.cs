@@ -23,23 +23,22 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             foreach (var book in existingBooks)
                 existingByPath[book.SourcePath] = book;
 
-            var files = contentManager.GetContentFiles();
+            var totalFiles = contentManager.GetBookFilesCount();
             var discoveredBooks = new List<Book>();
             var discoveredPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var claimedUuids = new HashSet<Guid>();
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
+            var fileCount = 0;
 
-            for (var i = 0; i < files.Length; i++)
+            await foreach (var (metadata, coverBytes) in contentManager.GetAllBooks())
             {
-                var filePath = files[i];
-                progress?.Report((i + 1, files.Length * 2));
-                discoveredPaths.Add(filePath);
+                progress?.Report((++fileCount, totalFiles));
+                discoveredPaths.Add(metadata.SourcePath);
 
-                var existingAtPath = existingByPath.GetValueOrDefault(filePath);
-                var metadata = contentManager.ExtractMetadata(filePath);
+                var existingAtPath = existingByPath.GetValueOrDefault(metadata.SourcePath);
 
                 // Unchanged — metadata + cover both match existing.
-                if (existingAtPath is not null && existingAtPath.MetadataEquals(metadata) && CoverUnchanged(existingAtPath, contentManager.ExtractCoverBytes(filePath)))
+                if (existingAtPath is not null && existingAtPath.MetadataEquals(metadata) && CoverUnchanged(existingAtPath, coverBytes))
                 {
                     discoveredBooks.Add(existingAtPath);
                     await contentManager.CreateDerivativeFiles(existingAtPath);
@@ -50,7 +49,9 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 // Resolve UUID: path match → moved book match → new.
                 var bookUuid = existingAtPath?.BookUuid ?? FindMovedBookUuid(metadata, existingBooks, discoveredPaths) ?? Guid.NewGuid();
 
-                var (book, _) = contentManager.ExtractBook(filePath, bookUuid);
+                metadata.BookUuid = bookUuid;
+                metadata.CoverFilePath = contentManager.SaveCover(metadata.SourcePath, coverBytes, bookUuid);
+                var book = metadata;
                 discoveredBooks.Add(book);
                 await contentManager.CreateDerivativeFiles(book);
 
@@ -58,12 +59,12 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 var existingMatch = existingAtPath ?? existingBooks.FirstOrDefault(b => b.BookUuid == bookUuid);
                 if (existingMatch is not null && existingAtPath is not null)
                 {
-                    logger.LogInformation("File modified externally: {Title} ({SourcePath})", existingMatch.Title, filePath);
+                    logger.LogInformation("File modified externally: {Title} ({SourcePath})", existingMatch.Title, metadata.SourcePath);
                     await HandleExistingBook(book, existingMatch, wordsPerPage);
                 }
                 else if (existingMatch is not null)
                 {
-                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, filePath);
+                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, metadata.SourcePath);
                     await HandleMovedBook(book, existingMatch, wordsPerPage);
                 }
                 else
@@ -106,7 +107,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             refreshed.EntitlementUuid = existing.EntitlementUuid;
             refreshed.CreatedAt = existing.CreatedAt;
             refreshed.ModifiedAt = DateTimeOffset.UtcNow;
-            MergeDbOnlyFields(refreshed, desiredMetadata ?? existing);
+            PreserveUserEdits(refreshed, desiredMetadata ?? existing);
             var wordsPerPage = (await settingsService.Get()).WordsPerPage;
             ComputePageCount(refreshed, wordsPerPage);
 
@@ -142,7 +143,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         discovered.EntitlementUuid = existing.EntitlementUuid;
         discovered.CreatedAt = existing.CreatedAt;
         discovered.ModifiedAt = DateTimeOffset.UtcNow;
-        MergeDbOnlyFields(discovered, existing);
+        PreserveUserEdits(discovered, existing);
         ComputePageCount(discovered, wordsPerPage);
 
         await PersistBook(discovered, false);
@@ -157,7 +158,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         discovered.EntitlementUuid = existing.EntitlementUuid;
         discovered.CreatedAt = existing.CreatedAt;
         discovered.ModifiedAt = DateTimeOffset.UtcNow;
-        MergeDbOnlyFields(discovered, existing);
+        PreserveUserEdits(discovered, existing);
         ComputePageCount(discovered, wordsPerPage);
 
         await PersistBook(discovered, false);
@@ -210,20 +211,30 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         return existingBooks.FirstOrDefault(b => !discoveredPaths.Contains(b.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
     }
 
-    private static void MergeDbOnlyFields(Book target, Book source)
+    private static void PreserveUserEdits(Book discovered, Book existing)
     {
-        if (string.IsNullOrEmpty(target.Subtitle))
-            target.Subtitle = source.Subtitle;
-        if (string.IsNullOrEmpty(target.Language))
-            target.Language = source.Language;
-        if (string.IsNullOrEmpty(target.Publisher))
-            target.Publisher = source.Publisher;
-        if (target.IsAbridged is null)
-            target.IsAbridged = source.IsAbridged;
-        if (target.Series is null && source.Series is not null)
-            target.Series = source.Series;
-        if (target.Identifiers.Count == 0 && source.Identifiers.Count > 0)
-            target.Identifiers = source.Identifiers;
+        discovered.Subtitle = existing.Subtitle;
+        discovered.IsAbridged = existing.IsAbridged;
+
+        if (discovered.MediaType == MediaType.Ebook)
+        {
+            // EPUB provides all Dublin Core fields — nothing extra to preserve
+        }
+        else if (discovered.MediaType == MediaType.Audiobook)
+        {
+            if (discovered.Identifiers.Count == 0 && existing.Identifiers.Count > 0)
+                discovered.Identifiers = existing.Identifiers;
+            if (string.IsNullOrEmpty(discovered.Source))
+                discovered.Source = existing.Source;
+            if (string.IsNullOrEmpty(discovered.Type))
+                discovered.Type = existing.Type;
+            if (string.IsNullOrEmpty(discovered.Relation))
+                discovered.Relation = existing.Relation;
+            if (string.IsNullOrEmpty(discovered.Coverage))
+                discovered.Coverage = existing.Coverage;
+            if (string.IsNullOrEmpty(discovered.Format))
+                discovered.Format = existing.Format;
+        }
     }
 
     private static void ComputePageCount(Book book, int wordsPerPage)

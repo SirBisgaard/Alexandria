@@ -22,11 +22,15 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
         return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
     }
 
-    public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
+    public string? SaveCover(byte[]? coverBytes, Guid bookUuid)
     {
-        var (book, coverFilePath) = epubMetadataHandler.ExtractAll(filePath, settings.CoversFolder, bookUuid);
-        coverFilePath = ConvertCoverToJpeg(coverFilePath);
-        return (book, coverFilePath);
+        if (coverBytes is null)
+            return null;
+        Directory.CreateDirectory(settings.CoversFolder);
+        var bytes = IsJpeg(coverBytes) ? coverBytes : coverThumbnailService.ConvertToJpeg(coverBytes);
+        var path = Path.Combine(settings.CoversFolder, $"{bookUuid}.jpg");
+        File.WriteAllBytes(path, bytes);
+        return path;
     }
 
     public async Task CreateDerivativeFiles(Book book, string sourcePath)

@@ -27,13 +27,15 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
         return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
     }
 
-    public (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid)
+    public string? SaveCover(byte[]? coverBytes, Guid bookUuid)
     {
-        var book = mediaHandler.ExtractMetadata(filePath);
+        if (coverBytes is null)
+            return null;
         Directory.CreateDirectory(settings.CoversFolder);
-        var coverFilePath = mediaHandler.ExtractCover(filePath, settings.CoversFolder, bookUuid);
-        coverFilePath = ConvertCoverToJpeg(coverFilePath);
-        return (book, coverFilePath);
+        var bytes = IsJpeg(coverBytes) ? coverBytes : coverThumbnailService.ConvertToJpeg(coverBytes);
+        var path = Path.Combine(settings.CoversFolder, $"{bookUuid}.jpg");
+        File.WriteAllBytes(path, bytes);
+        return path;
     }
 
     public Task CreateDerivativeFiles(Book book, string sourcePath)

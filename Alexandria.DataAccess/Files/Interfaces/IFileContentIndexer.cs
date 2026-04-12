@@ -8,7 +8,7 @@ public interface IFileContentIndexer
     string[] GetContentFiles();
     Book ExtractMetadata(string filePath);
     byte[]? ExtractCoverBytes(string filePath);
-    (Book Book, string? CoverFilePath) ExtractAll(string filePath, Guid bookUuid);
+    string? SaveCover(byte[]? coverBytes, Guid bookUuid);
     Task CreateDerivativeFiles(Book book, string sourcePath);
     void DeleteDerivedFiles(Book book);
     void CleanupOrphanedFiles(HashSet<Guid> validBookUuids, HashSet<string> validCoverPaths);

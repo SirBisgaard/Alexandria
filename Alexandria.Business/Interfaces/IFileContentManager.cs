@@ -5,10 +5,9 @@ namespace Alexandria.Business.Interfaces;
 
 public interface IFileContentManager
 {
-    string[] GetContentFiles();
-    Book ExtractMetadata(string filePath);
-    byte[]? ExtractCoverBytes(string filePath);
-    (Book Book, string? CoverFilePath) ExtractBook(string filePath, Guid bookUuid);
+    int GetBookFilesCount();
+    IAsyncEnumerable<(Book Metadata, byte[]? CoverBytes)> GetAllBooks();
+    string? SaveCover(string filePath, byte[]? coverBytes, Guid bookUuid);
     void CleanupStaleDerivatives(List<Book> currentBooks, List<Book>? previousBooks);
     Task CreateDerivativeFiles(Book book);
     Task<Book> GetBook(Book book);
