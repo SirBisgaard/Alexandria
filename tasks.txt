@@ -1,4 +1,0 @@
-Lydbøg sync af status virker ikke? 
-
-En ny side i indstillinger der viser hvordan data er mappet.
-

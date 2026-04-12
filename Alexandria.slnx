@@ -5,7 +5,7 @@
     <File Path="compose.yaml" />
     <File Path="LICENSE" />
     <File Path="README.md" />
-    <File Path="tasks.txt" />
+    <File Path="tasks.md" />
   </Folder>
   <Project Path="Alexandria.Api/Alexandria.Api.csproj" />
   <Project Path="Alexandria.Business/Alexandria.Business.csproj" />

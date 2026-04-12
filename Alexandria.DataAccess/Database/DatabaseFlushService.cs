@@ -9,7 +9,7 @@ public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<Dat
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        timer = new Timer(FlushCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        timer = new Timer(FlushCallback, null, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
         return Task.CompletedTask;
     }
 
