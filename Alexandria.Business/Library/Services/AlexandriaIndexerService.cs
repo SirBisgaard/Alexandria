@@ -54,7 +54,10 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 }
 
                 // Resolve UUID: path match → moved book match → new.
-                var bookUuid = existingAtPath?.BookUuid ?? FindMovedBookUuid(metadata, existingBooks, discoveredPaths) ?? Guid.NewGuid();
+                var bookUuid =
+                    existingAtPath?.BookUuid ??
+                    FindMovedBookUuid(metadata, existingBooks, discoveredPaths) ??
+                    metadata.GenerateBookUuid();
 
                 metadata.BookUuid = bookUuid;
                 metadata.CoverFilePath = contentManager.SaveCover(metadata.SourcePath, coverBytes, bookUuid);

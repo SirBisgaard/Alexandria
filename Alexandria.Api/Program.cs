@@ -40,6 +40,8 @@ builder.Services.AddHostedService<DatabaseFlushService>();
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepository>();
+builder.Services.AddTransient<IKoboDeviceRepository, KoboDeviceRepository>();
+builder.Services.AddTransient<IUserRepository, UserRepository>();
 builder.Services.AddTransient<ISettingsRepository, SettingsRepository>();
 builder.Services.AddTransient<IFileRepository, FileRepository>();
 

@@ -1,4 +1,6 @@
 using Alexandria.DataAccess.Database.Interfaces;
+using Alexandria.DataAccess.Database.Repositories;
+using Alexandria.Business.Library.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
@@ -256,6 +258,21 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         syncedFilesCmd.ExecuteNonQuery();
 
+        using var devicesCmd = connection.CreateCommand();
+        devicesCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS KoboDevices (
+                DeviceUuid TEXT PRIMARY KEY,
+                DeviceId TEXT NOT NULL UNIQUE,
+                ModelName TEXT,
+                ModelCode TEXT,
+                Firmware TEXT,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
+                LastRequestAt TEXT NOT NULL
+            )
+            """;
+        devicesCmd.ExecuteNonQuery();
+
         using var logsCmd = connection.CreateCommand();
         logsCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS KoboTrafficLogs (
@@ -293,5 +310,39 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 1, 250, 0)
             """;
         settingsSeedCmd.ExecuteNonQuery();
+
+        using var usersCmd = connection.CreateCommand();
+        usersCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS Users (
+                UserUuid TEXT PRIMARY KEY,
+                Username TEXT NOT NULL UNIQUE,
+                Password TEXT NOT NULL,
+                DisplayName TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
+                LastLoginAt TEXT NOT NULL
+            )
+            """;
+        usersCmd.ExecuteNonQuery();
+
+        var uuidSeed = Guid.Parse("00000000-0000-0000-0000-000000000005");
+        GuidExtensions.SetNamespace(uuidSeed);
+        var defaultUserUuid = Guid.GenerateUuidV5("Alexander");
+        var defaultPasswordHash = UserRepository.HashPassword("TheGreat", uuidSeed);
+        var now = DateTimeOffset.UtcNow.ToString("O");
+
+        using var userSeedCmd = connection.CreateCommand();
+        userSeedCmd.CommandText = """
+            INSERT INTO Users (UserUuid, Username, Password, DisplayName, CreatedAt, ModifiedAt, LastLoginAt)
+            VALUES (@userUuid, @username, @password, @displayName, @createdAt, @modifiedAt, @lastLoginAt)
+            """;
+        userSeedCmd.Parameters.AddWithValue("@userUuid", defaultUserUuid.ToString());
+        userSeedCmd.Parameters.AddWithValue("@username", "Alexander");
+        userSeedCmd.Parameters.AddWithValue("@password", defaultPasswordHash);
+        userSeedCmd.Parameters.AddWithValue("@displayName", "Alexander");
+        userSeedCmd.Parameters.AddWithValue("@createdAt", now);
+        userSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
+        userSeedCmd.Parameters.AddWithValue("@lastLoginAt", now);
+        userSeedCmd.ExecuteNonQuery();
     }
 }

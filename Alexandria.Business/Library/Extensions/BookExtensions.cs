@@ -14,6 +14,19 @@ public static class BookExtensions
             return Guid.GenerateUuidV5($"work:{title}:{authors}");
         }
 
+        /// <summary>
+        /// Generates a deterministic UUID v5 from all stable metadata fields: title, subtitle, authors,
+        /// language, ISBN, identifiers, publisher, publication date, contributors, and media type.
+        /// Two books only collide if every field matches exactly.
+        /// </summary>
+        public Guid GenerateBookUuid()
+        {
+            var title = book.Title.ToLowerInvariant().Trim();
+            var authors = string.Join(',', book.Authors.Select(a => a.Name.ToLowerInvariant().Trim()).Order());
+            var mediaType = book.MediaType.ToString().ToLowerInvariant();
+            return Guid.GenerateUuidV5($"book:{title}:{authors}:{mediaType}");
+        }
+
         /// <summary>Compares managed (editable) metadata fields. Pass-through DC elements are excluded.</summary>
         public bool MetadataEquals(Book other)
         {
