@@ -83,7 +83,7 @@ public sealed class IndexerPerformanceTests
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubMetadataHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var settingsService = new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider));
+        var settingsService = new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<AlexandriaSettingsService>.Instance);
         var indexer = new AlexandriaIndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
 
         // Run full index with timing

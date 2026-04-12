@@ -49,11 +49,11 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IAlexandri
             switch (analyticsEvent.EventType)
             {
                 case "MarkAsFinished":
+                    logger.LogInformation("AnalyticsEvent: handling MarkAsFinished for '{Title}' ({Uuid})", book.Title, book.EntitlementUuid);
                     await HandleMarkAsFinished(book.BookUuid, book.EntitlementUuid.ToString(), analyticsEvent.Timestamp);
-                    logger.LogInformation("AnalyticsEvent: handled MarkAsFinished for '{Title}' ({Uuid})", book.Title, book.EntitlementUuid);
                     break;
                 default:
-                    logger.LogDebug("AnalyticsEvent: dropping {EventType} for local book '{Title}'", analyticsEvent.EventType, book.Title);
+                    logger.LogInformation("AnalyticsEvent: dropping {EventType} for local book '{Title}'", analyticsEvent.EventType, book.Title);
                     break;
             }
         }

@@ -15,6 +15,7 @@ using Alexandria.DataAccess.Files.Books.Audiobooks;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
+using Alexandria.Api.Middleware;
 using Alexandria.DataAccess.Files.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,6 +79,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<KoboStoreProxyLoggingMiddleware>();
 
 // Initialize database schema before indexing.

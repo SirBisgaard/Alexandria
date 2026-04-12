@@ -18,7 +18,7 @@ file class ChannelProgress<T>(Func<T, string> formatter, ChannelWriter<string> w
 
 [ApiController]
 [Route("/api/alexandria")]
-public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService) : ControllerBase
+public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, ILogger<AlexandriaController> logger) : ControllerBase
 {
     [HttpGet("books")]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
@@ -42,6 +42,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("books/{uuid:guid}/status")]
     public async Task<IActionResult> UpdateReadingStatus(Guid uuid, [FromBody] UpdateStatusRequest request)
     {
+        logger.LogInformation("Updating reading status for {Uuid} to {Status}", uuid, request.Status);
         await alexandriaLibraryService.UpdateReadingStatus(uuid, request.Status);
         return Ok();
     }
@@ -49,6 +50,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("books/{uuid:guid}/archive")]
     public async Task<IActionResult> UpdateArchiveStatus(Guid uuid, [FromBody] UpdateArchiveRequest request)
     {
+        logger.LogInformation("Setting archive status for {Uuid} to {IsArchived}", uuid, request.IsArchived);
         var book = await alexandriaLibraryService.GetBookByUuid(uuid);
         if (book is null)
         {
@@ -119,6 +121,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("authors/{uuid:guid}")]
     public async Task<IActionResult> UpdateAuthor(Guid uuid, [FromBody] UpdateAuthorRequest request)
     {
+        logger.LogInformation("Updating author {Uuid}", uuid);
         var existing = await alexandriaLibraryService.GetAuthorByUuid(uuid);
         if (existing is null)
             return NotFound();
@@ -142,6 +145,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("series/{uuid:guid}")]
     public async Task<IActionResult> UpdateSeries(Guid uuid, [FromBody] UpdateSeriesRequest request)
     {
+        logger.LogInformation("Updating series {Uuid}", uuid);
         var existing = await alexandriaLibraryService.GetSeriesByUuid(uuid);
         if (existing is null)
             return NotFound();
@@ -187,6 +191,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("books/{uuid:guid}/metadata")]
     public async Task<IActionResult> UpdateBookMetadata(Guid uuid, [FromBody] UpdateBookMetadataRequest request)
     {
+        logger.LogInformation("Updating metadata for book {Uuid}", uuid);
         var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
         if (existing is null)
             return NotFound();
@@ -207,6 +212,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("books/{uuid:guid}/cover")]
     public async Task<IActionResult> UpdateBookCover(Guid uuid, IFormFile? cover)
     {
+        logger.LogInformation("Updating cover for book {Uuid}", uuid);
         if (cover is null || cover.Length == 0)
             return BadRequest("No cover file provided.");
 
@@ -233,6 +239,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpDelete("books/{uuid:guid}/cover")]
     public async Task<IActionResult> RemoveBookCover(Guid uuid)
     {
+        logger.LogInformation("Removing cover for book {Uuid}", uuid);
         var result = await alexandriaLibraryService.RemoveBookCover(uuid);
         if (result is null)
         {
@@ -251,6 +258,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPut("settings")]
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
     {
+        logger.LogInformation("Updating application settings");
         await settingsService.UpdateSettings(ApiMapper.ToAppSettings(request));
         return NoContent();
     }
@@ -267,6 +275,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPost("sync")]
     public async Task Sync()
     {
+        logger.LogInformation("Starting library sync");
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
         Response.Headers.Connection = "keep-alive";

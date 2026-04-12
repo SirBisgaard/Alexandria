@@ -17,7 +17,7 @@ public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<Dat
     {
         timer?.Change(Timeout.Infinite, 0);
         await provider.Flush();
-        logger.LogInformation("Database flushed to disk on shutdown.");
+        logger.LogInformation("Flushing database to disk on shutdown");
     }
 
     private async void FlushCallback(object? state)
@@ -25,11 +25,11 @@ public class DatabaseFlushService(SqliteConnectionProvider provider, ILogger<Dat
         try
         {
             await provider.Flush();
-            logger.LogInformation("Periodic database flush completed.");
+            logger.LogInformation("Flushing database to disk");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Periodic database flush failed.");
+            logger.LogError(ex, "Database flush failed");
         }
     }
 

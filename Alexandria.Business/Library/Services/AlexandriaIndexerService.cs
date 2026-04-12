@@ -16,7 +16,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         await IndexLock.WaitAsync();
         try
         {
-            logger.LogInformation("Library indexing started.");
+            logger.LogInformation("Indexing library");
 
             var existingBooks = await bookRepository.GetAll();
             var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
@@ -59,12 +59,12 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
                 var existingMatch = existingAtPath ?? existingBooks.FirstOrDefault(b => b.BookUuid == bookUuid);
                 if (existingMatch is not null && existingAtPath is not null)
                 {
-                    logger.LogInformation("File modified externally: {Title} ({SourcePath})", existingMatch.Title, metadata.SourcePath);
+                    logger.LogInformation("Reindexing externally modified file: {Title} ({SourcePath})", existingMatch.Title, metadata.SourcePath);
                     await HandleExistingBook(book, existingMatch, wordsPerPage);
                 }
                 else if (existingMatch is not null)
                 {
-                    logger.LogInformation("File moved: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, metadata.SourcePath);
+                    logger.LogInformation("Reindexing moved file: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, metadata.SourcePath);
                     await HandleMovedBook(book, existingMatch, wordsPerPage);
                 }
                 else
@@ -79,7 +79,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             await HandleStaleBooks(existingBooks, claimedUuids);
             await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
             await databasePersistence.Flush();
-            logger.LogInformation("Library indexing complete. Total files: {Count}", discoveredBooks.Count);
+            logger.LogInformation("Library indexing complete, {Count} files total", discoveredBooks.Count);
             return discoveredBooks.Count;
         }
         finally
@@ -114,7 +114,7 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
             await PersistBook(refreshed, false);
             await databasePersistence.Flush();
 
-            logger.LogInformation("Reindexed: {mediaType}:{Title} from {filePath}", refreshed.MediaType, refreshed.Title, refreshed.SourcePath);
+            logger.LogInformation("Reindexing book: {mediaType}:{Title} from {filePath}", refreshed.MediaType, refreshed.Title, refreshed.SourcePath);
         }
         finally
         {
@@ -133,12 +133,12 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
 
         await PersistBook(discovered, true);
 
-        logger.LogInformation("Indexed: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
+        logger.LogInformation("Indexing new book: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
     }
 
     private async Task HandleExistingBook(Book discovered, Book existing, int wordsPerPage)
     {
-        logger.LogInformation("Updating changed book: {Title}", discovered.Title);
+        logger.LogInformation("Updating changed book: {Title} ({SourcePath})", discovered.Title, discovered.SourcePath);
 
         discovered.EntitlementUuid = existing.EntitlementUuid;
         discovered.CreatedAt = existing.CreatedAt;
@@ -147,13 +147,11 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         ComputePageCount(discovered, wordsPerPage);
 
         await PersistBook(discovered, false);
-
-        logger.LogInformation("Updated: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
     }
 
     private async Task HandleMovedBook(Book discovered, Book existing, int wordsPerPage)
     {
-        logger.LogInformation("Updating moved book: {Title}", discovered.Title);
+        logger.LogInformation("Updating moved book: {Title} ({SourcePath})", discovered.Title, discovered.SourcePath);
 
         discovered.EntitlementUuid = existing.EntitlementUuid;
         discovered.CreatedAt = existing.CreatedAt;
@@ -162,8 +160,6 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         ComputePageCount(discovered, wordsPerPage);
 
         await PersistBook(discovered, false);
-
-        logger.LogInformation("Moved: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
     }
 
     private async Task PersistBook(Book book, bool isNewBook)

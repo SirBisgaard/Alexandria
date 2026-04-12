@@ -15,7 +15,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         if (series is null)
             return await koboProxyService.Proxy(request);
 
-        logger.LogDebug("Series: returning {Count} books for local series '{Name}' ({Uuid})", series.Books.Count, series.Name, uuid);
+        logger.LogInformation("Series: serving {Count} books for local series '{Name}' ({Uuid})", series.Books.Count, series.Name, uuid);
 
         var items = series.Books.Select(KoboStoreEntityMapper.ToProductRecommendationItem).ToList();
 
@@ -30,7 +30,6 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
 
     public Task<KoboProxyResponse> Recommendations(KoboProxyRequest request)
     {
-        logger.LogDebug("Recommendations: returning empty stub");
         return Task.FromResult(KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new KoboStoreProductRecommendations { ItemsPerPage = 50 }));
     }
 
@@ -40,7 +39,6 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         if (book is null)
             return await koboProxyService.Proxy(request);
 
-        logger.LogDebug("NextRead: returning empty stub for local book '{Title}' ({Uuid})", book.Title, uuid);
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new object());
     }
 
@@ -51,7 +49,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
             return await koboProxyService.Proxy(request);
 
         var recommendations = await alexandriaLibraryService.GetRecommendations(book.BookUuid);
-        logger.LogDebug("ProductRecommendations: returning {Count} recommendations for '{Title}' ({Uuid})", recommendations.Count, book.Title, uuid);
+        logger.LogInformation("ProductRecommendations: serving {Count} recommendations for '{Title}' ({Uuid})", recommendations.Count, book.Title, uuid);
 
         var items = recommendations.Select(KoboStoreEntityMapper.ToProductRecommendationItem).ToList();
 
@@ -72,7 +70,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         if (book is null)
             return await koboProxyService.Proxy(request);
 
-        logger.LogDebug("AudiobookProduct: returning local product for '{Title}' ({Uuid})", book.Title, uuid);
+        logger.LogInformation("AudiobookProduct: serving local product for '{Title}' ({Uuid})", book.Title, uuid);
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, KoboStoreEntityMapper.ToAudiobookProduct(book));
     }
 
@@ -82,7 +80,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         if (book is null)
             return await koboProxyService.Proxy(request);
 
-        logger.LogDebug("EbookProduct: returning local product for '{Title}' ({Uuid})", book.Title, uuid);
+        logger.LogInformation("EbookProduct: serving local product for '{Title}' ({Uuid})", book.Title, uuid);
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, KoboStoreEntityMapper.ToEbookProduct(book));
     }
 
@@ -112,7 +110,6 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
         if (!hasLocal)
             return await koboProxyService.Proxy(request);
 
-        logger.LogDebug("ProductPrices: returning {Count} local price items", priceItems.Count);
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new KoboStoreProductPrices { Items = priceItems });
     }
 }

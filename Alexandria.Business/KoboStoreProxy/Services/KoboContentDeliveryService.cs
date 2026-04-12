@@ -16,7 +16,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
-            logger.LogDebug("Download: book {Uuid} not local, proxying to Kobo", uuid);
+            logger.LogInformation("Download: book {Uuid} not local, proxying to Kobo", uuid);
             return await koboProxyService.Proxy(request);
         }
 
@@ -42,7 +42,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
-            logger.LogDebug("CoverImage: book {Uuid} not local, redirecting to Kobo CDN", uuid);
+            logger.LogInformation("CoverImage: book {Uuid} not local, redirecting to Kobo CDN", uuid);
             return new KoboProxyResponse
             {
                 StatusCode = StatusCodes.Status307TemporaryRedirect,
@@ -70,7 +70,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
-            logger.LogDebug("DownloadManifest: book {Uuid} not local, proxying to Kobo", uuid);
+            logger.LogInformation("DownloadManifest: book {Uuid} not local, proxying to Kobo", uuid);
             return await koboProxyService.Proxy(request);
         }
 
@@ -87,7 +87,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
-            logger.LogDebug("AudiobookChapter: book {Uuid} not local, proxying to Kobo", uuid);
+            logger.LogInformation("AudiobookChapter: book {Uuid} not local, proxying to Kobo", uuid);
             return await koboProxyService.Proxy(request);
         }
 

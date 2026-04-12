@@ -32,7 +32,7 @@ public class CoverThumbnailService(AlexandriaSettings settings, ILogger<CoverThu
         image.Format = MagickFormat.Jpeg;
         await image.WriteAsync(thumbnailPath);
 
-        logger.LogInformation("Generated thumbnail {Size} for {Uuid}", subdirectory, uuid);
+        logger.LogInformation("Generating thumbnail {Size} for {Uuid}", subdirectory, uuid);
 
         return await File.ReadAllBytesAsync(thumbnailPath);
     }

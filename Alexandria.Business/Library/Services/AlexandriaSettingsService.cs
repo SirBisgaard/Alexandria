@@ -2,10 +2,11 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class AlexandriaSettingsService(ISettingsRepository settingsRepository, IKoboTrafficLogRepository koboTrafficLogRepository) : IAlexandriaSettingsService
+public class AlexandriaSettingsService(ISettingsRepository settingsRepository, IKoboTrafficLogRepository koboTrafficLogRepository, ILogger<AlexandriaSettingsService> logger) : IAlexandriaSettingsService
 {
     private static AppSettings? cached;
 
@@ -26,11 +27,15 @@ public class AlexandriaSettingsService(ISettingsRepository settingsRepository, I
 
     public async Task UpdateSettings(AppSettings settings)
     {
+        logger.LogInformation("Updating application settings");
         var current = await Get();
         await settingsRepository.UpdateSettings(settings);
         cached = null;
 
         if (current.ProxyLoggingEnabled && !settings.ProxyLoggingEnabled)
+        {
+            logger.LogInformation("Proxy logging disabled, clearing traffic logs");
             await koboTrafficLogRepository.Clear();
+        }
     }
 }

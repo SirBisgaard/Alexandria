@@ -10,7 +10,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
     {
         await connectionProvider.Write(connection =>
         {
-            logger.LogInformation("Database initialization started.");
+            logger.LogInformation("Initializing database");
 
             EnsureSchemaVersionTable(connection);
             var currentVersion = GetCurrentVersion(connection);
@@ -28,10 +28,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 migration.Apply(connection);
                 SetVersion(connection, migration.Version);
                 transaction.Commit();
-                logger.LogInformation("Migration V{Version} applied successfully", migration.Version);
             }
-
-            logger.LogInformation("Database initialization complete");
         });
     }
 

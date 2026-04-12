@@ -10,7 +10,7 @@ namespace Alexandria.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("/api/kobo")]
-public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService) : ControllerBase
+public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService, ILogger<KoboDeviceController> logger) : ControllerBase
 {
     /// <summary>
     /// Intercepts /v1/initialization to rewrite Kobo's resource URLs so the device
@@ -19,6 +19,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("v1/initialization")]
     public async Task Initialize()
     {
+        logger.LogInformation("Kobo: initializing device");
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await librarySyncService.Initialization(request);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -31,6 +32,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("v1/library/sync")]
     public async Task LibrarySync()
     {
+        logger.LogInformation("Kobo: syncing library");
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await librarySyncService.LibrarySync(request);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -42,6 +44,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("download/{uuid}/kepub")]
     public async Task Download(Guid uuid)
     {
+        logger.LogInformation("Kobo: downloading book {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await contentDeliveryService.Download(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -54,6 +57,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("download/{uuid}/manifest")]
     public async Task DownloadManifest(Guid uuid)
     {
+        logger.LogInformation("Kobo: requesting audiobook manifest {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await contentDeliveryService.DownloadManifest(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -66,6 +70,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("audiobook/{uuid}/chapter/{partId}")]
     public async Task AudiobookChapter(Guid uuid, int partId)
     {
+        logger.LogInformation("Kobo: requesting chapter {PartId} of {Uuid}", partId, uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await contentDeliveryService.AudiobookChapter(request, uuid, partId);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -79,6 +84,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("{uuid}/{width}/{height}/{quality}/{greyscale}/image.jpg")]
     public async Task CoverImage(Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
+        logger.LogInformation("Kobo: requesting cover for {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await contentDeliveryService.CoverImage(request, uuid, width, height, quality, greyscale);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -92,6 +98,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpPut("v1/library/{uuid}/state")]
     public async Task ReadingState(Guid uuid)
     {
+        logger.LogInformation("Kobo: {Method} reading state for {Uuid}", HttpContext.Request.Method, uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await readingStateService.ReadingState(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -104,6 +111,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("v1/library/{uuid}/metadata")]
     public async Task Metadata(Guid uuid)
     {
+        logger.LogInformation("Kobo: requesting metadata for {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await librarySyncService.Metadata(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -116,6 +124,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpDelete("v1/library/{uuid}")]
     public async Task DeleteBook(Guid uuid)
     {
+        logger.LogInformation("Kobo: deleting book {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await librarySyncService.DeleteBook(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -127,6 +136,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("v1/products/books/series/{uuid}")]
     public async Task Series(Guid uuid)
     {
+        logger.LogInformation("Kobo: requesting series {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await productService.Series(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -174,6 +184,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("v1/products/audiobooks/{uuid}")]
     public async Task AudiobookProduct(Guid uuid)
     {
+        logger.LogInformation("Kobo: requesting audiobook product {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await productService.AudiobookProduct(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -198,6 +209,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpGet("v1/products/books/{uuid}")]
     public async Task EbookProduct(Guid uuid)
     {
+        logger.LogInformation("Kobo: requesting ebook product {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await productService.EbookProduct(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
@@ -210,6 +222,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     [HttpPost("v1/analytics/event")]
     public async Task AnalyticsEvent()
     {
+        logger.LogInformation("Kobo: processing analytics event");
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await analyticsService.AnalyticsEvent(request);
         await response.WriteToHttpResponse(HttpContext.Response);

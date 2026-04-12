@@ -45,8 +45,6 @@ public class KoboStoreProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficL
         var requestBody = await reader.ReadToEndAsync();
         context.Request.Body.Position = 0;
 
-        logger.LogDebug("Request: {Method}:{Url}", method, url);
-
         // ── Response ──
         // Swap the response body with a buffer we can read back
         var originalBodyStream = context.Response.Body;
@@ -79,8 +77,8 @@ public class KoboStoreProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficL
         var responseHeaders = string.Join($",{Environment.NewLine}",
             context.Response.Headers.Select(h => $"{h.Key}={h.Value}"));
 
-        logger.LogDebug("Response: {Method}:{Url} {StatusCode}", method, url, context.Response.StatusCode);
-        
+        logger.LogInformation("Proxy: {Method} {Url} -> {StatusCode} ({DurationMs}ms)", method, url, context.Response.StatusCode, stopwatch.ElapsedMilliseconds);
+
         var contentType = context.Response.ContentType ?? "";
         var isTextContent = contentType.Contains("json") || contentType.Contains("xml") || contentType.Contains("text");
 

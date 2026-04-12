@@ -18,10 +18,10 @@ public class KoboReadingStateService(IKoboProxyService koboProxyService, IAlexan
         var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
-            logger.LogDebug("ReadingState: book {Uuid} not local, proxying to Kobo", uuid);
+            logger.LogInformation("ReadingState: book {Uuid} not local, proxying to Kobo", uuid);
             return await koboProxyService.Proxy(request);
         }
-        logger.LogInformation("ReadingState: {Method} for '{Title}' ({Uuid})", request.Method, book.Title, uuid);
+        logger.LogInformation("ReadingState: handling {Method} for '{Title}' ({Uuid})", request.Method, book.Title, uuid);
 
         var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var entitlementUuidStr = book.EntitlementUuid.ToString();
