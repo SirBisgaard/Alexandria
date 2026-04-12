@@ -38,6 +38,13 @@ function openBookModal(uuid) {
             return '<a href="author-detail.html?uuid=' + a.authorUuid + '">' + escapeHtml(a.name) + '</a>';
         }).join(", ");
         $("#bm-author").html(authorLinks);
+        var contributorHtml = (book.contributors || []).map(function(c) {
+            return escapeHtml(c.name) + (c.role ? ' <span class="book-modal-contributor-role">(' + escapeHtml(c.role) + ')</span>' : '');
+        }).join(", ");
+        if (contributorHtml)
+            $("#bm-contributors").html(contributorHtml).show();
+        else
+            $("#bm-contributors").hide();
         var modalStatusItems = statusMenuItems(book.bookUuid, rawStatus, book.isArchived);
         $("#bm-status").text(status + (book.isArchived ? " \u00B7 Archived" : ""));
         if (modalStatusItems) {

@@ -6,6 +6,7 @@ function renderBooks(books) {
         var status = readingStatusText(book.readingProgress, book.mediaType);
         var rawStatus = readingStatusRaw(book.readingProgress);
         var authors = (book.authors || []).map(function(a){return a.name}).join(", ");
+        var contributors = (book.contributors || []).map(function(c){ return c.name + (c.role ? " (" + c.role + ")" : ""); }).join(", ");
         var seriesName = book.series ? book.series.name : "";
         var series = seriesName ? (seriesName.toUpperCase() + ((book.series ? book.series.index : null) ? " - " + (book.series ? book.series.index : null) : "")) : "";
         var extraItems = statusMenuItems(book.bookUuid, rawStatus, book.isArchived);
@@ -35,6 +36,7 @@ function renderBooks(books) {
                     '<div class="book-list-title">' + escapeHtml(book.title) + '</div>' +
                     '<div class="book-list-series">' + escapeHtml(series) + '</div>' +
                     '<div class="book-list-author">' + escapeHtml(authors) + '</div>' +
+                    (contributors ? '<div class="book-list-contributor">' + escapeHtml(contributors) + '</div>' : '') +
                 '</div>' +
                 '<div class="book-list-right">' +
                     '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +

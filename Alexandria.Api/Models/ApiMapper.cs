@@ -151,6 +151,7 @@ public static class ApiMapper
         Description = request.Description,
         Publisher = request.Publisher,
         IsAbridged = request.IsAbridged,
+        Contributors = request.Contributors?.Select(c => new Contributor { Name = c.Name.Trim(), Role = c.Role?.Trim() }).ToList() ?? [],
         Series = request.SeriesName is not null ? new Series { Name = request.SeriesName, Index = request.Index } : null
     };
 }

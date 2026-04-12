@@ -470,6 +470,14 @@ html {
     font-family: "Times New Roman", Times, serif;
 }
 
+.book-list-contributor {
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .book-list-right {
     text-align: right;
     white-space: nowrap;
@@ -797,6 +805,16 @@ a.series-list-item {
 
 .book-modal-author a:hover {
     text-decoration: underline;
+}
+
+.book-modal-contributors {
+    font-size: 14px;
+    color: var(--bs-secondary-color);
+    margin-bottom: 12px;
+}
+
+.book-modal-contributor-role {
+    font-style: italic;
 }
 
 .book-modal-status-row {
@@ -1160,6 +1178,54 @@ a.series-list-item {
     color: var(--bs-secondary-color);
 }
 
+.bm-edit-contributor-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: stretch;
+}
+
+.bm-edit-contributor-row > .bm-edit-contributor-name {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+}
+
+.bm-edit-contributor-row > .bm-edit-contributor-role {
+    flex: 0 0 200px;
+    width: 200px;
+}
+
+.bm-edit-contributor-row > .bm-edit-contributor-remove {
+    background: var(--bs-body-bg);
+    border: 2px solid var(--bs-body-color);
+    border-radius: 0;
+    color: var(--bs-body-color);
+    font-size: 20px;
+    font-weight: bold;
+    padding: 0;
+    flex: 0 0 42px;
+    height: 42px;
+    width: 42px;
+    cursor: pointer;
+}
+
+.bm-edit-contributor-remove:hover {
+    color: #c0392b;
+    border-color: #c0392b;
+}
+
+.bm-edit-add-contributor {
+    background: none;
+    border: none;
+    color: var(--bs-body-color);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 8px;
+    text-decoration: underline;
+}
+
 .bm-edit-textarea {
     min-height: 240px;
     resize: vertical;
@@ -1365,6 +1431,14 @@ a.series-list-item {
 
 .bm-edit-input {
     height: 42px;
+}
+
+select.bm-edit-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23333'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    padding-right: 24px;
 }
 
 .search-input {

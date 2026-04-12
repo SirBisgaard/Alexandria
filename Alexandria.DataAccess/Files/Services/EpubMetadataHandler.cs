@@ -123,6 +123,41 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             metadataEl.Add(new XElement(Dc + "creator", author));
         }
 
+        // Replace all contributors.
+        var oldContributorIds = metadataEl.Elements(Dc + "contributor")
+            .Select(e => e.Attribute("id")?.Value)
+            .Where(id => id is not null)
+            .ToHashSet();
+        metadataEl.Elements(Dc + "contributor").Remove();
+        if (oldContributorIds.Count > 0)
+        {
+            MetaElements(metadataEl)
+                .Where(m => m.Attribute("refines")?.Value is { } r && r.Length > 1 && oldContributorIds.Contains(r[1..]))
+                .ToList()
+                .ForEach(m => m.Remove());
+        }
+        for (var i = 0; i < metadata.Contributors.Count; i++)
+        {
+            var contributor = metadata.Contributors[i];
+            var contributorId = $"contributor{i:D2}";
+            var el = new XElement(Dc + "contributor", contributor.Name);
+            el.SetAttributeValue("id", contributorId);
+            if (contributor.Role is not null && MarcRelatorCodes.TryGetValue(contributor.Role, out var marcCode))
+            {
+                el.SetAttributeValue(Opf + "role", marcCode);
+                metadataEl.Add(el);
+                metadataEl.Add(new XElement(Opf + "meta",
+                    new XAttribute("refines", $"#{contributorId}"),
+                    new XAttribute("property", "role"),
+                    new XAttribute("scheme", "marc:relators"),
+                    marcCode));
+            }
+            else
+            {
+                metadataEl.Add(el);
+            }
+        }
+
         // TODO: Remove once all EPUBs have been re-indexed without legacy alexandria: meta tags.
         RemoveLegacyAlexandriaMeta(metadataEl);
 
@@ -569,6 +604,13 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             ?.Attribute("content")?.Value.Trim();
     }
 
+    public static IReadOnlyList<string> ContributorRoleNames { get; } = new List<string>
+    {
+        "Adapter", "Annotator", "Artist", "Author", "Author of afterword", "Author of introduction",
+        "Colorist", "Compiler", "Composer", "Designer", "Editor", "Illustrator", "Narrator",
+        "Photographer", "Printer", "Redactor", "Reviewer", "Translator", "Typographer"
+    }.AsReadOnly();
+
     private static readonly Dictionary<string, string> MarcRelatorRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         ["nrt"] = "Narrator",
@@ -591,6 +633,8 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         ["rev"] = "Reviewer",
         ["tyg"] = "Typographer"
     };
+
+    private static readonly Dictionary<string, string> MarcRelatorCodes = MarcRelatorRoles.ToDictionary(kvp => kvp.Value, kvp => kvp.Key, StringComparer.OrdinalIgnoreCase);
 
     private static List<Contributor> ParseContributors(XElement metadataEl)
     {

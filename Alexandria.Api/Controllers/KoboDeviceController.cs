@@ -10,7 +10,7 @@ namespace Alexandria.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("/api/kobo")]
-public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService) : ControllerBase
+public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService) : ControllerBase
 {
     /// <summary>
     /// Intercepts /v1/initialization to rewrite Kobo's resource URLs so the device
@@ -200,6 +200,18 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     {
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
         var response = await productService.EbookProduct(request, uuid);
+        await response.WriteToHttpResponse(HttpContext.Response);
+    }
+
+    /// <summary>
+    /// Intercepts analytics events to handle local book state changes (e.g. MarkAsFinished).
+    /// Events for store-purchased books are proxied to Kobo.
+    /// </summary>
+    [HttpPost("v1/analytics/event")]
+    public async Task AnalyticsEvent()
+    {
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var response = await analyticsService.AnalyticsEvent(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
 }

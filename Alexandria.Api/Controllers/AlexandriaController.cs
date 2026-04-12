@@ -4,7 +4,9 @@ using Alexandria.Api.Models;
 using Alexandria.Api.Models.Events;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
+using Alexandria.DataAccess.Files.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -187,12 +189,17 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
         if (existing is null)
-        {
             return NotFound();
-        }
+
+        if (existing.MediaType == MediaType.Audiobook && request.Contributors is not null && request.Contributors.Any(c => c.Role is not null && !string.Equals(c.Role, "Narrator", StringComparison.OrdinalIgnoreCase)))
+            return BadRequest("Audiobooks only support the Narrator contributor role.");
 
         var book = ApiMapper.ToBook(request);
         book.BookUuid = uuid;
+
+        if (request.Contributors is null)
+            book.Contributors = existing.Contributors;
+
         var result = await alexandriaLibraryService.UpdateBookMetadata(book);
         return Ok(ApiMapper.ToBookResponse(result!));
     }
@@ -246,6 +253,15 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     {
         await settingsService.UpdateSettings(ApiMapper.ToAppSettings(request));
         return NoContent();
+    }
+
+    [HttpGet("contributor-roles")]
+    public IActionResult GetContributorRoles([FromQuery] string? mediaType)
+    {
+        if (string.Equals(mediaType, "Audiobook", StringComparison.OrdinalIgnoreCase))
+            return Ok(new[] { "Narrator" });
+
+        return Ok(EpubMetadataHandler.ContributorRoleNames);
     }
 
     [HttpPost("sync")]

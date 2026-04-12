@@ -4,6 +4,7 @@ var comboSeries = [];
 var comboPublishers = [];
 var comboEntity = [];
 var comboHighlight = -1;
+var currentContributorRoles = [];
 
 var FIELD_MAP = {
     "Title": "bm-edit-title",
@@ -63,17 +64,42 @@ function handleCoverError(jqXHR) {
     }
 }
 
+function contributorRoleOptions(roles, selectedRole) {
+    var html = '<option value="">Select role...</option>';
+    for (var i = 0; i < roles.length; i++)
+        html += '<option value="' + escapeHtml(roles[i]) + '"' + (selectedRole === roles[i] ? ' selected' : '') + '>' + escapeHtml(roles[i]) + '</option>';
+    return html;
+}
+
+function contributorRowHtml(name, role, roles) {
+    return '<div class="bm-edit-contributor-row">' +
+        '<input type="text" class="bm-edit-input bm-edit-contributor-name" placeholder="Name" value="' + escapeHtml(name || '') + '">' +
+        '<select class="bm-edit-input bm-edit-contributor-role">' + contributorRoleOptions(roles, role) + '</select>' +
+        '<button class="bm-edit-contributor-remove" type="button">&times;</button>' +
+    '</div>';
+}
+
+function buildContributorRows(contributors, roles) {
+    var html = '';
+    for (var i = 0; i < contributors.length; i++)
+        html += contributorRowHtml(contributors[i].name, contributors[i].role, roles);
+    return html;
+}
+
 function openEditModal(uuid) {
     $.when(
         $.get("/api/alexandria/books/" + uuid),
         $.get("/api/alexandria/authors"),
         $.get("/api/alexandria/series"),
-        $.get("/api/alexandria/publishers")
-    ).done(function (bookRes, authorsRes, seriesRes, publishersRes) {
+        $.get("/api/alexandria/publishers"),
+        $.get("/api/alexandria/contributor-roles")
+    ).done(function (bookRes, authorsRes, seriesRes, publishersRes, rolesRes) {
         var book = bookRes[0];
         comboAuthors = (authorsRes[0] || []).map(function (a) { return a.name; });
         comboSeries = (seriesRes[0] || []).map(function (s) { return s.name; });
         comboPublishers = publishersRes[0] || [];
+        var allRoles = rolesRes[0] || [];
+        currentContributorRoles = book.mediaType === "Audiobook" ? ["Narrator"] : allRoles;
 
         currentModalUuid = book.bookUuid;
         if (!originalModalHtml)
@@ -138,6 +164,10 @@ function openEditModal(uuid) {
                         '<div class="bm-edit-label">Publication Date</div>' +
                         '<input type="text" class="bm-edit-input" id="bm-edit-pub-date" value="' + escapeHtml(book.publicationDate || "") + '">' +
                     '</div>' +
+                    '<div class="bm-edit-field">' +
+                        '<div class="bm-edit-label">Contributors <button class="bm-edit-add-contributor" id="bm-edit-add-contributor" type="button">+ Add</button></div>' +
+                        '<div id="bm-edit-contributors">' + buildContributorRows(book.contributors || [], currentContributorRoles) + '</div>' +
+                    '</div>' +
                 '</div>' +
             '</div>' +
             '<div class="bm-edit-field" style="margin-top:16px;">' +
@@ -174,6 +204,13 @@ function hideEditLoading(target) {
 function saveBookMetadata(uuid) {
     var seriesIdx = $("#bm-edit-series-index").val();
     var $abridged = $("#bm-edit-abridged");
+    var contributors = [];
+    $(".bm-edit-contributor-row").each(function () {
+        var name = $(this).find(".bm-edit-contributor-name").val().trim();
+        var role = $(this).find(".bm-edit-contributor-role").val();
+        if (name)
+            contributors.push({ name: name, role: role || null });
+    });
     var book = {
         title: $("#bm-edit-title").val(),
         authors: $("#bm-edit-authors").val().split(",").map(function (a) { return a.trim(); }).filter(function (a) { return a; }),
@@ -183,7 +220,8 @@ function saveBookMetadata(uuid) {
         index: seriesIdx !== "" ? parseFloat(seriesIdx) : null,
         publicationDate: $("#bm-edit-pub-date").val() || null,
         description: $("#bm-edit-description").val() || null,
-        isAbridged: $abridged.length ? $abridged.is(":checked") : null
+        isAbridged: $abridged.length ? $abridged.is(":checked") : null,
+        contributors: contributors
     };
 
     showEditLoading("#bm-edit-save");

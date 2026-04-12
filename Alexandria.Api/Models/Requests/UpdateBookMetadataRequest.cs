@@ -24,9 +24,22 @@ public class UpdateBookMetadataRequest : IValidatableObject
 
     public bool? IsAbridged { get; set; }
 
+    public List<ContributorRequest>? Contributors { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (Authors.Count > 0 && Authors.All(string.IsNullOrWhiteSpace))
             yield return new ValidationResult("At least one author is required.", [nameof(Authors)]);
+
+        if (Contributors is not null)
+        {
+            for (var i = 0; i < Contributors.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(Contributors[i].Name))
+                    yield return new ValidationResult("Contributor name is required.", [$"Contributors[{i}].Name"]);
+                if (string.IsNullOrWhiteSpace(Contributors[i].Role))
+                    yield return new ValidationResult("Contributor role is required.", [$"Contributors[{i}].Role"]);
+            }
+        }
     }
 }

@@ -16,6 +16,7 @@ $(function () {
                         '<div class="book-modal-book-title" id="bm-title"></div>' +
                         '<div class="book-modal-series" id="bm-series"></div>' +
                         '<div class="book-modal-author" id="bm-author"></div>' +
+                        '<div class="book-modal-contributors" id="bm-contributors"></div>' +
                         '<div class="book-modal-status-row"><div class="book-modal-status" id="bm-status"></div><div class="dropdown" id="bm-status-menu"></div></div>' +
                     '</div>' +
                 '</div>' +
@@ -251,6 +252,16 @@ $(function () {
         $(this).removeClass("bm-edit-input-invalid");
         $(this).closest(".bm-edit-field").find(".bm-edit-error").remove();
         $("#bm-edit-error-banner").hide();
+    });
+
+    // ===== Contributor Rows =====
+    $(document).on("click", "#bm-edit-add-contributor", function (e) {
+        e.preventDefault();
+        $("#bm-edit-contributors").append(contributorRowHtml("", "", currentContributorRoles));
+    });
+
+    $(document).on("click", ".bm-edit-contributor-remove", function () {
+        $(this).closest(".bm-edit-contributor-row").remove();
     });
 
     // ===== Combo Box (Autocomplete) =====

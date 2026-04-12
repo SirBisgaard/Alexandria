@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Helpers;
@@ -243,16 +244,19 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
     public async Task<Author?> MergeAuthor(Guid sourceUuid, Guid targetUuid)
     {
+        var books = await GetBooks();
+        var affectedBooks = books.Where(b => b.Authors.Any(a => a.AuthorUuid == sourceUuid)).ToList();
+        
         await authorRepository.ReassignBooks(sourceUuid, targetUuid);
         await authorRepository.RemoveOrphanedAuthors();
 
-        var books = await GetBooks();
-        var affectedBooks = books.Where(b => b.Authors.Any(a => a.AuthorUuid == targetUuid)).ToList();
-        foreach (var book in affectedBooks)
+        books = await GetBooks();
+        foreach (var book in books.Where(b => affectedBooks.Any(ab => b.BookUuid == ab.BookUuid)))
             await libraryIndexerService.ReindexBook(book.BookUuid, book);
 
         return await GetAuthorByUuid(targetUuid);
     }
+    
 
     public async Task<Series?> UpdateSeries(Series series)
     {
@@ -273,12 +277,13 @@ public class AlexandriaLibraryService(IBookRepository bookRepository, IReadingSt
 
     public async Task<Series?> MergeSeries(Guid sourceUuid, Guid targetUuid)
     {
+        var books = await GetBooks();
+        var affectedBooks = books.Where(b => b.Series?.SeriesUuid == sourceUuid).ToList();
         await seriesRepository.ReassignBooks(sourceUuid, targetUuid);
         await seriesRepository.RemoveOrphanedSeries();
 
-        var books = await GetBooks();
-        var affectedBooks = books.Where(b => b.Series?.SeriesUuid == targetUuid).ToList();
-        foreach (var book in affectedBooks)
+        books = await GetBooks();
+        foreach (var book in books.Where(b => affectedBooks.Any(ab => ab.BookUuid == b.BookUuid)))
             await libraryIndexerService.ReindexBook(book.BookUuid, book);
 
         return await GetSeriesByUuid(targetUuid);

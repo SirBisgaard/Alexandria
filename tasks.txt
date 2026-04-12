@@ -1,9 +1,3 @@
-Enable edit of contributers of audibooks and books. 
-
-Make ffmpeg use gpu for faster processing.
-Updating audiobooks is painfully slow, maybe cachebusting? 
-
-
 Lydbøg sync af status virker ikke? 
 
 En ny side i indstillinger der viser hvordan data er mappet.
