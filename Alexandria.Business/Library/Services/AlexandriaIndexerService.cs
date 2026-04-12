@@ -222,6 +222,9 @@ public class AlexandriaIndexerService(IFileContentManager contentManager, IBookR
         }
         else if (discovered.MediaType == MediaType.Audiobook)
         {
+            // M4B only supports standard ID3/MP4 tags — fields not embeddable are preserved from DB
+            if (!string.IsNullOrEmpty(existing.Language))
+                discovered.Language = existing.Language;
             if (discovered.Identifiers.Count == 0 && existing.Identifiers.Count > 0)
                 discovered.Identifiers = existing.Identifiers;
             if (string.IsNullOrEmpty(discovered.Source))

@@ -154,6 +154,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         }
     }
 
+    /// <summary>Only standard ID3/MP4 tags are written to preserve cover art compatibility with media players.</summary>
     private static Dictionary<string, string> BuildStandardTagDictionary(Book book)
     {
         var tags = new Dictionary<string, string>();
