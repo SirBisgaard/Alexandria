@@ -6,7 +6,9 @@ using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
+using Alexandria.Business.Library.Services;
 using Alexandria.DataAccess.Files.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -18,7 +20,8 @@ file class ChannelProgress<T>(Func<T, string> formatter, ChannelWriter<string> w
 
 [ApiController]
 [Route("/api/alexandria")]
-public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, ILogger<AlexandriaController> logger) : ControllerBase
+[Authorize(AuthenticationSchemes = "Alexandria")]
+public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, SyncLock syncLock, ILogger<AlexandriaController> logger) : ControllerBase
 {
     [HttpGet("books")]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
@@ -275,6 +278,15 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPost("sync")]
     public async Task Sync()
     {
+        if (!syncLock.TryAcquire())
+        {
+            logger.LogInformation("Sync requested but one is already in progress — returning 409");
+            Response.StatusCode = StatusCodes.Status409Conflict;
+            Response.ContentType = "application/json";
+            await Response.WriteAsync("""{"error":"sync already in progress"}""");
+            return;
+        }
+
         logger.LogInformation("Starting library sync");
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
@@ -305,12 +317,19 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
             }
         });
 
-        await foreach (var message in channel.Reader.ReadAllAsync())
+        try
         {
-            await Response.WriteAsync(message);
-            await Response.Body.FlushAsync();
-        }
+            await foreach (var message in channel.Reader.ReadAllAsync())
+            {
+                await Response.WriteAsync(message);
+                await Response.Body.FlushAsync();
+            }
 
-        await syncTask;
+            await syncTask;
+        }
+        finally
+        {
+            syncLock.Release();
+        }
     }
 }

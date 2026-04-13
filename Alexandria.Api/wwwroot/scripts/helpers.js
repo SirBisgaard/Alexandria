@@ -11,8 +11,10 @@ function bustCoverCache(uuid) {
 function coverUrl(uuid, width, height) {
     var url = "/api/alexandria/books/" + uuid + "/cover";
     if (width && height) { url += "?width=" + width + "&height=" + height; }
-    var t = coverCacheBusters[uuid];
-    if (t) { url += (url.indexOf("?") >= 0 ? "&" : "?") + "t=" + t; }
+    var v = coverCacheBusters[uuid];
+    if (v) { url += (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + v; }
+    var token = localStorage.getItem("alexandria-token");
+    if (token) { url += (url.indexOf("?") >= 0 ? "&" : "?") + "t=" + encodeURIComponent(token); }
     return url;
 }
 

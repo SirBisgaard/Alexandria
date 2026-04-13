@@ -4,6 +4,7 @@ public class KoboDevice
 {
     public Guid DeviceUuid { get; set; }
     public string DeviceId { get; set; } = string.Empty;
+    public string? DeviceToken { get; set; }
     public string? ModelName { get; set; }
     public string? ModelCode { get; set; }
     public string? Firmware { get; set; }

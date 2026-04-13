@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+using Alexandria.Api.Authentication;
+using Alexandria.Api.Middleware;
+using Alexandria.Business.Auth;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
@@ -15,8 +18,9 @@ using Alexandria.DataAccess.Files.Books.Audiobooks;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
-using Alexandria.Api.Middleware;
 using Alexandria.DataAccess.Files.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +30,9 @@ var alexandriaSettings =  builder.Configuration
     .Get<AlexandriaSettings>()!;
 
 builder.Services.AddSingleton(alexandriaSettings);
+
+// Set the place for keys
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(alexandriaSettings.DataFolder, "keys")));
 
 // Http client for KoboStoreApi
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
@@ -65,6 +72,9 @@ builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
+builder.Services.AddSingleton<IKoboDevicePairingService, KoboDevicePairingService>();
+builder.Services.AddTransient<DeviceTokenStore>();
+builder.Services.AddSingleton<SyncLock>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<IKoboLibrarySyncService, KoboLibrarySyncService>();
 builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliveryService>();
@@ -74,6 +84,19 @@ builder.Services.AddTransient<IKoboProductService, KoboProductService>();
 builder.Services.AddTransient<ILibraryIndexerService, AlexandriaIndexerService>();
 builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
 builder.Services.AddTransient<IAlexandriaSettingsService, AlexandriaSettingsService>();
+
+// Authentication
+var authSecrets = new AuthSecretProvider();
+builder.Services.AddSingleton(authSecrets);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = AlexandriaAuthHandler.SchemeName;
+})
+.AddScheme<AuthenticationSchemeOptions, AlexandriaAuthHandler>(AlexandriaAuthHandler.SchemeName, null)
+.AddScheme<AuthenticationSchemeOptions, KoboDeviceAuthHandler>(KoboDeviceAuthHandler.SchemeName, null);
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -88,10 +111,11 @@ app.UseMiddleware<KoboStoreProxyLoggingMiddleware>();
 var dbInitializer = app.Services.GetRequiredService<IDatabaseInitializer>();
 await dbInitializer.Initialize();
 
-// Load UUID seed from settings.
+// Load UUID seed from settings and initialize auth secrets.
 var settingsRepo = app.Services.GetRequiredService<ISettingsRepository>();
 var appSettings = await settingsRepo.Get();
 GuidExtensions.SetNamespace(appSettings.UuidSeed);
+authSecrets.Initialize(appSettings.UuidSeed);
 
 // Index library at boot.
 if (appSettings.SyncLibraryAtBoot)
@@ -100,6 +124,7 @@ if (appSettings.SyncLibraryAtBoot)
     await libraryIndexer.Index();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseFileServer();   

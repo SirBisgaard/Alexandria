@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Alexandria.Business.Auth;
 using Alexandria.Business.Interfaces;
+using Alexandria.Tests.Auth;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
@@ -25,6 +27,17 @@ public sealed class LibrarySyncTests
     private readonly KoboDeviceSyncTokenService koboDeviceSyncTokenService = new();
 
     private static readonly AlexandriaSettings Settings = new() { PublicUrl = PublicUrl, DataFolder = "/tmp", EbookFolder = "/tmp", AudiobookFolder = "/tmp" };
+
+    private static readonly AuthSecretProvider AuthSecrets = CreateAuthSecrets();
+
+    private static AuthSecretProvider CreateAuthSecrets()
+    {
+        var provider = new AuthSecretProvider();
+        provider.Initialize(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
+        return provider;
+    }
+
+    private static DeviceTokenStore CreateDeviceTokens() => new(new FakeKoboDeviceRepository(DeviceId), AuthSecrets);
 
     [TestInitialize]
     public void Setup()
@@ -61,7 +74,7 @@ public sealed class LibrarySyncTests
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
         var proxyService = new KoboStoreProxyService(httpClient, NullLogger<KoboStoreProxyService>.Instance);
-        return new KoboLibrarySyncService(Settings, proxyService, libraryService, new FakeSettingsService(syncBatchSize), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), koboDeviceSyncTokenService, NullLogger<KoboLibrarySyncService>.Instance);
+        return new KoboLibrarySyncService(Settings, proxyService, libraryService, new FakeSettingsService(syncBatchSize), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), koboDeviceSyncTokenService, CreateDeviceTokens(), NullLogger<KoboLibrarySyncService>.Instance);
     }
 
     private static HttpResponseMessage MakeEmptyStoreResponse(string? syncToken = null)

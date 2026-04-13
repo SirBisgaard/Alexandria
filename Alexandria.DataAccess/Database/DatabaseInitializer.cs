@@ -8,6 +8,8 @@ namespace Alexandria.DataAccess.Database;
 
 public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
+    private const string DefaultUuidSeed = "00000000-0000-0000-0000-000000000020";
+
     public async Task Initialize()
     {
         await connectionProvider.Write(connection =>
@@ -263,6 +265,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             CREATE TABLE IF NOT EXISTS KoboDevices (
                 DeviceUuid TEXT PRIMARY KEY,
                 DeviceId TEXT NOT NULL UNIQUE,
+                DeviceToken TEXT,
                 ModelName TEXT,
                 ModelCode TEXT,
                 Firmware TEXT,
@@ -272,6 +275,16 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             )
             """;
         devicesCmd.ExecuteNonQuery();
+
+        // Additive column adds for KoboDevices. Wrapped in try so the migration is idempotent
+        // when the column already exists (fresh DB created by the CREATE above).
+        try
+        {
+            using var alter = connection.CreateCommand();
+            alter.CommandText = "ALTER TABLE KoboDevices ADD COLUMN DeviceToken TEXT";
+            alter.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
 
         using var logsCmd = connection.CreateCommand();
         logsCmd.CommandText = """
@@ -307,8 +320,9 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot)
-            VALUES (1, '00000000-0000-0000-0000-000000000005', NULL, 60, 1, 250, 0)
+            VALUES (1, @uuidSeed, NULL, 60, 1, 250, 0)
             """;
+        settingsSeedCmd.Parameters.AddWithValue("@uuidSeed", DefaultUuidSeed);
         settingsSeedCmd.ExecuteNonQuery();
 
         using var usersCmd = connection.CreateCommand();
@@ -325,7 +339,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         usersCmd.ExecuteNonQuery();
 
-        var uuidSeed = Guid.Parse("00000000-0000-0000-0000-000000000005");
+        var uuidSeed = Guid.Parse(DefaultUuidSeed);
         GuidExtensions.SetNamespace(uuidSeed);
         var defaultUserUuid = Guid.GenerateUuidV5("Alexander");
         var defaultPasswordHash = UserRepository.HashPassword("TheGreat", uuidSeed);
@@ -337,9 +351,9 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             VALUES (@userUuid, @username, @password, @displayName, @createdAt, @modifiedAt, @lastLoginAt)
             """;
         userSeedCmd.Parameters.AddWithValue("@userUuid", defaultUserUuid.ToString());
-        userSeedCmd.Parameters.AddWithValue("@username", "Alexander");
+        userSeedCmd.Parameters.AddWithValue("@username", "alexander");
         userSeedCmd.Parameters.AddWithValue("@password", defaultPasswordHash);
-        userSeedCmd.Parameters.AddWithValue("@displayName", "Alexander");
+        userSeedCmd.Parameters.AddWithValue("@displayName", "Alexander The Great");
         userSeedCmd.Parameters.AddWithValue("@createdAt", now);
         userSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
         userSeedCmd.Parameters.AddWithValue("@lastLoginAt", now);

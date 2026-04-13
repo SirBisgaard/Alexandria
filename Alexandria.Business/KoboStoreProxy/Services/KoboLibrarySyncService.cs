@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Alexandria.Business.Auth;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
+public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, DeviceTokenStore deviceTokenStore, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
 {
     /// <summary>
     /// Rewrites 4 resource URLs (library_sync, image_host, image_url_template, image_url_quality_template)
@@ -34,6 +35,10 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         if (resources is null)
             return koboResponse;
 
+        // /v1/initialization carries no x-kobo-deviceid, so we can't mint a device-scoped token
+        // here. Cover URLs stay device-agnostic and their controller is AllowAnonymous — downloads,
+        // manifests, and chapters still use per-device tokens because those URLs are emitted in
+        // sync / metadata responses where the header is present.
         resources["library_sync"] = $"{alexandriaSettings.KoboApiUrl}/v1/library/sync";
         resources["image_host"] = $"{alexandriaSettings.KoboApiUrl}";
         resources["image_url_template"] = $"{alexandriaSettings.KoboApiUrl}/{{ImageId}}/{{Width}}/{{Height}}/false/image.jpg";
@@ -67,6 +72,9 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     {
         logger.LogInformation("LibrarySync: fetching store results and merging local books");
         var deviceId = GetDeviceId(request);
+        // Device token is persisted in the KoboDevices row and only renewed by /v1/initialization —
+        // here we just read whatever is current and stamp it into every emitted URL.
+        var deviceToken = await deviceTokenStore.GetOrMint(deviceId);
         var alexandriaToken = koboDeviceSyncTokenService.ParseToken(GetSyncTokenHeader(request));
 
         request.Headers["x-kobo-synctoken"] = [alexandriaToken.KoboToken];
@@ -143,13 +151,13 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                     readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
 
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, readingState, relatedGroupId);
+                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, deviceToken, readingState, relatedGroupId);
                 syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement });
                 await koboDeviceSyncRepository.UpsertSyncedFile(deviceId, book.BookUuid, book.ModifiedAt);
             }
             else if (book.IsArchived)
             {
-                var entitlement = KoboStoreEntityMapper.WithRemoved(KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl));
+                var entitlement = KoboStoreEntityMapper.WithRemoved(KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, deviceToken));
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
                 await koboDeviceSyncRepository.RemoveSyncedFile(deviceId, book.BookUuid);
             }
@@ -160,7 +168,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                     readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
 
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, relatedGroupId: relatedGroupId);
+                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, deviceToken, relatedGroupId: relatedGroupId);
                 var removedEntitlement = KoboStoreEntityMapper.WithRemoved(entitlement);
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = removedEntitlement });
                 syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement with { ReadingState = null } });
@@ -175,7 +183,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                     readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
 
                 var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, relatedGroupId: relatedGroupId);
+                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, alexandriaSettings.KoboApiUrl, deviceToken, relatedGroupId: relatedGroupId);
                 syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
                 if (readingState is not null)
                     syncResults.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
@@ -218,9 +226,10 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         }
         var allBooks = await alexandriaLibraryService.GetBooks();
         var relatedGroupId = GetRelatedGroupId(book, BuildWorkGroupLookup(allBooks));
+        var deviceToken = await deviceTokenStore.GetOrMint(GetDeviceId(request));
 
         logger.LogInformation("Metadata: serving metadata for '{Title}' ({Uuid})", book.Title, uuid);
-        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, alexandriaSettings.KoboApiUrl, relatedGroupId) });
+        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, alexandriaSettings.KoboApiUrl, deviceToken, relatedGroupId) });
     }
 
     /// <summary>

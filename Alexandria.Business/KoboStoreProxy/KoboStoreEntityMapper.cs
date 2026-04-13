@@ -32,24 +32,26 @@ public static class KoboStoreEntityMapper
     /// <summary>
     /// Creates Kobo metadata for a book. Download format is "MANIFEST" for audiobooks (two-step:
     /// manifest then chapters on demand) or "KEPUB" for ebooks (single-file download).
-    /// CoverImageId uses "{uuid}--v{unix seconds}" format so cover URL changes when metadata/cover
-    /// is updated — the Kobo device caches covers by URL and won't re-fetch without a URL change.
+    /// CoverImageId is the bare entitlement UUID — cache-busting for cover edits is deliberately
+    /// deferred to the next device re-init (when <c>image_url_template</c> rotates its token).
     /// Series index uses "G29" format (no trailing zeros: 1.0→"1", 2.5→"2.5") to match Kobo's display.
     /// Timestamps must be ISO 8601 with "Z" suffix — Kobo rejects "+00:00" format.
+    /// Download URL carries the device token as a path segment (<c>/t/{token}/…</c>) so the
+    /// device's content fetcher (which sends no auth header or cookie) is authenticated on arrival.
     /// </summary>
-    public static KoboStoreBookMetadata ToMetadata(Book book, string baseUrl, Guid? relatedGroupId = null)
+    public static KoboStoreBookMetadata ToMetadata(Book book, string baseUrl, string deviceToken, Guid? relatedGroupId = null)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
 
         var (format, downloadUrl) = book.MediaType switch
         {
-            MediaType.Audiobook => ("MANIFEST", $"{baseUrl}/download/{entitlementUuid}/manifest"),
-            _ => ("KEPUB", $"{baseUrl}/download/{entitlementUuid}/kepub")
+            MediaType.Audiobook => ("MANIFEST", $"{baseUrl}/t/{deviceToken}/download/{entitlementUuid}/manifest"),
+            _ => ("KEPUB", $"{baseUrl}/t/{deviceToken}/download/{entitlementUuid}/kepub")
         };
 
         var metadata = new KoboStoreBookMetadata
         {
-            CoverImageId = $"{entitlementUuid}--v{book.ModifiedAt.ToUnixTimeSeconds()}",
+            CoverImageId = entitlementUuid,
             CrossRevisionId = entitlementUuid,
             Description = book.Description,
             DownloadUrls =
@@ -104,10 +106,10 @@ public static class KoboStoreEntityMapper
     /// properties for ebook (BookEntitlement/BookMetadata) vs audiobook (AudiobookEntitlement/AudiobookMetadata).
     /// Using the wrong property type causes the device to silently ignore the item during sync.
     /// </summary>
-    public static KoboStoreEntitlement ToStoreEntitlement(Book book, string baseUrl, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null)
+    public static KoboStoreEntitlement ToStoreEntitlement(Book book, string baseUrl, string deviceToken, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null)
     {
         var entitlement = ToEntitlement(book);
-        var metadata = ToMetadata(book, baseUrl, relatedGroupId);
+        var metadata = ToMetadata(book, baseUrl, deviceToken, relatedGroupId);
 
         return book.MediaType switch
         {
@@ -129,7 +131,7 @@ public static class KoboStoreEntityMapper
     /// the audio stream URLs with per-chapter download endpoints. Both sections are required
     /// even though they contain largely redundant information.
     /// </summary>
-    public static KoboStoreAudiobookManifest ToManifest(Book book, string baseUrl)
+    public static KoboStoreAudiobookManifest ToManifest(Book book, string baseUrl, string deviceToken)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
         var chapters = book.Chapters.OrderBy(c => c.ChapterIndex).ToList();
@@ -148,7 +150,7 @@ public static class KoboStoreEntityMapper
                 Bitrate = 0.0,
                 Duration = c.Duration,
                 Id = c.ChapterIndex,
-                Url = $"{baseUrl}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}"
+                Url = $"{baseUrl}/t/{deviceToken}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}"
             }).ToList()
         };
     }
@@ -172,7 +174,7 @@ public static class KoboStoreEntityMapper
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
         PublisherName = book.Publisher,
-        ImageId = $"{book.EntitlementUuid}--v{book.ModifiedAt.ToUnixTimeSeconds()}",
+        ImageId = book.EntitlementUuid.ToString(),
         SeriesName = book.Series?.Name,
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),
@@ -192,7 +194,7 @@ public static class KoboStoreEntityMapper
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
         PublisherName = book.Publisher,
-        ImageId = $"{book.EntitlementUuid}--v{book.ModifiedAt.ToUnixTimeSeconds()}",
+        ImageId = book.EntitlementUuid.ToString(),
         SeriesName = book.Series?.Name,
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),

@@ -19,6 +19,7 @@ public class KoboProxyRequest
         request.Body.Position = 0;
 
         var headers = request.Headers.ToDictionary(h => h.Key, h => h.Value.ToArray());
+        StripAlexandriaCookies(headers);
 
         return new KoboProxyRequest
         {
@@ -28,5 +29,21 @@ public class KoboProxyRequest
             Headers = headers,
             Body = ms.ToArray()
         };
+    }
+
+    private static void StripAlexandriaCookies(Dictionary<string, string?[]> headers)
+    {
+        if (!headers.TryGetValue("Cookie", out var cookieValues))
+            return;
+
+        var filtered = string.Join("; ", cookieValues
+            .Where(v => v is not null)
+            .SelectMany(v => v!.Split("; "))
+            .Where(c => !c.StartsWith("alexandria-auth=") && !c.StartsWith("alexandria-device=")));
+
+        if (string.IsNullOrEmpty(filtered))
+            headers.Remove("Cookie");
+        else
+            headers["Cookie"] = [filtered];
     }
 }

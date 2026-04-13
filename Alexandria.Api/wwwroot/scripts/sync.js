@@ -80,7 +80,14 @@ $(function () {
         $("#sync-popover-btn").text("Syncing...").prop("disabled", true);
         $("#sync-popover-progress-bar").css("width", "0%");
 
-        fetch("/api/alexandria/sync", { method: "POST" }).then(function (response) {
+        var token = localStorage.getItem("alexandria-token");
+        var headers = token ? { "Authorization": "Bearer " + token } : {};
+        fetch("/api/alexandria/sync", { method: "POST", headers: headers }).then(function (response) {
+            if (response.status === 401) {
+                localStorage.removeItem("alexandria-token");
+                window.location.href = "/login.html";
+                return;
+            }
             var reader = response.body.getReader();
             var decoder = new TextDecoder();
 

@@ -13,7 +13,7 @@ public class UserRepository(ISqliteConnectionProvider connectionProvider) : IUse
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT UserUuid, Username, Password, DisplayName, CreatedAt, ModifiedAt, LastLoginAt FROM Users WHERE Username = @username";
-            cmd.Parameters.AddWithValue("@username", username);
+            cmd.Parameters.AddWithValue("@username", username.ToLowerInvariant());
 
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
@@ -39,6 +39,32 @@ public class UserRepository(ISqliteConnectionProvider connectionProvider) : IUse
         });
     }
 
+    public async Task<User?> GetByUuid(Guid userUuid)
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT UserUuid, Username, Password, DisplayName, CreatedAt, ModifiedAt, LastLoginAt FROM Users WHERE UserUuid = @userUuid";
+            cmd.Parameters.AddWithValue("@userUuid", userUuid.ToString());
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+                return null;
+
+            return MapUser(reader);
+        });
+    }
+
+    public async Task<int> Count()
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM Users";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+    }
+
     public async Task Add(User user)
     {
         await connectionProvider.Write(connection =>
@@ -50,7 +76,7 @@ public class UserRepository(ISqliteConnectionProvider connectionProvider) : IUse
                 VALUES (@userUuid, @username, @password, @displayName, @createdAt, @modifiedAt, @lastLoginAt)
                 """;
             cmd.Parameters.AddWithValue("@userUuid", user.UserUuid.ToString());
-            cmd.Parameters.AddWithValue("@username", user.Username);
+            cmd.Parameters.AddWithValue("@username", user.Username.ToLowerInvariant());
             cmd.Parameters.AddWithValue("@password", user.Password);
             cmd.Parameters.AddWithValue("@displayName", user.DisplayName);
             cmd.Parameters.AddWithValue("@createdAt", now);
@@ -71,10 +97,21 @@ public class UserRepository(ISqliteConnectionProvider connectionProvider) : IUse
                 WHERE UserUuid = @userUuid
                 """;
             cmd.Parameters.AddWithValue("@userUuid", user.UserUuid.ToString());
-            cmd.Parameters.AddWithValue("@username", user.Username);
+            cmd.Parameters.AddWithValue("@username", user.Username.ToLowerInvariant());
             cmd.Parameters.AddWithValue("@password", user.Password);
             cmd.Parameters.AddWithValue("@displayName", user.DisplayName);
             cmd.Parameters.AddWithValue("@modifiedAt", now);
+            cmd.ExecuteNonQuery();
+        });
+    }
+
+    public async Task Delete(Guid userUuid)
+    {
+        await connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM Users WHERE UserUuid = @userUuid";
+            cmd.Parameters.AddWithValue("@userUuid", userUuid.ToString());
             cmd.ExecuteNonQuery();
         });
     }

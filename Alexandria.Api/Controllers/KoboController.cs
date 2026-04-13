@@ -1,5 +1,7 @@
+using Alexandria.Api.Authentication;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -11,6 +13,7 @@ namespace Alexandria.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("/api/kobo")]
+[Authorize(AuthenticationSchemes = KoboDeviceAuthHandler.SchemeName)]
 public class KoboController(IKoboProxyService koboProxyService) : ControllerBase
 {
     /// <summary>

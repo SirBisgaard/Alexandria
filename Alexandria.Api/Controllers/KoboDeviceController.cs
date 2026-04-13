@@ -1,5 +1,12 @@
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Alexandria.Api.Authentication;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
+using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Database.Interfaces;
+using Alexandria.DataAccess.Database.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers;
@@ -10,8 +17,55 @@ namespace Alexandria.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("/api/kobo")]
-public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService, ILogger<KoboDeviceController> logger) : ControllerBase
+[Authorize(AuthenticationSchemes = KoboDeviceAuthHandler.SchemeName)]
+public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService, IKoboProxyService koboProxyService, IKoboDeviceRepository deviceRepository, ILogger<KoboDeviceController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Intercepts the device's very first call of each sync, a re-auth handshake whose body
+    /// carries the DeviceId. The handler runs before auth (<see cref="AllowAnonymousAttribute"/>)
+    /// so first-contact devices can get registered; we parse the body, upsert the device row
+    /// (enriching with ModelCode/Firmware/ModelName from the User-Agent), and forward the request
+    /// to Kobo's real endpoint so the device receives a valid bearer token.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("v1/auth/device")]
+    public async Task AuthDevice()
+    {
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+
+        try
+        {
+            var authBody = JsonSerializer.Deserialize<KoboAuthDeviceRequest>(request.Body);
+            if (authBody is not null && !string.IsNullOrEmpty(authBody.DeviceId))
+            {
+                var device = new KoboDevice
+                {
+                    DeviceUuid = Guid.NewGuid(),
+                    DeviceId = authBody.DeviceId
+                };
+
+                var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
+                var match = KoboUserAgentRegex().Match(userAgent);
+                if (match.Success)
+                {
+                    device.ModelCode = match.Groups[1].Value;
+                    device.Firmware = match.Groups[2].Value;
+                    device.ModelName = KoboDeviceRepository.GetModelName(device.ModelCode);
+                }
+
+                await deviceRepository.Upsert(device);
+                logger.LogInformation("Kobo: registered/updated device {DeviceId} ({ModelName})", device.DeviceId, device.ModelName ?? "unknown");
+            }
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Kobo: failed to parse auth/device body; proxying to Kobo without registering");
+        }
+
+        var response = await koboProxyService.Proxy(request);
+        await response.WriteToHttpResponse(HttpContext.Response);
+    }
+
     /// <summary>
     /// Intercepts /v1/initialization to rewrite Kobo's resource URLs so the device
     /// routes sync, image, and download requests back through Alexandria.
@@ -40,9 +94,11 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
 
     /// <summary>
     /// Serves KEPUB file downloads for local books. Store-purchased book downloads are proxied to Kobo.
+    /// The <c>{token}</c> segment is consumed by <see cref="KoboDeviceAuthHandler"/> for auth; the
+    /// action body doesn't read it.
     /// </summary>
-    [HttpGet("download/{uuid}/kepub")]
-    public async Task Download(Guid uuid)
+    [HttpGet("t/{token}/download/{uuid:guid}/kepub")]
+    public async Task Download(string token, Guid uuid)
     {
         logger.LogInformation("Kobo: downloading book {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
@@ -54,8 +110,8 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     /// Serves the audiobook manifest JSON for local audiobooks. Contains chapter list with download URLs.
     /// Store-purchased audiobook manifests are proxied to Kobo.
     /// </summary>
-    [HttpGet("download/{uuid}/manifest")]
-    public async Task DownloadManifest(Guid uuid)
+    [HttpGet("t/{token}/download/{uuid:guid}/manifest")]
+    public async Task DownloadManifest(string token, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting audiobook manifest {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
@@ -67,8 +123,8 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     /// Serves individual MP3 chapter files for local audiobooks.
     /// Store-purchased audiobook chapters are proxied to Kobo.
     /// </summary>
-    [HttpGet("audiobook/{uuid}/chapter/{partId}")]
-    public async Task AudiobookChapter(Guid uuid, int partId)
+    [HttpGet("t/{token}/audiobook/{uuid:guid}/chapter/{partId:int}")]
+    public async Task AudiobookChapter(string token, Guid uuid, int partId)
     {
         logger.LogInformation("Kobo: requesting chapter {PartId} of {Uuid}", partId, uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
@@ -78,19 +134,19 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
 
     /// <summary>
     /// Serves cover images for local books. Unknown books are redirected (307) to Kobo's CDN.
-    /// Matches the image_url_template rewritten during initialization. The imageId parameter
-    /// may contain a "--v{timestamp}" cache-bust suffix (set by KoboStoreEntityMapper) which
-    /// is stripped before parsing the UUID.
+    /// Matches the <c>image_url_template</c> which is device-agnostic — <c>/v1/initialization</c>
+    /// doesn't carry <c>x-kobo-deviceid</c>, so we can't bake a per-device token into the template.
+    /// Covers are <see cref="AllowAnonymousAttribute"/>; book jackets are low-value-security and
+    /// are already public on Kobo's CDN for store items.
     /// </summary>
-    [HttpGet("{imageId}/{width}/{height}/{greyscale}/image.jpg")]
-    [HttpGet("{imageId}/{width}/{height}/{quality}/{greyscale}/image.jpg")]
-    public async Task CoverImage(string imageId, int width, int height, string? quality = null, string? greyscale = null)
+    [AllowAnonymous]
+    [HttpGet("{uuid:guid}/{width:int}/{height:int}/{greyscale}/image.jpg")]
+    [HttpGet("{uuid:guid}/{width:int}/{height:int}/{quality:int}/{greyscale}/image.jpg")]
+    public async Task CoverImage(Guid uuid, int width, int height, int? quality = null, string? greyscale = null)
     {
-        var uuidString = imageId.Contains("--") ? imageId[..imageId.IndexOf("--", StringComparison.Ordinal)] : imageId;
-        var uuid = Guid.Parse(uuidString);
         logger.LogInformation("Kobo: requesting cover for {Uuid}", uuid);
         var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
-        var response = await contentDeliveryService.CoverImage(request, uuid, width, height, quality, greyscale);
+        var response = await contentDeliveryService.CoverImage(request, uuid, width, height, quality?.ToString(), greyscale);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
 
@@ -231,4 +287,9 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
         var response = await analyticsService.AnalyticsEvent(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
+
+    [GeneratedRegex(@"\(Kobo Touch (\d{4})/([\d.]+)\)")]
+    private static partial Regex KoboUserAgentRegex();
+
+    private sealed record KoboAuthDeviceRequest(string? DeviceId) { }
 }

@@ -1,3 +1,4 @@
+using Alexandria.Business.Auth;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
+public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IFileContentManager contentManager, DeviceTokenStore deviceTokenStore, AuthSecretProvider authSecrets, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
 {
     /// <summary>
     /// Serves KEPUB file for local books, proxies to Kobo for store books.
@@ -93,8 +94,32 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
             return new KoboProxyResponse { StatusCode = StatusCodes.Status404NotFound, Headers = new Dictionary<string, string[]>(), Body = [] };
 
         logger.LogInformation("DownloadManifest: serving manifest for '{Title}' ({Uuid})", book.Title, uuid);
-        var manifest = KoboStoreEntityMapper.ToManifest(book, alexandriaSettings.KoboApiUrl);
+        var deviceId = request.Headers.TryGetValue("x-kobo-deviceid", out var values) && values.Length > 0 && values[0] is not null
+            ? values[0]!
+            : GetDeviceIdFromPathToken(request);
+        var deviceToken = await deviceTokenStore.GetOrMint(deviceId);
+        var manifest = KoboStoreEntityMapper.ToManifest(book, alexandriaSettings.KoboApiUrl, deviceToken);
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, manifest);
+    }
+
+    /// <summary>
+    /// Recovers the deviceId from the inbound <c>/t/{token}/...</c> path segment when the request
+    /// arrives without the <c>x-kobo-deviceid</c> header — the image / download / audiobook
+    /// fetchers on the device carry only the URL token, so this is the only signal we have.
+    /// </summary>
+    private string GetDeviceIdFromPathToken(KoboProxyRequest request)
+    {
+        // Path looks like "/t/{token}/..." after the /api/kobo route prefix has been stripped.
+        var path = request.Path;
+        if (string.IsNullOrEmpty(path))
+            return "unknown";
+        var trimmed = path.StartsWith('/') ? path[1..] : path;
+        if (!trimmed.StartsWith("t/", StringComparison.Ordinal))
+            return "unknown";
+        var afterPrefix = trimmed[2..];
+        var nextSlash = afterPrefix.IndexOf('/');
+        var token = nextSlash < 0 ? afterPrefix : afterPrefix[..nextSlash];
+        return TokenHelpers.TryVerify(token, authSecrets.GetDeviceHmacKey(), out var deviceId) ? deviceId : "unknown";
     }
 
     public async Task<KoboProxyResponse> AudiobookChapter(KoboProxyRequest request, Guid uuid, int partId)
