@@ -156,16 +156,19 @@ $(function () {
             );
         }
 
-        // Latest series
-        if (seriesList.length > 0 && (seriesList[0].books || []).length > 0) {
-            var latestSeries = seriesList[0];
-            var sBooks = (latestSeries.books || []).slice(0, 3);
+        // Latest series — skip series where all books are archived
+        var visibleSeries = seriesList.filter(function (s) {
+            return (s.books || []).some(function (b) { return !b.isArchived; });
+        });
+        if (visibleSeries.length > 0) {
+            var latestSeries = visibleSeries[0];
+            var sBooks = (latestSeries.books || []).filter(function (b) { return !b.isArchived; }).slice(0, 3);
             var sStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
             $.each(sBooks, function (i, b) {
                 sStack += homeStackCoverHtml(b);
             });
             sStack += '</div></div>';
-            var sCount = (latestSeries.books || []).length;
+            var sCount = (latestSeries.books || []).filter(function (b) { return !b.isArchived; }).length;
             $grid.append(
                 '<div class="col-12 col-md-6"><a href="series-detail.html?uuid=' + latestSeries.seriesUuid + '" class="home-card">' + sStack +
                     '<div class="home-card-title">' + escapeHtml(latestSeries.name) + '</div>' +
