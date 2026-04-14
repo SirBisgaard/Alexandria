@@ -14,9 +14,6 @@ public static class TokenHelpers
     /// <summary>How long a user token minted by <c>AuthController.Login</c> stays valid.</summary>
     public static readonly TimeSpan UserTokenTtl = TimeSpan.FromDays(7);
 
-    /// <summary>How long a Kobo device token (minted per sync/init/manifest call) stays valid.</summary>
-    public static readonly TimeSpan DeviceTokenTtl = TimeSpan.FromDays(120);
-
     public static string Mint(string id, byte[] key, TimeSpan ttl)
     {
         var expiry = DateTimeOffset.UtcNow.Add(ttl).ToUnixTimeSeconds();

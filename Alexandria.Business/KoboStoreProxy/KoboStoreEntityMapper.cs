@@ -36,17 +36,17 @@ public static class KoboStoreEntityMapper
     /// deferred to the next device re-init (when <c>image_url_template</c> rotates its token).
     /// Series index uses "G29" format (no trailing zeros: 1.0→"1", 2.5→"2.5") to match Kobo's display.
     /// Timestamps must be ISO 8601 with "Z" suffix — Kobo rejects "+00:00" format.
-    /// Download URL carries the device token as a path segment (<c>/t/{token}/…</c>) so the
-    /// device's content fetcher (which sends no auth header or cookie) is authenticated on arrival.
+    /// Download URLs use the device-scoped base URL (<c>/api/kobo/{devicekey}/…</c>) so the
+    /// device's content fetcher is authenticated by the Device Key in the route.
     /// </summary>
-    public static KoboStoreBookMetadata ToMetadata(Book book, string baseUrl, string deviceToken, Guid? relatedGroupId = null)
+    public static KoboStoreBookMetadata ToMetadata(Book book, string deviceBaseUrl, Guid? relatedGroupId = null)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
 
         var (format, downloadUrl) = book.MediaType switch
         {
-            MediaType.Audiobook => ("MANIFEST", $"{baseUrl}/t/{deviceToken}/download/{entitlementUuid}/manifest"),
-            _ => ("KEPUB", $"{baseUrl}/t/{deviceToken}/download/{entitlementUuid}/kepub")
+            MediaType.Audiobook => ("MANIFEST", $"{deviceBaseUrl}/download/{entitlementUuid}/manifest"),
+            _ => ("KEPUB", $"{deviceBaseUrl}/download/{entitlementUuid}/kepub")
         };
 
         var metadata = new KoboStoreBookMetadata
@@ -106,10 +106,10 @@ public static class KoboStoreEntityMapper
     /// properties for ebook (BookEntitlement/BookMetadata) vs audiobook (AudiobookEntitlement/AudiobookMetadata).
     /// Using the wrong property type causes the device to silently ignore the item during sync.
     /// </summary>
-    public static KoboStoreEntitlement ToStoreEntitlement(Book book, string baseUrl, string deviceToken, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null)
+    public static KoboStoreEntitlement ToStoreEntitlement(Book book, string deviceBaseUrl, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null)
     {
         var entitlement = ToEntitlement(book);
-        var metadata = ToMetadata(book, baseUrl, deviceToken, relatedGroupId);
+        var metadata = ToMetadata(book, deviceBaseUrl, relatedGroupId);
 
         return book.MediaType switch
         {
@@ -131,7 +131,7 @@ public static class KoboStoreEntityMapper
     /// the audio stream URLs with per-chapter download endpoints. Both sections are required
     /// even though they contain largely redundant information.
     /// </summary>
-    public static KoboStoreAudiobookManifest ToManifest(Book book, string baseUrl, string deviceToken)
+    public static KoboStoreAudiobookManifest ToManifest(Book book, string deviceBaseUrl)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
         var chapters = book.Chapters.OrderBy(c => c.ChapterIndex).ToList();
@@ -150,7 +150,7 @@ public static class KoboStoreEntityMapper
                 Bitrate = 0.0,
                 Duration = c.Duration,
                 Id = c.ChapterIndex,
-                Url = $"{baseUrl}/t/{deviceToken}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}"
+                Url = $"{deviceBaseUrl}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}"
             }).ToList()
         };
     }

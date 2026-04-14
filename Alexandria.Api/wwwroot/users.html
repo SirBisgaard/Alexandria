@@ -31,9 +31,13 @@
 </div>
 
 <div class="page container-lg">
+    <!-- Tab Bar -->
+    <ul class="nav nav-underline mb-2">
+        <li class="nav-item"><a class="nav-link active" href="users.html">Users</a></li>
+    </ul>
+
     <!-- Toolbar -->
     <div class="toolbar">
-        <span class="toolbar-title">Users</span>
         <div class="flex-grow-1"></div>
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm rounded-circle" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>
@@ -43,7 +47,7 @@
         </div>
     </div>
 
-    <div id="users-list" class="admin-list"></div>
+    <div id="users-list" class="view-list-container"></div>
 </div>
 
 <!-- User Modal -->
@@ -51,28 +55,40 @@
     <div class="book-modal" id="user-modal">
         <div class="book-modal-title-bar" id="user-modal-title">Add User</div>
         <button class="book-modal-close" id="user-modal-close">&times;</button>
-        <div class="book-modal-info" style="padding: 16px;">
-            <form id="user-form">
+        <div class="book-modal-info" style="padding: 0;">
+            <form id="user-form" style="width: 100%;">
                 <input type="hidden" id="user-uuid">
-                <div class="login-field">
-                    <label for="user-username">Username</label>
+                <div class="bm-edit-field">
+                    <div class="bm-edit-label">Username</div>
                     <input type="text" id="user-username" class="bm-edit-input" autocomplete="off">
                 </div>
-                <div class="login-field">
-                    <label for="user-password">Password</label>
+                <div class="bm-edit-field">
+                    <div class="bm-edit-label">Password</div>
                     <input type="password" id="user-password" class="bm-edit-input" autocomplete="new-password">
                     <div class="settings-tile-desc user-password-hint d-none">Leave blank to keep current password.</div>
                 </div>
-                <div class="login-field">
-                    <label for="user-displayname">Display Name</label>
+                <div class="bm-edit-field">
+                    <div class="bm-edit-label">Display Name</div>
                     <input type="text" id="user-displayname" class="bm-edit-input">
                 </div>
-                <div class="login-error" id="user-error"></div>
-                <div class="admin-modal-actions">
-                    <button type="submit" class="bm-edit-btn bm-edit-btn-primary" id="user-save-btn">Save</button>
+                <div class="bm-edit-error-banner" id="user-error" style="display: none;"></div>
+                <div class="bm-edit-buttons" style="justify-content: flex-end;">
                     <button type="button" class="bm-edit-btn" id="user-cancel-btn">Cancel</button>
+                    <button type="submit" class="bm-edit-btn bm-edit-btn-primary" id="user-save-btn">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm / Message Modal -->
+<div class="book-modal-backdrop" id="confirm-modal-backdrop">
+    <div class="book-modal" id="confirm-modal">
+        <div class="book-modal-title-bar" id="confirm-modal-title"></div>
+        <button class="book-modal-close" id="confirm-modal-close">&times;</button>
+        <div class="book-modal-info" style="padding: 0;">
+            <p id="confirm-modal-message" style="margin-bottom: 16px;"></p>
+            <div class="bm-edit-buttons" style="justify-content: flex-end;" id="confirm-modal-buttons"></div>
         </div>
     </div>
 </div>

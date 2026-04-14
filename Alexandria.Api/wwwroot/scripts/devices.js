@@ -1,13 +1,73 @@
-var pairingTimer = null;
-var pairingActiveUntil = null;
+function showConfirmModal(title, message, onConfirm) {
+    $("#confirm-modal-title").text(title);
+    $("#confirm-modal-message").text(message);
+    var $buttons = $("#confirm-modal-buttons").empty();
+    $buttons.append('<button class="bm-edit-btn" id="confirm-modal-cancel">Cancel</button>');
+    $buttons.append('<button class="bm-edit-btn bm-edit-btn-primary" id="confirm-modal-ok">Confirm</button>');
+    $("#confirm-modal-backdrop").addClass("open");
+
+    $("#confirm-modal-ok").on("click", function () {
+        $("#confirm-modal-backdrop").removeClass("open");
+        onConfirm();
+    });
+    $("#confirm-modal-cancel, #confirm-modal-close").on("click", function () {
+        $("#confirm-modal-backdrop").removeClass("open");
+    });
+}
+
+function showMessageModal(title, message) {
+    $("#confirm-modal-title").text(title);
+    $("#confirm-modal-message").text(message);
+    var $buttons = $("#confirm-modal-buttons").empty();
+    $buttons.append('<button class="bm-edit-btn bm-edit-btn-primary" id="confirm-modal-ok">OK</button>');
+    $("#confirm-modal-backdrop").addClass("open");
+
+    $("#confirm-modal-ok, #confirm-modal-close").on("click", function () {
+        $("#confirm-modal-backdrop").removeClass("open");
+    });
+}
 
 $(function () {
     loadDevices();
-    checkPairingStatus();
 
-    $("#pairing-menu-item").on("click", function (e) {
+    $("#confirm-modal-backdrop").on("click", function (e) {
+        if (e.target === this) $(this).removeClass("open");
+    });
+
+    $("#pair-new-btn").on("click", function (e) {
         e.preventDefault();
-        togglePairing();
+        openPairModal();
+    });
+
+    $("#pair-modal-close, #pair-cancel-btn").on("click", function () {
+        closePairModal();
+    });
+
+    $("#pair-modal-backdrop").on("click", function (e) {
+        if (e.target === this) closePairModal();
+    });
+
+    $("#pair-form").on("submit", function (e) {
+        e.preventDefault();
+        showPairResult();
+    });
+
+    $("#pair-copy-btn").on("click", function () {
+        var url = $("#pair-result-url").val();
+        navigator.clipboard.writeText(url).then(function () {
+            $("#pair-copy-btn").text("Copied!");
+            setTimeout(function () { $("#pair-copy-btn").text("Copy"); }, 2000);
+        });
+    });
+
+    $("#pair-back-btn").on("click", function () {
+        $("#pair-result").addClass("d-none");
+        $("#pair-form").show();
+        $("#pair-modal").removeClass("pair-modal-wide");
+    });
+
+    $("#pair-done-btn").on("click", function () {
+        saveDevice();
     });
 
     $("#device-modal-close, #device-cancel-btn").on("click", function () {
@@ -20,87 +80,179 @@ $(function () {
 
     $("#device-form").on("submit", function (e) {
         e.preventDefault();
-        saveDevice();
+        updateDevice();
     });
 });
+
+function openPairModal() {
+    $("#pair-nickname").removeClass("bm-edit-input-invalid");
+    $("#pair-nickname").closest(".bm-edit-field").find(".bm-edit-error").remove();
+    $("#pair-error").hide().text("");
+    $("#pair-nickname").val("");
+    $("#pair-form").show();
+    $("#pair-result").addClass("d-none");
+    $("#pair-modal").removeClass("pair-modal-wide");
+    $("#pair-modal-backdrop").addClass("open");
+    $("#pair-nickname").focus();
+}
+
+function closePairModal() {
+    $("#pair-modal-backdrop").removeClass("open");
+}
+
+function showPairResult() {
+    $("#pair-nickname").removeClass("bm-edit-input-invalid");
+    $("#pair-nickname").closest(".bm-edit-field").find(".bm-edit-error").remove();
+    $("#pair-error").hide().text("");
+
+    var nickname = $("#pair-nickname").val().trim();
+    if (!nickname) {
+        $("#pair-nickname").addClass("bm-edit-input-invalid");
+        $("#pair-nickname").closest(".bm-edit-field").append('<div class="bm-edit-error">Nickname is required</div>');
+        return;
+    }
+
+    $("#pair-save-btn").prop("disabled", true);
+
+    $.get("/api/alexandria/devices/generate-key", function (data) {
+        var baseUrl = window.location.origin;
+        var deviceUrl = baseUrl + "/api/kobo/" + data.deviceUuid + "/";
+        $("#pair-result-url").val(deviceUrl);
+        $("#pair-result").data("device-key", data.deviceUuid);
+        $("#pair-result").data("nickname", nickname);
+        $("#pair-form").hide();
+        $("#pair-result").removeClass("d-none");
+        $("#pair-modal").addClass("pair-modal-wide");
+    }).always(function () {
+        $("#pair-save-btn").prop("disabled", false);
+    });
+}
+
+function saveDevice() {
+    var deviceKey = $("#pair-result").data("device-key");
+    var nickname = $("#pair-result").data("nickname");
+
+    $("#pair-done-btn").prop("disabled", true);
+
+    $.ajax({
+        url: "/api/alexandria/devices",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ nickname: nickname, deviceUuid: deviceKey }),
+        success: function () {
+            closePairModal();
+            loadDevices();
+        },
+        error: function (jqXHR) {
+            var msg = "Failed to save device";
+            if (jqXHR.responseJSON && jqXHR.responseJSON.error)
+                msg = jqXHR.responseJSON.error;
+            $("#pair-error").text(msg).show();
+        },
+        complete: function () {
+            $("#pair-done-btn").prop("disabled", false);
+        }
+    });
+}
 
 function loadDevices() {
     $.get("/api/alexandria/devices", function (devices) {
         var $list = $("#devices-list").empty();
 
         if (devices.length === 0) {
-            $list.append('<div class="admin-empty" id="devices-empty"></div>');
-            renderEmptyState();
+            $list.append('<div class="admin-empty">No devices paired. Click "Pair New Device" to get started.</div>');
             return;
         }
 
         $.each(devices, function (i, device) {
-            var name = device.modelName || "Unknown Device";
-            var lastSeen = new Date(device.lastRequestAt).toLocaleDateString();
-            var shortId = device.deviceId.substring(0, 12) + "...";
+            var name = escapeHtml(device.nickname || "Unnamed Device");
+            var model = device.modelName ? escapeHtml(device.modelName) : "Not yet synced";
+            var firmware = device.firmware ? "FW " + escapeHtml(device.firmware) : "";
+            var lastSeen = device.serialNumber
+                ? new Date(device.lastRequestAt).toLocaleDateString() + ' ' + new Date(device.lastRequestAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : "Never";
+            var shortKey = device.deviceUuid;
+
+            var lockHtml = "";
+            if (device.isLocked) {
+                lockHtml =
+                    '<div class="admin-tile-lock">' +
+                        '<span class="admin-tile-lock-icon" title="Another device attempted to use this device key. Unlock to restore access for the original device.">' +
+                            'Locked' +
+                        '</span>' +
+                    '</div>';
+            }
+
+            var menuItems =
+                '<li><a class="dropdown-item" href="#" data-edit-device="' + device.deviceUuid + '">Edit</a></li>' +
+                (device.isLocked ? '<li><a class="dropdown-item" href="#" data-unlock-device="' + device.deviceUuid + '">Unlock</a></li>' : '') +
+                '<li><a class="dropdown-item admin-tile-delete" href="#" data-delete-device="' + device.deviceUuid + '">Delete</a></li>';
 
             $list.append(
-                '<div class="admin-tile">' +
-                    '<div class="admin-tile-info">' +
-                        '<div class="admin-tile-title">' + escapeHtml(name) + '</div>' +
-                        '<div class="admin-tile-subtitle">' +
-                            (device.modelCode ? device.modelCode + ' ' : '') +
-                            (device.firmware ? 'FW ' + escapeHtml(device.firmware) : '') +
-                        '</div>' +
-                        '<div class="admin-tile-meta">ID: ' + shortId + '</div>' +
-                        '<div class="admin-tile-meta">Last seen: ' + lastSeen + '</div>' +
+                '<div class="book-list-item">' +
+                    '<div class="book-list-info">' +
+                        '<div class="book-list-title">' + name + '</div>' +
+                        '<div class="book-list-author">' + model + (firmware ? ' &middot; ' + firmware : '') + '</div>' +
+                        '<div class="book-list-format">Serial: ' + (device.serialNumber ? escapeHtml(device.serialNumber) : 'Awaiting first sync') + '</div>' +
+                        '<div class="book-list-format">Key: ' + shortKey + '</div>' +
+                        lockHtml +
                     '</div>' +
-                    '<div class="admin-tile-actions">' +
-                        '<button class="bm-edit-btn" data-edit-device="' + device.deviceUuid + '">Edit</button>' +
-                        '<button class="bm-edit-btn admin-tile-delete" data-delete-device="' + device.deviceUuid + '">Delete</button>' +
+                    '<div class="book-list-right">' +
+                        '<div class="book-list-read-status">Last Sync</div>' +
+                        '<div class="book-list-format">' + lastSeen + '</div>' +
+                        '<div class="dropdown book-menu-dropdown">' +
+                            '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
+                            '<ul class="dropdown-menu dropdown-menu-end">' + menuItems + '</ul>' +
+                        '</div>' +
                     '</div>' +
                 '</div>'
             );
         });
 
-        $list.on("click", "[data-edit-device]", function () {
+        $list.on("click", "[data-edit-device]", function (e) {
+            e.preventDefault();
             var uuid = $(this).data("edit-device");
             var device = devices.find(function (d) { return d.deviceUuid === uuid; });
             openDeviceModal(device);
         });
 
-        $list.on("click", "[data-delete-device]", function () {
+        $list.on("click", "[data-delete-device]", function (e) {
+            e.preventDefault();
             var uuid = $(this).data("delete-device");
-            if (confirm("Unpair this device? It will need to re-pair to sync."))
+            showConfirmModal("Delete Device", "Remove this device?\nIt will no longer be able to sync.", function () {
                 deleteDevice(uuid);
+            });
+        });
+
+        $list.on("click", "[data-unlock-device]", function (e) {
+            e.preventDefault();
+            var uuid = $(this).data("unlock-device");
+            unlockDevice(uuid);
         });
     });
 }
 
-function renderEmptyState() {
-    var $empty = $("#devices-empty");
-    if ($empty.length === 0) return;
-
-    if (pairingActiveUntil) {
-        var remaining = Math.max(0, Math.floor((pairingActiveUntil - Date.now()) / 1000));
-        if (remaining > 0) {
-            var min = Math.floor(remaining / 60);
-            var sec = remaining % 60;
-            var clock = min + ":" + (sec < 10 ? "0" : "") + sec;
-            $empty.html(
-                '<div class="admin-empty-title">Pairing mode is active</div>' +
-                '<div class="admin-empty-body">Connect your Kobo device now &mdash; it will be picked up automatically.</div>' +
-                '<div class="admin-empty-countdown">' + clock + ' remaining</div>'
-            );
-            return;
-        }
-    }
-    $empty.text('No devices paired. Enable pairing, then connect a Kobo device.');
-}
-
 function openDeviceModal(device) {
-    $("#device-error").text("");
+    $("#device-nickname").removeClass("bm-edit-input-invalid");
+    $("#device-nickname").closest(".bm-edit-field").find(".bm-edit-error").remove();
+    $("#device-error").hide().text("");
     $("#device-uuid").val(device.deviceUuid);
-    $("#device-modelname").val(device.modelName || "");
+    $("#device-nickname").val(device.nickname || "");
     $("#device-modal-backdrop").addClass("open");
 }
 
-function saveDevice() {
+function updateDevice() {
+    $("#device-nickname").removeClass("bm-edit-input-invalid");
+    $("#device-nickname").closest(".bm-edit-field").find(".bm-edit-error").remove();
+    $("#device-error").hide().text("");
+
+    var nickname = $("#device-nickname").val().trim();
+    if (!nickname) {
+        $("#device-nickname").addClass("bm-edit-input-invalid");
+        $("#device-nickname").closest(".bm-edit-field").append('<div class="bm-edit-error">Nickname is required</div>');
+        return;
+    }
+
     var uuid = $("#device-uuid").val();
     $("#device-save-btn").prop("disabled", true);
 
@@ -108,7 +260,7 @@ function saveDevice() {
         url: "/api/alexandria/devices/" + uuid,
         method: "PUT",
         contentType: "application/json",
-        data: JSON.stringify({ modelName: $("#device-modelname").val() }),
+        data: JSON.stringify({ nickname: nickname }),
         success: function () {
             $("#device-modal-backdrop").removeClass("open");
             loadDevices();
@@ -117,7 +269,7 @@ function saveDevice() {
             var msg = "Save failed";
             if (jqXHR.responseJSON && jqXHR.responseJSON.error)
                 msg = jqXHR.responseJSON.error;
-            $("#device-error").text(msg);
+            $("#device-error").text(msg).show();
         },
         complete: function () {
             $("#device-save-btn").prop("disabled", false);
@@ -133,48 +285,20 @@ function deleteDevice(uuid) {
             loadDevices();
         },
         error: function () {
-            alert("Delete failed");
+            showMessageModal("Error", "Failed to delete device.");
         }
     });
 }
 
-function togglePairing() {
-    $.get("/api/alexandria/devices/pairing", function (status) {
-        if (status.enabled) {
-            $.ajax({ url: "/api/alexandria/devices/pairing", method: "DELETE", success: checkPairingStatus });
-        } else {
-            $.ajax({ url: "/api/alexandria/devices/pairing", method: "POST", success: checkPairingStatus });
+function unlockDevice(uuid) {
+    $.ajax({
+        url: "/api/alexandria/devices/" + uuid + "/unlock",
+        method: "POST",
+        success: function () {
+            loadDevices();
+        },
+        error: function () {
+            showMessageModal("Error", "Failed to unlock device.");
         }
     });
-}
-
-function checkPairingStatus() {
-    $.get("/api/alexandria/devices/pairing", function (status) {
-        if (status.enabled) {
-            pairingActiveUntil = new Date(status.expiresAt);
-            updatePairingDisplay();
-            if (pairingTimer) clearInterval(pairingTimer);
-            pairingTimer = setInterval(updatePairingDisplay, 1000);
-        } else {
-            pairingActiveUntil = null;
-            if (pairingTimer) { clearInterval(pairingTimer); pairingTimer = null; }
-            $("#pairing-menu-item").text("Enable Pairing");
-            renderEmptyState();
-        }
-    });
-}
-
-function updatePairingDisplay() {
-    if (!pairingActiveUntil) return;
-    var remaining = Math.max(0, Math.floor((pairingActiveUntil - Date.now()) / 1000));
-    if (remaining <= 0) {
-        pairingActiveUntil = null;
-        if (pairingTimer) { clearInterval(pairingTimer); pairingTimer = null; }
-        $("#pairing-menu-item").text("Enable Pairing");
-        $("#pairing-status").text("");
-        loadDevices();
-        return;
-    }
-    $("#pairing-menu-item").text("Disable Pairing");
-    renderEmptyState();
 }

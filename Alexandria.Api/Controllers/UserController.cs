@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Interfaces;
@@ -79,7 +80,3 @@ public class UserController(IUserRepository userRepository, ISettingsRepository 
         return NoContent();
     }
 }
-
-public record CreateUserRequest(string Username, string Password, string DisplayName) { }
-
-public record UpdateUserRequest(string Username, string? Password, string DisplayName) { }

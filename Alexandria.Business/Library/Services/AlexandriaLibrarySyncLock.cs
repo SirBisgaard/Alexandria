@@ -5,7 +5,7 @@ namespace Alexandria.Business.Library.Services;
 /// non-blocking <see cref="TryAcquire"/> and returns 409 Conflict if already held, so repeated
 /// clicks on the "Sync now" button don't stack work on top of an in-progress scan.
 /// </summary>
-public sealed class SyncLock
+public sealed class AlexandriaLibrarySyncLock
 {
     private readonly SemaphoreSlim gate = new(1, 1);
 

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Auth;
 using Alexandria.Business.Interfaces;
 using Alexandria.DataAccess.Database.Interfaces;
@@ -43,5 +44,3 @@ public class AuthController(IUserRepository userRepository, ISettingsRepository 
         return Ok(new { userUuid, displayName, username });
     }
 }
-
-public record LoginRequest(string Username, string Password) { }

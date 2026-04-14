@@ -31,39 +31,94 @@
 </div>
 
 <div class="page container-lg">
+    <!-- Tab Bar -->
+    <ul class="nav nav-underline mb-2">
+        <li class="nav-item"><a class="nav-link active" href="devices.html">Devices</a></li>
+    </ul>
+
     <!-- Toolbar -->
     <div class="toolbar">
-        <span class="toolbar-title">Devices</span>
         <div class="flex-grow-1"></div>
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm rounded-circle" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#" id="pairing-menu-item">Enable Pairing</a></li>
+                <li><a class="dropdown-item" href="#" id="pair-new-btn">Pair New Device</a></li>
             </ul>
         </div>
     </div>
 
-    <div id="devices-list" class="admin-list"></div>
+    <div id="devices-list" class="view-list-container"></div>
 </div>
 
-<!-- Device Modal -->
+<!-- Pair New Device Modal -->
+<div class="book-modal-backdrop" id="pair-modal-backdrop">
+    <div class="book-modal" id="pair-modal">
+        <div class="book-modal-title-bar">Pair New Device</div>
+        <button class="book-modal-close" id="pair-modal-close">&times;</button>
+        <div class="book-modal-info" style="padding: 0;">
+            <form id="pair-form" style="width: 100%;">
+                <div class="bm-edit-field">
+                    <div class="bm-edit-label">Nickname</div>
+                    <input type="text" id="pair-nickname" class="bm-edit-input" placeholder="e.g. Living Room Kobo">
+                </div>
+                <div class="bm-edit-error-banner" id="pair-error" style="display: none;"></div>
+                <div class="bm-edit-buttons" style="justify-content: flex-end;">
+                    <button type="button" class="bm-edit-btn" id="pair-cancel-btn">Cancel</button>
+                    <button type="submit" class="bm-edit-btn bm-edit-btn-primary" id="pair-save-btn">Next</button>
+                </div>
+            </form>
+            <div id="pair-result" class="d-none" style="margin-top: 16px; width: 100%;">
+                <p style="margin-bottom: 12px;">Copy the URL below and set it as the API endpoint on your Kobo:</p>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="pair-result-url" class="bm-edit-input" readonly style="flex: 1; font-family: monospace; font-size: 13px; height: 43px;">
+                    <button type="button" class="bm-edit-btn" id="pair-copy-btn" title="Copy URL" style="height: 43px;">Copy</button>
+                </div>
+                <ol style="margin-top: 12px; font-size: 13px; opacity: 0.7; padding-left: 18px;">
+                    <li>Connect your Kobo to your computer via USB.</li>
+                    <li>Open the file <code>.kobo/Kobo/eReader.conf</code> on the device.</li>
+                    <li>Find <code>api_endpoint</code> under <code>[OneStoreServices]</code>.</li>
+                    <li>Replace the value with the URL above.</li>
+                    <li>Save the file, eject the device, and press Sync on your Kobo.</li>
+                </ol>
+                <div class="admin-modal-actions" style="margin-top: 16px; justify-content: flex-end;">
+                    <button type="button" class="bm-edit-btn" id="pair-back-btn">Back</button>
+                    <button type="button" class="bm-edit-btn bm-edit-btn-primary" id="pair-done-btn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Device Modal -->
 <div class="book-modal-backdrop" id="device-modal-backdrop">
     <div class="book-modal" id="device-modal">
         <div class="book-modal-title-bar">Edit Device</div>
         <button class="book-modal-close" id="device-modal-close">&times;</button>
-        <div class="book-modal-info" style="padding: 16px;">
-            <form id="device-form">
+        <div class="book-modal-info" style="padding: 0;">
+            <form id="device-form" style="width: 100%;">
                 <input type="hidden" id="device-uuid">
-                <div class="login-field">
-                    <label for="device-modelname">Device Name</label>
-                    <input type="text" id="device-modelname" class="bm-edit-input">
+                <div class="bm-edit-field">
+                    <div class="bm-edit-label">Nickname</div>
+                    <input type="text" id="device-nickname" class="bm-edit-input">
                 </div>
-                <div class="login-error" id="device-error"></div>
-                <div class="admin-modal-actions">
-                    <button type="submit" class="bm-edit-btn bm-edit-btn-primary" id="device-save-btn">Save</button>
+                <div class="bm-edit-error-banner" id="device-error" style="display: none;"></div>
+                <div class="bm-edit-buttons" style="justify-content: flex-end;">
                     <button type="button" class="bm-edit-btn" id="device-cancel-btn">Cancel</button>
+                    <button type="submit" class="bm-edit-btn bm-edit-btn-primary" id="device-save-btn">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm / Message Modal -->
+<div class="book-modal-backdrop" id="confirm-modal-backdrop">
+    <div class="book-modal" id="confirm-modal">
+        <div class="book-modal-title-bar" id="confirm-modal-title"></div>
+        <button class="book-modal-close" id="confirm-modal-close">&times;</button>
+        <div class="book-modal-info" style="padding: 0;">
+            <p id="confirm-modal-message" style="margin-bottom: 16px;"></p>
+            <div class="bm-edit-buttons" style="justify-content: flex-end;" id="confirm-modal-buttons"></div>
         </div>
     </div>
 </div>

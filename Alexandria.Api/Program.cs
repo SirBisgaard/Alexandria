@@ -72,9 +72,7 @@ builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
-builder.Services.AddSingleton<IKoboDevicePairingService, KoboDevicePairingService>();
-builder.Services.AddTransient<DeviceTokenStore>();
-builder.Services.AddSingleton<SyncLock>();
+builder.Services.AddSingleton<AlexandriaLibrarySyncLock>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<IKoboLibrarySyncService, KoboLibrarySyncService>();
 builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliveryService>();

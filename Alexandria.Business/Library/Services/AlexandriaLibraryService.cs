@@ -1,4 +1,3 @@
-using System.Diagnostics.Contracts;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Helpers;

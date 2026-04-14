@@ -877,8 +877,35 @@ a.series-list-item {
 
 #about-modal, #settings-modal,
 #user-modal, #device-modal {
-    max-width: 450px;
+    max-width: 350px;
     min-height: auto;
+}
+
+#pair-modal {
+    max-width: 350px;
+    min-height: auto;
+    transition: max-width 0.2s ease;
+}
+
+#pair-modal code {
+    color: #c0392b;
+}
+
+#confirm-modal {
+    max-width: 350px;
+    min-height: auto;
+}
+
+#confirm-modal .book-modal-info {
+    flex-direction: column;
+}
+
+#confirm-modal-message {
+    white-space: pre-line;
+}
+
+#pair-modal.pair-modal-wide {
+    max-width: 550px;
 }
 
 /* ===== Settings Tiles ===== */
@@ -1740,21 +1767,37 @@ select.bm-edit-input {
     margin-top: 2px;
 }
 
-.admin-tile-actions {
+.admin-tile-right {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-end;
     flex-shrink: 0;
     margin-left: 12px;
-}
-
-.admin-tile-actions .bm-edit-btn {
-    padding: 6px 14px;
-    font-size: 13px;
+    gap: 4px;
 }
 
 .admin-tile-delete {
     color: #c0392b;
     border-color: #c0392b;
+}
+
+.admin-tile-lock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.admin-tile-lock-icon {
+    font-size: 13px;
+    color: #c0392b;
+    font-weight: bold;
+    cursor: help;
+}
+
+.admin-tile-unlock {
+    font-size: 12px;
+    padding: 2px 8px;
 }
 
 .admin-empty {

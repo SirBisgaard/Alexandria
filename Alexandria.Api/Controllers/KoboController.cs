@@ -12,7 +12,7 @@ namespace Alexandria.Api.Controllers;
 /// continues to function normally for all endpoints Alexandria does not intercept.
 /// </summary>
 [ApiController]
-[Route("/api/kobo")]
+[Route("/api/kobo/{devicekey}")]
 [Authorize(AuthenticationSchemes = KoboDeviceAuthHandler.SchemeName)]
 public class KoboController(IKoboProxyService koboProxyService) : ControllerBase
 {
@@ -23,9 +23,9 @@ public class KoboController(IKoboProxyService koboProxyService) : ControllerBase
     [HttpPost("{**path}")]
     [HttpPut("{**path}")]
     [HttpDelete("{**path}")]
-    public async Task CatchAll([FromRoute]string? path = null)
+    public async Task CatchAll(string devicekey, [FromRoute]string? path = null)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await koboProxyService.Proxy(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }

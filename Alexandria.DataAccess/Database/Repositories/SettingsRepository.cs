@@ -1,8 +1,6 @@
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Database.Interfaces;
-using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 

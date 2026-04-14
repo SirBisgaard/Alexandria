@@ -250,12 +250,12 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         using var syncedFilesCmd = connection.CreateCommand();
         syncedFilesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS KoboDeviceSyncedFiles (
-                DeviceId TEXT NOT NULL,
+                DeviceUuid TEXT NOT NULL,
                 BookUuid TEXT NOT NULL,
                 BookModifiedAt TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL,
-                PRIMARY KEY (DeviceId, BookUuid)
+                PRIMARY KEY (DeviceUuid, BookUuid)
             )
             """;
         syncedFilesCmd.ExecuteNonQuery();
@@ -264,8 +264,9 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         devicesCmd.CommandText = """
             CREATE TABLE IF NOT EXISTS KoboDevices (
                 DeviceUuid TEXT PRIMARY KEY,
-                DeviceId TEXT NOT NULL UNIQUE,
-                DeviceToken TEXT,
+                Nickname TEXT NOT NULL,
+                SerialNumber TEXT,
+                IsLocked INTEGER NOT NULL DEFAULT 0,
                 ModelName TEXT,
                 ModelCode TEXT,
                 Firmware TEXT,
@@ -275,16 +276,6 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             )
             """;
         devicesCmd.ExecuteNonQuery();
-
-        // Additive column adds for KoboDevices. Wrapped in try so the migration is idempotent
-        // when the column already exists (fresh DB created by the CREATE above).
-        try
-        {
-            using var alter = connection.CreateCommand();
-            alter.CommandText = "ALTER TABLE KoboDevices ADD COLUMN DeviceToken TEXT";
-            alter.ExecuteNonQuery();
-        }
-        catch (SqliteException) { }
 
         using var logsCmd = connection.CreateCommand();
         logsCmd.CommandText = """
@@ -358,5 +349,21 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         userSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
         userSeedCmd.Parameters.AddWithValue("@lastLoginAt", now);
         userSeedCmd.ExecuteNonQuery();
+
+        using var deviceSeedCmd = connection.CreateCommand();
+        deviceSeedCmd.CommandText = """
+            INSERT INTO KoboDevices (DeviceUuid, Nickname, SerialNumber, IsLocked, ModelName, ModelCode, Firmware, CreatedAt, ModifiedAt, LastRequestAt)
+            VALUES (@deviceUuid, @nickname, @serialNumber, 0, @modelName, @modelCode, @firmware, @createdAt, @modifiedAt, @lastRequestAt)
+            """;
+        deviceSeedCmd.Parameters.AddWithValue("@deviceUuid", "108c37be-4594-44aa-b82d-046ae70498dd");
+        deviceSeedCmd.Parameters.AddWithValue("@nickname", "Libra");
+        deviceSeedCmd.Parameters.AddWithValue("@serialNumber", "884b742f345078bdb96054a0455aeb58abfda14b1414cf9dfd2c79429ab6b1c4");
+        deviceSeedCmd.Parameters.AddWithValue("@modelName", "Kobo Libra Colour");
+        deviceSeedCmd.Parameters.AddWithValue("@modelCode", "0390");
+        deviceSeedCmd.Parameters.AddWithValue("@firmware", "4.45.23646");
+        deviceSeedCmd.Parameters.AddWithValue("@createdAt", now);
+        deviceSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
+        deviceSeedCmd.Parameters.AddWithValue("@lastRequestAt", now);
+        deviceSeedCmd.ExecuteNonQuery();
     }
 }

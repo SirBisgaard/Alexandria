@@ -1,18 +1,17 @@
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.DataAccess.Database.Interfaces;
-using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
 public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvider) : IKoboDeviceSyncRepository
 {
-    public async Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceId)
+    public async Task<Dictionary<Guid, DateTimeOffset>> GetSyncedModifiedDates(string deviceUuid)
     {
         return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT BookUuid, BookModifiedAt FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId";
-            cmd.Parameters.AddWithValue("@deviceId", deviceId);
+            cmd.CommandText = "SELECT BookUuid, BookModifiedAt FROM KoboDeviceSyncedFiles WHERE DeviceUuid = @deviceUuid";
+            cmd.Parameters.AddWithValue("@deviceUuid", deviceUuid);
 
             using var reader = cmd.ExecuteReader();
             var result = new Dictionary<Guid, DateTimeOffset>();
@@ -25,18 +24,18 @@ public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvid
         });
     }
 
-    public async Task UpsertSyncedFile(string deviceId, Guid bookUuid, DateTimeOffset bookModifiedAt)
+    public async Task UpsertSyncedFile(string deviceUuid, Guid bookUuid, DateTimeOffset bookModifiedAt)
     {
         await connectionProvider.Write(connection =>
         {
             var now = DateTimeOffset.UtcNow.ToString("O");
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO KoboDeviceSyncedFiles (DeviceId, BookUuid, BookModifiedAt, CreatedAt, ModifiedAt)
-                VALUES (@deviceId, @bookUuid, @bookModifiedAt, @createdAt, @modifiedAt)
-                ON CONFLICT (DeviceId, BookUuid) DO UPDATE SET BookModifiedAt = @bookModifiedAt, ModifiedAt = @modifiedAt
+                INSERT INTO KoboDeviceSyncedFiles (DeviceUuid, BookUuid, BookModifiedAt, CreatedAt, ModifiedAt)
+                VALUES (@deviceUuid, @bookUuid, @bookModifiedAt, @createdAt, @modifiedAt)
+                ON CONFLICT (DeviceUuid, BookUuid) DO UPDATE SET BookModifiedAt = @bookModifiedAt, ModifiedAt = @modifiedAt
                 """;
-            cmd.Parameters.AddWithValue("@deviceId", deviceId);
+            cmd.Parameters.AddWithValue("@deviceUuid", deviceUuid);
             cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
             cmd.Parameters.AddWithValue("@bookModifiedAt", bookModifiedAt.ToString("O"));
             cmd.Parameters.AddWithValue("@createdAt", now);
@@ -45,13 +44,13 @@ public class KoboDeviceSyncRepository(ISqliteConnectionProvider connectionProvid
         });
     }
 
-    public async Task RemoveSyncedFile(string deviceId, Guid bookUuid)
+    public async Task RemoveSyncedFile(string deviceUuid, Guid bookUuid)
     {
         await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "DELETE FROM KoboDeviceSyncedFiles WHERE DeviceId = @deviceId AND BookUuid = @bookUuid";
-            cmd.Parameters.AddWithValue("@deviceId", deviceId);
+            cmd.CommandText = "DELETE FROM KoboDeviceSyncedFiles WHERE DeviceUuid = @deviceUuid AND BookUuid = @bookUuid";
+            cmd.Parameters.AddWithValue("@deviceUuid", deviceUuid);
             cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
             cmd.ExecuteNonQuery();
         });

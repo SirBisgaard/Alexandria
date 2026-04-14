@@ -1,11 +1,6 @@
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using Alexandria.Api.Authentication;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
-using Alexandria.Business.Library.Models;
-using Alexandria.DataAccess.Database.Interfaces;
-using Alexandria.DataAccess.Database.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,54 +9,23 @@ namespace Alexandria.Api.Controllers;
 /// <summary>
 /// Intercepts specific Kobo store API endpoints to inject local Alexandria library books.
 /// Routes here take priority over <see cref="KoboController"/>'s catch-all.
+/// The <c>{devicekey}</c> route segment identifies and authenticates the device.
 /// </summary>
 [ApiController]
-[Route("/api/kobo")]
+[Route("/api/kobo/{devicekey}")]
 [Authorize(AuthenticationSchemes = KoboDeviceAuthHandler.SchemeName)]
-public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService, IKoboProxyService koboProxyService, IKoboDeviceRepository deviceRepository, ILogger<KoboDeviceController> logger) : ControllerBase
+public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IKoboContentDeliveryService contentDeliveryService, IKoboReadingStateService readingStateService, IKoboProductService productService, IKoboAnalyticsService analyticsService, IKoboProxyService koboProxyService, ILogger<KoboDeviceController> logger) : ControllerBase
 {
     /// <summary>
-    /// Intercepts the device's very first call of each sync, a re-auth handshake whose body
-    /// carries the DeviceId. The handler runs before auth (<see cref="AllowAnonymousAttribute"/>)
-    /// so first-contact devices can get registered; we parse the body, upsert the device row
-    /// (enriching with ModelCode/Firmware/ModelName from the User-Agent), and forward the request
-    /// to Kobo's real endpoint so the device receives a valid bearer token.
+    /// Handles the device's auth handshake. The device is already pre-registered via the UI;
+    /// serial binding and model detection are handled by <see cref="KoboDeviceAuthHandler"/>.
+    /// We proxy the request to Kobo so the device receives a valid bearer token.
     /// </summary>
-    [AllowAnonymous]
     [HttpPost("v1/auth/device")]
-    public async Task AuthDevice()
+    public async Task AuthDevice(string devicekey)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
-
-        try
-        {
-            var authBody = JsonSerializer.Deserialize<KoboAuthDeviceRequest>(request.Body);
-            if (authBody is not null && !string.IsNullOrEmpty(authBody.DeviceId))
-            {
-                var device = new KoboDevice
-                {
-                    DeviceUuid = Guid.NewGuid(),
-                    DeviceId = authBody.DeviceId
-                };
-
-                var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
-                var match = KoboUserAgentRegex().Match(userAgent);
-                if (match.Success)
-                {
-                    device.ModelCode = match.Groups[1].Value;
-                    device.Firmware = match.Groups[2].Value;
-                    device.ModelName = KoboDeviceRepository.GetModelName(device.ModelCode);
-                }
-
-                await deviceRepository.Upsert(device);
-                logger.LogInformation("Kobo: registered/updated device {DeviceId} ({ModelName})", device.DeviceId, device.ModelName ?? "unknown");
-            }
-        }
-        catch (JsonException ex)
-        {
-            logger.LogWarning(ex, "Kobo: failed to parse auth/device body; proxying to Kobo without registering");
-        }
-
+        logger.LogInformation("Kobo: auth/device for {DeviceKey}", devicekey);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await koboProxyService.Proxy(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -71,10 +35,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// routes sync, image, and download requests back through Alexandria.
     /// </summary>
     [HttpGet("v1/initialization")]
-    public async Task Initialize()
+    public async Task Initialize(string devicekey)
     {
         logger.LogInformation("Kobo: initializing device");
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await librarySyncService.Initialization(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -84,24 +48,22 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// The device discovers new books to download through this endpoint.
     /// </summary>
     [HttpGet("v1/library/sync")]
-    public async Task LibrarySync()
+    public async Task LibrarySync(string devicekey)
     {
         logger.LogInformation("Kobo: syncing library");
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await librarySyncService.LibrarySync(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
 
     /// <summary>
     /// Serves KEPUB file downloads for local books. Store-purchased book downloads are proxied to Kobo.
-    /// The <c>{token}</c> segment is consumed by <see cref="KoboDeviceAuthHandler"/> for auth; the
-    /// action body doesn't read it.
     /// </summary>
-    [HttpGet("t/{token}/download/{uuid:guid}/kepub")]
-    public async Task Download(string token, Guid uuid)
+    [HttpGet("download/{uuid:guid}/kepub")]
+    public async Task Download(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: downloading book {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await contentDeliveryService.Download(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -110,11 +72,11 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Serves the audiobook manifest JSON for local audiobooks. Contains chapter list with download URLs.
     /// Store-purchased audiobook manifests are proxied to Kobo.
     /// </summary>
-    [HttpGet("t/{token}/download/{uuid:guid}/manifest")]
-    public async Task DownloadManifest(string token, Guid uuid)
+    [HttpGet("download/{uuid:guid}/manifest")]
+    public async Task DownloadManifest(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting audiobook manifest {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await contentDeliveryService.DownloadManifest(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -123,29 +85,25 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Serves individual MP3 chapter files for local audiobooks.
     /// Store-purchased audiobook chapters are proxied to Kobo.
     /// </summary>
-    [HttpGet("t/{token}/audiobook/{uuid:guid}/chapter/{partId:int}")]
-    public async Task AudiobookChapter(string token, Guid uuid, int partId)
+    [HttpGet("audiobook/{uuid:guid}/chapter/{partId:int}")]
+    public async Task AudiobookChapter(string devicekey, Guid uuid, int partId)
     {
         logger.LogInformation("Kobo: requesting chapter {PartId} of {Uuid}", partId, uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await contentDeliveryService.AudiobookChapter(request, uuid, partId);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
 
     /// <summary>
     /// Serves cover images for local books. Unknown books are redirected (307) to Kobo's CDN.
-    /// Matches the <c>image_url_template</c> which is device-agnostic — <c>/v1/initialization</c>
-    /// doesn't carry <c>x-kobo-deviceid</c>, so we can't bake a per-device token into the template.
-    /// Covers are <see cref="AllowAnonymousAttribute"/>; book jackets are low-value-security and
-    /// are already public on Kobo's CDN for store items.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("{uuid:guid}/{width:int}/{height:int}/{greyscale}/image.jpg")]
     [HttpGet("{uuid:guid}/{width:int}/{height:int}/{quality:int}/{greyscale}/image.jpg")]
-    public async Task CoverImage(Guid uuid, int width, int height, int? quality = null, string? greyscale = null)
+    public async Task CoverImage(string devicekey, Guid uuid, int width, int height, int? quality = null, string? greyscale = null)
     {
         logger.LogInformation("Kobo: requesting cover for {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await contentDeliveryService.CoverImage(request, uuid, width, height, quality?.ToString(), greyscale);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -156,10 +114,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// </summary>
     [HttpGet("v1/library/{uuid}/state")]
     [HttpPut("v1/library/{uuid}/state")]
-    public async Task ReadingState(Guid uuid)
+    public async Task ReadingState(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: {Method} reading state for {Uuid}", HttpContext.Request.Method, uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await readingStateService.ReadingState(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -169,10 +127,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased books are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/library/{uuid}/metadata")]
-    public async Task Metadata(Guid uuid)
+    public async Task Metadata(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting metadata for {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await librarySyncService.Metadata(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -182,10 +140,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased books are proxied to Kobo.
     /// </summary>
     [HttpDelete("v1/library/{uuid}")]
-    public async Task DeleteBook(Guid uuid)
+    public async Task DeleteBook(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: deleting book {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await librarySyncService.DeleteBook(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -194,10 +152,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Returns series info for local series. Store series are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/products/books/series/{uuid}")]
-    public async Task Series(Guid uuid)
+    public async Task Series(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting series {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.Series(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -206,9 +164,9 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Returns empty recommendations stub. No local equivalent to provide.
     /// </summary>
     [HttpGet("v1/user/recommendations")]
-    public async Task Recommendations()
+    public async Task Recommendations(string devicekey)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.Recommendations(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -218,9 +176,9 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased books are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/products/{uuid}/nextread")]
-    public async Task NextRead(Guid uuid)
+    public async Task NextRead(string devicekey, Guid uuid)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.NextRead(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -230,9 +188,9 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased books are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/products/{uuid}/recommendations")]
-    public async Task ProductRecommendations(Guid uuid)
+    public async Task ProductRecommendations(string devicekey, Guid uuid)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.ProductRecommendations(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -242,10 +200,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased audiobooks are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/products/audiobooks/{uuid}")]
-    public async Task AudiobookProduct(Guid uuid)
+    public async Task AudiobookProduct(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting audiobook product {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.AudiobookProduct(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -255,9 +213,9 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased books are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/products/{uuids}/prices")]
-    public async Task ProductPrices(string uuids)
+    public async Task ProductPrices(string devicekey, string uuids)
     {
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.ProductPrices(request, uuids);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -267,10 +225,10 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Store-purchased ebooks are proxied to Kobo.
     /// </summary>
     [HttpGet("v1/products/books/{uuid}")]
-    public async Task EbookProduct(Guid uuid)
+    public async Task EbookProduct(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting ebook product {Uuid}", uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await productService.EbookProduct(request, uuid);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
@@ -280,16 +238,11 @@ public partial class KoboDeviceController(IKoboLibrarySyncService librarySyncSer
     /// Events for store-purchased books are proxied to Kobo.
     /// </summary>
     [HttpPost("v1/analytics/event")]
-    public async Task AnalyticsEvent()
+    public async Task AnalyticsEvent(string devicekey)
     {
         logger.LogInformation("Kobo: processing analytics event");
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request);
+        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
         var response = await analyticsService.AnalyticsEvent(request);
         await response.WriteToHttpResponse(HttpContext.Response);
     }
-
-    [GeneratedRegex(@"\(Kobo Touch (\d{4})/([\d.]+)\)")]
-    private static partial Regex KoboUserAgentRegex();
-
-    private sealed record KoboAuthDeviceRequest(string? DeviceId) { }
 }

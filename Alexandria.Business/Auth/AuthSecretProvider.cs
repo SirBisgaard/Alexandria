@@ -4,28 +4,21 @@ using System.Text;
 namespace Alexandria.Business.Auth;
 
 /// <summary>
-/// Derives HMAC keys for user and device tokens from the application's UUID seed.
+/// Derives HMAC keys for user tokens from the application's UUID seed.
 /// Initialized during boot after the seed is loaded from the database.
 /// </summary>
 public class AuthSecretProvider
 {
     private byte[]? userHmacKey;
-    private byte[]? deviceHmacKey;
 
     public void Initialize(Guid uuidSeed)
     {
         var seedBytes = Encoding.UTF8.GetBytes(uuidSeed.ToString());
         userHmacKey = HMACSHA256.HashData(seedBytes, "alexandria-user"u8.ToArray());
-        deviceHmacKey = HMACSHA256.HashData(seedBytes, "alexandria-device"u8.ToArray());
     }
 
     public byte[] GetUserHmacKey()
     {
         return userHmacKey ?? throw new InvalidOperationException("Auth secrets not initialized");
-    }
-
-    public byte[] GetDeviceHmacKey()
-    {
-        return deviceHmacKey ?? throw new InvalidOperationException("Auth secrets not initialized");
     }
 }

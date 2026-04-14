@@ -1,4 +1,5 @@
-using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Api.Models.Requests;
+using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,13 +9,34 @@ namespace Alexandria.Api.Controllers;
 [ApiController]
 [Route("/api/alexandria/devices")]
 [Authorize(AuthenticationSchemes = "Alexandria")]
-public class DeviceController(IKoboDeviceRepository deviceRepository, IKoboDevicePairingService pairingService) : ControllerBase
+public class DeviceController(IKoboDeviceRepository deviceRepository) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetDevices()
     {
         var devices = await deviceRepository.GetAll();
         return Ok(devices);
+    }
+
+    [HttpGet("generate-key")]
+    public IActionResult GenerateKey()
+    {
+        return Ok(new { deviceUuid = Guid.NewGuid() });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateDevice([FromBody] CreateDeviceRequest request)
+    {
+        var device = new KoboDevice
+        {
+            DeviceUuid = request.DeviceUuid ?? Guid.NewGuid(),
+            Nickname = request.Nickname
+        };
+
+        await deviceRepository.Create(device);
+
+        var created = await deviceRepository.GetByUuid(device.DeviceUuid);
+        return Ok(created);
     }
 
     [HttpPut("{uuid:guid}")]
@@ -24,7 +46,7 @@ public class DeviceController(IKoboDeviceRepository deviceRepository, IKoboDevic
         if (device is null)
             return NotFound();
 
-        device.ModelName = request.ModelName;
+        device.Nickname = request.Nickname;
         await deviceRepository.Update(device);
         return Ok(device);
     }
@@ -36,34 +58,14 @@ public class DeviceController(IKoboDeviceRepository deviceRepository, IKoboDevic
         return NoContent();
     }
 
-    [HttpGet("pairing")]
-    public IActionResult GetPairingStatus()
+    [HttpPost("{uuid:guid}/unlock")]
+    public async Task<IActionResult> UnlockDevice([FromRoute] Guid uuid)
     {
-        var expiry = pairingService.GetPairingExpiry();
-        return Ok(new
-        {
-            enabled = expiry is not null,
-            expiresAt = expiry
-        });
-    }
+        var device = await deviceRepository.GetByUuid(uuid);
+        if (device is null)
+            return NotFound();
 
-    [HttpPost("pairing")]
-    public IActionResult EnablePairing()
-    {
-        pairingService.EnablePairing(TimeSpan.FromMinutes(5));
-        return Ok(new
-        {
-            enabled = true,
-            expiresAt = pairingService.GetPairingExpiry()
-        });
-    }
-
-    [HttpDelete("pairing")]
-    public IActionResult DisablePairing()
-    {
-        pairingService.DisablePairing();
-        return NoContent();
+        await deviceRepository.SetLocked(uuid, false);
+        return Ok();
     }
 }
-
-public record UpdateDeviceRequest(string? ModelName) { }

@@ -21,7 +21,7 @@ file class ChannelProgress<T>(Func<T, string> formatter, ChannelWriter<string> w
 [ApiController]
 [Route("/api/alexandria")]
 [Authorize(AuthenticationSchemes = "Alexandria")]
-public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, SyncLock syncLock, ILogger<AlexandriaController> logger) : ControllerBase
+public class AlexandriaController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, AlexandriaLibrarySyncLock alexandriaLibrarySyncLock, ILogger<AlexandriaController> logger) : ControllerBase
 {
     [HttpGet("books")]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
@@ -278,7 +278,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
     [HttpPost("sync")]
     public async Task Sync()
     {
-        if (!syncLock.TryAcquire())
+        if (!alexandriaLibrarySyncLock.TryAcquire())
         {
             logger.LogInformation("Sync requested but one is already in progress — returning 409");
             Response.StatusCode = StatusCodes.Status409Conflict;
@@ -329,7 +329,7 @@ public class AlexandriaController(IAlexandriaLibraryService alexandriaLibrarySer
         }
         finally
         {
-            syncLock.Release();
+            alexandriaLibrarySyncLock.Release();
         }
     }
 }

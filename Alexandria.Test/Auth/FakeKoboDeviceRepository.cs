@@ -6,70 +6,66 @@ namespace Alexandria.Tests.Auth;
 
 /// <summary>
 /// In-memory stand-in for <see cref="IKoboDeviceRepository"/>. Supports the subset of behavior
-/// needed by auth-related tests: upsert a device, look up by DeviceId, and update the token.
+/// needed by tests: create a device, look up by UUID, bind serial, and lock/unlock.
 /// </summary>
 internal sealed class FakeKoboDeviceRepository : IKoboDeviceRepository
 {
-    private readonly ConcurrentDictionary<string, KoboDevice> devices = new();
+    private readonly ConcurrentDictionary<Guid, KoboDevice> devices = new();
 
-    public FakeKoboDeviceRepository(params string[] seedDeviceIds)
+    public FakeKoboDeviceRepository(params KoboDevice[] seedDevices)
     {
-        foreach (var id in seedDeviceIds)
-        {
-            devices[id] = new KoboDevice
-            {
-                DeviceUuid = Guid.NewGuid(),
-                DeviceId = id,
-                CreatedAt = DateTimeOffset.UtcNow,
-                ModifiedAt = DateTimeOffset.UtcNow,
-                LastRequestAt = DateTimeOffset.UtcNow
-            };
-        }
+        foreach (var device in seedDevices)
+            devices[device.DeviceUuid] = device;
     }
 
-    public Task Upsert(KoboDevice device)
+    public Task Create(KoboDevice device)
     {
-        devices[device.DeviceId] = device;
+        devices[device.DeviceUuid] = device;
         return Task.CompletedTask;
-    }
-
-    public Task<KoboDevice?> GetByDeviceId(string deviceId)
-    {
-        return Task.FromResult(devices.TryGetValue(deviceId, out var d) ? d : null);
     }
 
     public Task<KoboDevice?> GetByUuid(Guid deviceUuid)
     {
-        return Task.FromResult<KoboDevice?>(devices.Values.FirstOrDefault(d => d.DeviceUuid == deviceUuid));
+        return Task.FromResult(devices.TryGetValue(deviceUuid, out var d) ? d : null);
     }
 
     public Task<List<KoboDevice>> GetAll() => Task.FromResult(devices.Values.ToList());
 
     public Task Update(KoboDevice device)
     {
-        devices[device.DeviceId] = device;
+        devices[device.DeviceUuid] = device;
         return Task.CompletedTask;
     }
 
     public Task Delete(Guid deviceUuid)
     {
-        var match = devices.Values.FirstOrDefault(d => d.DeviceUuid == deviceUuid);
-        if (match is not null)
-            devices.TryRemove(match.DeviceId, out _);
+        devices.TryRemove(deviceUuid, out _);
         return Task.CompletedTask;
     }
 
-    public Task UpdateLastRequest(string deviceId)
+    public Task UpdateLastRequest(Guid deviceUuid)
     {
-        if (devices.TryGetValue(deviceId, out var d))
+        if (devices.TryGetValue(deviceUuid, out var d))
             d.LastRequestAt = DateTimeOffset.UtcNow;
         return Task.CompletedTask;
     }
 
-    public Task UpdateDeviceToken(string deviceId, string token)
+    public Task SetLocked(Guid deviceUuid, bool locked)
     {
-        if (devices.TryGetValue(deviceId, out var d))
-            d.DeviceToken = token;
+        if (devices.TryGetValue(deviceUuid, out var d))
+            d.IsLocked = locked;
+        return Task.CompletedTask;
+    }
+
+    public Task BindDevice(Guid deviceUuid, string serialNumber, string? modelName, string? modelCode, string? firmware)
+    {
+        if (devices.TryGetValue(deviceUuid, out var d))
+        {
+            d.SerialNumber = serialNumber;
+            d.ModelName = modelName ?? d.ModelName;
+            d.ModelCode = modelCode ?? d.ModelCode;
+            d.Firmware = firmware ?? d.Firmware;
+        }
         return Task.CompletedTask;
     }
 }
