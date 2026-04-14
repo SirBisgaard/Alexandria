@@ -643,6 +643,13 @@ a.series-list-item {
 
 
 
+.home-card-label {
+    font-size: 15px;
+    font-family: "Times New Roman", Times, serif;
+    color: var(--bs-secondary-color);
+    margin-bottom: 8px;
+}
+
 .home-card-title {
     font-size: 16px;
     font-weight: 600;

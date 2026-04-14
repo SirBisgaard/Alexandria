@@ -107,6 +107,50 @@ $(function () {
             $grid.append('<div class="' + colClass + '">' + readingHtml + '</div>');
         }
 
+        // Daily recommendation — 1-2 unread books, deterministic per day
+        var eligible = books.filter(function (b) {
+            return !b.readingProgress || b.readingProgress.status === "ReadyToRead";
+        });
+        if (eligible.length > 0) {
+            var today = new Date().toISOString().slice(0, 10);
+            var hash = 0;
+            for (var c = 0; c < today.length; c++) {
+                hash = ((hash << 5) - hash) + today.charCodeAt(c);
+                hash |= 0;
+            }
+            var idx1 = Math.abs(hash) % eligible.length;
+            var picks = [eligible[idx1]];
+            if (eligible.length > 1) {
+                var idx2 = Math.abs(hash * 31) % eligible.length;
+                if (idx2 === idx1) idx2 = (idx2 + 1) % eligible.length;
+                picks.push(eligible[idx2]);
+            }
+            var recHtml = '<div class="home-reading">';
+            $.each(picks, function (i, book) {
+                recHtml += '<div class="home-reading-item" onclick="openBookModal(\'' + book.bookUuid + '\')">' +
+                    '<div class="home-card-covers">' + homeSingleCoverHtml(book) + '</div>' +
+                '</div>';
+            });
+            recHtml += '</div><div class="home-card-title">Need something to read?</div>';
+            $grid.append('<div class="col-12 col-md-6">' + recHtml + '</div>');
+        }
+
+        // My Books
+        if (books.length > 0) {
+            var firstThree = books.slice(0, 3);
+            var myBooksStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
+            $.each(firstThree, function (i, b) {
+                myBooksStack += homeStackCoverHtml(b);
+            });
+            myBooksStack += '</div></div>';
+            $grid.append(
+                '<div class="col-12 col-md-6"><a href="books.html" class="home-card">' + myBooksStack +
+                    '<div class="home-card-title">My Books</div>' +
+                    '<div class="home-card-sub">' + books.length + ' books</div>' +
+                '</a></div>'
+            );
+        }
+
         // Author spotlight — author with most unread books
         var authorMap = {};
         $.each(books, function (i, b) {
@@ -136,22 +180,6 @@ $(function () {
                 '<div class="col-12 col-md-6"><a href="author-detail.html?uuid=' + topAuthorUuid + '" class="home-card">' + stackHtml +
                     '<div class="home-card-title">' + escapeHtml(topAuthorName) + '</div>' +
                     '<div class="home-card-sub">' + topCount + ' unread books</div>' +
-                '</a></div>'
-            );
-        }
-
-        // My Books
-        if (books.length > 0) {
-            var firstThree = books.slice(0, 3);
-            var myBooksStack = '<div class="home-card-covers"><div class="home-card-cover-stack">';
-            $.each(firstThree, function (i, b) {
-                myBooksStack += homeStackCoverHtml(b);
-            });
-            myBooksStack += '</div></div>';
-            $grid.append(
-                '<div class="col-12 col-md-6"><a href="books.html" class="home-card">' + myBooksStack +
-                    '<div class="home-card-title">My Books</div>' +
-                    '<div class="home-card-sub">' + books.length + ' books</div>' +
                 '</a></div>'
             );
         }
