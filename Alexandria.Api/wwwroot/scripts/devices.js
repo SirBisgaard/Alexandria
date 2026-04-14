@@ -116,7 +116,7 @@ function showPairResult() {
 
     $.get("/api/alexandria/devices/generate-key", function (data) {
         var baseUrl = window.location.origin;
-        var deviceUrl = baseUrl + "/api/kobo/" + data.deviceUuid + "/";
+        var deviceUrl = baseUrl + "/api/kobo/" + data.deviceUuid;
         $("#pair-result-url").val(deviceUrl);
         $("#pair-result").data("device-key", data.deviceUuid);
         $("#pair-result").data("nickname", nickname);

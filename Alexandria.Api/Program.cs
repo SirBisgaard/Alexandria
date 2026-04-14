@@ -101,6 +101,17 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 var app = builder.Build();
 
+// Normalize double slashes in request paths so trailing-slash api_endpoint values work.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (path is not null && path.Contains("//"))
+    {
+        context.Request.Path = path.Replace("//", "/");
+    }
+    await next();
+});
+
 // Configure the HTTP request pipeline.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<KoboStoreProxyLoggingMiddleware>();
