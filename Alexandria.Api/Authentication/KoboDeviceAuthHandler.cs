@@ -54,7 +54,6 @@ public partial class KoboDeviceAuthHandler(IOptionsMonitor<AuthenticationSchemeO
             }
         }
 
-        await deviceRepository.UpdateLastRequest(deviceUuid);
         Context.Items["Device"] = device;
         return AuthenticateResult.Success(CreateTicket(deviceUuid.ToString()));
     }

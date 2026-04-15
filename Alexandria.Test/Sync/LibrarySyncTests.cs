@@ -9,6 +9,7 @@ using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.KoboStoreProxy.Services;
 using Alexandria.Business.Library.Extensions;
+using Alexandria.Tests.Auth;
 using Alexandria.Business.Library.Models.Others;
 using Alexandria.Business.Library.Models.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -62,7 +63,8 @@ public sealed class LibrarySyncTests
         var handler = new FakeHttpMessageHandler(upstreamResponse ?? MakeEmptyStoreResponse());
         var httpClient = new HttpClient(handler);
         var proxyService = new KoboStoreProxyService(httpClient, NullLogger<KoboStoreProxyService>.Instance);
-        return new KoboLibrarySyncService(Settings, proxyService, bookService, collectionService, new FakeSettingsService(syncBatchSize), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), koboDeviceSyncTokenService, NullLogger<KoboLibrarySyncService>.Instance);
+        var deviceRepo = new FakeKoboDeviceRepository(new KoboDevice { DeviceUuid = Guid.Parse(DeviceKey), Nickname = "Test" });
+        return new KoboLibrarySyncService(Settings, proxyService, bookService, collectionService, new FakeSettingsService(syncBatchSize), new FakeReadingStateRepository(), syncRepo ?? new FakeKoboDeviceSyncRepository(), deviceRepo, koboDeviceSyncTokenService, NullLogger<KoboLibrarySyncService>.Instance);
     }
 
     private static HttpResponseMessage MakeEmptyStoreResponse(string? syncToken = null)

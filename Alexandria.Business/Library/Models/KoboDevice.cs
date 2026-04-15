@@ -11,5 +11,5 @@ public class KoboDevice
     public string? Firmware { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ModifiedAt { get; set; }
-    public DateTimeOffset LastRequestAt { get; set; }
+    public DateTimeOffset LastSyncedAt { get; set; }
 }

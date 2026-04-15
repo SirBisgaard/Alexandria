@@ -9,7 +9,7 @@ public interface IKoboDeviceRepository
     Task<List<KoboDevice>> GetAll();
     Task Update(KoboDevice device);
     Task Delete(Guid deviceUuid);
-    Task UpdateLastRequest(Guid deviceUuid);
+    Task UpdateLastSynced(Guid deviceUuid);
     Task SetLocked(Guid deviceUuid, bool locked);
     Task BindDevice(Guid deviceUuid, string serialNumber, string? modelName, string? modelCode, string? firmware);
 }

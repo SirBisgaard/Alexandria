@@ -43,10 +43,10 @@ internal sealed class FakeKoboDeviceRepository : IKoboDeviceRepository
         return Task.CompletedTask;
     }
 
-    public Task UpdateLastRequest(Guid deviceUuid)
+    public Task UpdateLastSynced(Guid deviceUuid)
     {
         if (devices.TryGetValue(deviceUuid, out var d))
-            d.LastRequestAt = DateTimeOffset.UtcNow;
+            d.LastSyncedAt = DateTimeOffset.UtcNow;
         return Task.CompletedTask;
     }
 

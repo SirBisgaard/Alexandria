@@ -169,7 +169,7 @@ function loadDevices() {
             var model = device.modelName ? escapeHtml(device.modelName) : "Not yet synced";
             var firmware = device.firmware ? "FW " + escapeHtml(device.firmware) : "";
             var lastSeen = device.serialNumber
-                ? new Date(device.lastRequestAt).toLocaleDateString() + ' ' + new Date(device.lastRequestAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                ? new Date(device.lastSyncedAt).toLocaleDateString() + ' ' + new Date(device.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : "Never";
             var shortKey = device.deviceUuid;
 

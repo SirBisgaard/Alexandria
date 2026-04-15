@@ -34,14 +34,14 @@ public class KoboDeviceRepository(ISqliteConnectionProvider connectionProvider) 
             var now = DateTimeOffset.UtcNow.ToString("O");
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO KoboDevices (DeviceUuid, Nickname, CreatedAt, ModifiedAt, LastRequestAt)
-                VALUES (@deviceUuid, @nickname, @createdAt, @modifiedAt, @lastRequestAt)
+                INSERT INTO KoboDevices (DeviceUuid, Nickname, CreatedAt, ModifiedAt, LastSyncedAt)
+                VALUES (@deviceUuid, @nickname, @createdAt, @modifiedAt, @lastSyncedAt)
                 """;
             cmd.Parameters.AddWithValue("@deviceUuid", device.DeviceUuid.ToString());
             cmd.Parameters.AddWithValue("@nickname", device.Nickname);
             cmd.Parameters.AddWithValue("@createdAt", now);
             cmd.Parameters.AddWithValue("@modifiedAt", now);
-            cmd.Parameters.AddWithValue("@lastRequestAt", now);
+            cmd.Parameters.AddWithValue("@lastSyncedAt", now);
             cmd.ExecuteNonQuery();
         });
     }
@@ -51,7 +51,7 @@ public class KoboDeviceRepository(ISqliteConnectionProvider connectionProvider) 
         return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT DeviceUuid, Nickname, SerialNumber, IsLocked, ModelName, ModelCode, Firmware, CreatedAt, ModifiedAt, LastRequestAt FROM KoboDevices WHERE DeviceUuid = @deviceUuid";
+            cmd.CommandText = "SELECT DeviceUuid, Nickname, SerialNumber, IsLocked, ModelName, ModelCode, Firmware, CreatedAt, ModifiedAt, LastSyncedAt FROM KoboDevices WHERE DeviceUuid = @deviceUuid";
             cmd.Parameters.AddWithValue("@deviceUuid", deviceUuid.ToString());
 
             using var reader = cmd.ExecuteReader();
@@ -67,7 +67,7 @@ public class KoboDeviceRepository(ISqliteConnectionProvider connectionProvider) 
         return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT DeviceUuid, Nickname, SerialNumber, IsLocked, ModelName, ModelCode, Firmware, CreatedAt, ModifiedAt, LastRequestAt FROM KoboDevices";
+            cmd.CommandText = "SELECT DeviceUuid, Nickname, SerialNumber, IsLocked, ModelName, ModelCode, Firmware, CreatedAt, ModifiedAt, LastSyncedAt FROM KoboDevices";
 
             using var reader = cmd.ExecuteReader();
             var result = new List<KoboDevice>();
@@ -106,15 +106,15 @@ public class KoboDeviceRepository(ISqliteConnectionProvider connectionProvider) 
         });
     }
 
-    public async Task UpdateLastRequest(Guid deviceUuid)
+    public async Task UpdateLastSynced(Guid deviceUuid)
     {
         await connectionProvider.Write(connection =>
         {
             var now = DateTimeOffset.UtcNow.ToString("O");
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "UPDATE KoboDevices SET LastRequestAt = @lastRequestAt, ModifiedAt = @modifiedAt WHERE DeviceUuid = @deviceUuid";
+            cmd.CommandText = "UPDATE KoboDevices SET LastSyncedAt = @lastSyncedAt, ModifiedAt = @modifiedAt WHERE DeviceUuid = @deviceUuid";
             cmd.Parameters.AddWithValue("@deviceUuid", deviceUuid.ToString());
-            cmd.Parameters.AddWithValue("@lastRequestAt", now);
+            cmd.Parameters.AddWithValue("@lastSyncedAt", now);
             cmd.Parameters.AddWithValue("@modifiedAt", now);
             cmd.ExecuteNonQuery();
         });
@@ -172,7 +172,7 @@ public class KoboDeviceRepository(ISqliteConnectionProvider connectionProvider) 
             Firmware = reader.IsDBNull(6) ? null : reader.GetString(6),
             CreatedAt = DateTimeOffset.Parse(reader.GetString(7)),
             ModifiedAt = DateTimeOffset.Parse(reader.GetString(8)),
-            LastRequestAt = DateTimeOffset.Parse(reader.GetString(9))
+            LastSyncedAt = DateTimeOffset.Parse(reader.GetString(9))
         };
     }
 }

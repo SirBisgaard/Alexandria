@@ -8,12 +8,13 @@ using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, ICollectionService collectionService, ISettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
+public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, ICollectionService collectionService, ISettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceRepository koboDeviceRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
 {
     /// <summary>
     /// Rewrites 4 resource URLs (library_sync, image_host, image_url_template, image_url_quality_template)
@@ -68,6 +69,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     {
         logger.LogInformation("LibrarySync: fetching store results and merging local books");
         var deviceKey = request.DeviceKey!;
+        await koboDeviceRepository.UpdateLastSynced(Guid.Parse(deviceKey));
         var deviceBaseUrl = $"{alexandriaSettings.KoboApiUrl}/{deviceKey}";
         var alexandriaToken = koboDeviceSyncTokenService.ParseToken(GetSyncTokenHeader(request));
 

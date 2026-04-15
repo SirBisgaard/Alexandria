@@ -8,8 +8,6 @@ namespace Alexandria.DataAccess.Database;
 
 public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
-    private const string DefaultUuidSeed = "00000000-0000-0000-0000-000000000020";
-
     public async Task Initialize()
     {
         await connectionProvider.Write(connection =>
@@ -272,7 +270,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 Firmware TEXT,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL,
-                LastRequestAt TEXT NOT NULL
+                LastSyncedAt TEXT NOT NULL
             )
             """;
         devicesCmd.ExecuteNonQuery();
@@ -308,12 +306,15 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         settingsCreateCmd.ExecuteNonQuery();
 
+        // Generate a unique per-install UUID seed. Doubles as UUID v5 namespace, JWT HMAC key seed, and password hashing salt.
+        var uuidSeed = Guid.NewGuid();
+
         using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
             INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot)
             VALUES (1, @uuidSeed, NULL, 60, 1, 250, 0)
             """;
-        settingsSeedCmd.Parameters.AddWithValue("@uuidSeed", DefaultUuidSeed);
+        settingsSeedCmd.Parameters.AddWithValue("@uuidSeed", uuidSeed.ToString());
         settingsSeedCmd.ExecuteNonQuery();
 
         using var usersCmd = connection.CreateCommand();
@@ -330,7 +331,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         usersCmd.ExecuteNonQuery();
 
-        var uuidSeed = Guid.Parse(DefaultUuidSeed);
+        // Generate the default user.
         GuidExtensions.SetNamespace(uuidSeed);
         var defaultUserUuid = Guid.GenerateUuidV5("Alexander");
         var defaultPasswordHash = UserRepository.HashPassword("TheGreat", uuidSeed);
@@ -349,21 +350,5 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         userSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
         userSeedCmd.Parameters.AddWithValue("@lastLoginAt", now);
         userSeedCmd.ExecuteNonQuery();
-
-        using var deviceSeedCmd = connection.CreateCommand();
-        deviceSeedCmd.CommandText = """
-            INSERT INTO KoboDevices (DeviceUuid, Nickname, SerialNumber, IsLocked, ModelName, ModelCode, Firmware, CreatedAt, ModifiedAt, LastRequestAt)
-            VALUES (@deviceUuid, @nickname, @serialNumber, 0, @modelName, @modelCode, @firmware, @createdAt, @modifiedAt, @lastRequestAt)
-            """;
-        deviceSeedCmd.Parameters.AddWithValue("@deviceUuid", "108c37be-4594-44aa-b82d-046ae70498dd");
-        deviceSeedCmd.Parameters.AddWithValue("@nickname", "Libra");
-        deviceSeedCmd.Parameters.AddWithValue("@serialNumber", "884b742f345078bdb96054a0455aeb58abfda14b1414cf9dfd2c79429ab6b1c4");
-        deviceSeedCmd.Parameters.AddWithValue("@modelName", "Kobo Libra Colour");
-        deviceSeedCmd.Parameters.AddWithValue("@modelCode", "0390");
-        deviceSeedCmd.Parameters.AddWithValue("@firmware", "4.45.23646");
-        deviceSeedCmd.Parameters.AddWithValue("@createdAt", now);
-        deviceSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
-        deviceSeedCmd.Parameters.AddWithValue("@lastRequestAt", now);
-        deviceSeedCmd.ExecuteNonQuery();
     }
 }
