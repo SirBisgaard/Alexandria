@@ -20,7 +20,6 @@ using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,9 +29,6 @@ var alexandriaSettings =  builder.Configuration
     .Get<AlexandriaSettings>()!;
 
 builder.Services.AddSingleton(alexandriaSettings);
-
-// Set the place for keys
-builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(alexandriaSettings.DataFolder, "keys")));
 
 // Http client for KoboStoreApi
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
@@ -72,16 +68,19 @@ builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
-builder.Services.AddSingleton<AlexandriaLibrarySyncLock>();
+builder.Services.AddSingleton<LibrarySyncLock>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<IKoboLibrarySyncService, KoboLibrarySyncService>();
 builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliveryService>();
 builder.Services.AddTransient<IKoboReadingStateService, KoboReadingStateService>();
 builder.Services.AddTransient<IKoboAnalyticsService, KoboAnalyticsService>();
 builder.Services.AddTransient<IKoboProductService, KoboProductService>();
-builder.Services.AddTransient<ILibraryIndexerService, AlexandriaIndexerService>();
-builder.Services.AddTransient<IAlexandriaLibraryService, AlexandriaLibraryService>();
-builder.Services.AddTransient<IAlexandriaSettingsService, AlexandriaSettingsService>();
+builder.Services.AddTransient<IIndexerService, IndexerService>();
+builder.Services.AddTransient<IBookService, BookService>();
+builder.Services.AddTransient<IAuthorService, AuthorService>();
+builder.Services.AddTransient<ISeriesService, SeriesService>();
+builder.Services.AddTransient<ICollectionService, CollectionService>();
+builder.Services.AddTransient<ISettingsService, SettingsService>();
 
 // Authentication
 var authSecrets = new AuthSecretProvider();
@@ -129,7 +128,7 @@ authSecrets.Initialize(appSettings.UuidSeed);
 // Index library at boot.
 if (appSettings.SyncLibraryAtBoot)
 {
-    var libraryIndexer = app.Services.GetRequiredService<ILibraryIndexerService>();
+    var libraryIndexer = app.Services.GetRequiredService<IIndexerService>();
     await libraryIndexer.Index();
 }
 

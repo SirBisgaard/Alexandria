@@ -64,7 +64,7 @@ public sealed class AudiobookIndexerTests
         return (bookRepository, authorRepository, seriesRepository, connectionProvider);
     }
 
-    private static (AlexandriaIndexerService indexer, FileContentManager contentManager) CreateIndexerAndContentManager(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
+    private static (IndexerService indexer, FileContentManager contentManager) CreateIndexerAndContentManager(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
     {
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
@@ -72,7 +72,7 @@ public sealed class AudiobookIndexerTests
         var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
         var audioIndexer = new FileAudiobookIndexer(settings, mediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<AlexandriaSettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
+        var indexer = new IndexerService(contentManager, bookRepository, new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
         return (indexer, contentManager);
     }
 

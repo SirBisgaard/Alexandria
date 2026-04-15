@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboAnalyticsService(IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IReadingStateRepository readingStateRepository, ILogger<KoboAnalyticsService> logger) : IKoboAnalyticsService
+public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookService bookService, IReadingStateRepository readingStateRepository, ILogger<KoboAnalyticsService> logger) : IKoboAnalyticsService
 {
     /// <summary>
     /// Intercepts analytics events to handle local book state changes. Events are split: local book
@@ -47,7 +47,7 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IAlexandri
                 continue;
             }
 
-            var book = await alexandriaLibraryService.GetBookByEntitlementUuid(volumeId.Value);
+            var book = await bookService.GetBookByEntitlementUuid(volumeId.Value);
             if (book is null)
             {
                 eventsToProxy.Add(analyticsEvent);

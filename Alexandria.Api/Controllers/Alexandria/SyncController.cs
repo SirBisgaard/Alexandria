@@ -13,12 +13,12 @@ file class ChannelProgress<T>(Func<T, string> formatter, ChannelWriter<string> w
 }
 
 [Route("/api/alexandria/sync")]
-public class SyncController(IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, AlexandriaLibrarySyncLock alexandriaLibrarySyncLock, ILogger<SyncController> logger) : AlexandriaControllerBase
+public class SyncController(IIndexerService indexerService, ISettingsService settingsService, LibrarySyncLock librarySyncLock, ILogger<SyncController> logger) : AlexandriaControllerBase
 {
     [HttpPost]
     public async Task Sync()
     {
-        if (!alexandriaLibrarySyncLock.TryAcquire())
+        if (!librarySyncLock.TryAcquire())
         {
             logger.LogInformation("Sync requested but one is already in progress — returning 409");
             Response.StatusCode = StatusCodes.Status409Conflict;
@@ -45,7 +45,7 @@ public class SyncController(IAlexandriaLibraryService alexandriaLibraryService, 
         {
             try
             {
-                var bookCount = await alexandriaLibraryService.Sync(progress);
+                var bookCount = await indexerService.Index(progress);
                 var settings = await settingsService.Get();
                 var lastIndexed = settings.LastIndexedTimestamp?.ToString("O");
                 var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);
@@ -69,7 +69,7 @@ public class SyncController(IAlexandriaLibraryService alexandriaLibraryService, 
         }
         finally
         {
-            alexandriaLibrarySyncLock.Release();
+            librarySyncLock.Release();
         }
     }
 }

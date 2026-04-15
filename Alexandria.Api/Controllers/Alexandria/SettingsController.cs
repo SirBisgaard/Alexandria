@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/settings")]
-public class SettingsController(IAlexandriaSettingsService settingsService, ILogger<SettingsController> logger) : AlexandriaControllerBase
+public class SettingsController(ISettingsService settingsService, ILogger<SettingsController> logger) : AlexandriaControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetSettings()

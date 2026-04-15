@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class AlexandriaIndexerService(IFileContentManager contentManager, IBookRepository bookRepository, IAlexandriaSettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, ILogger<AlexandriaIndexerService> logger) : ILibraryIndexerService
+public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, ILogger<IndexerService> logger) : IIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 

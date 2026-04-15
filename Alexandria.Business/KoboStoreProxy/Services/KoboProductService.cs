@@ -7,11 +7,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, ILogger<KoboProductService> logger) : IKoboProductService
+public class KoboProductService(IKoboProxyService koboProxyService, IBookService bookService, ISeriesService seriesService, ILogger<KoboProductService> logger) : IKoboProductService
 {
     public async Task<KoboProxyResponse> Series(KoboProxyRequest request, Guid uuid)
     {
-        var series = await alexandriaLibraryService.GetSeriesByUuid(uuid);
+        var series = await seriesService.GetSeriesByUuid(uuid);
         if (series is null)
             return await koboProxyService.Proxy(request);
 
@@ -39,7 +39,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
 
     public async Task<KoboProxyResponse> NextRead(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
             return await koboProxyService.Proxy(request);
 
@@ -48,11 +48,11 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
 
     public async Task<KoboProxyResponse> ProductRecommendations(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
             return await koboProxyService.Proxy(request);
 
-        var recommendations = await alexandriaLibraryService.GetRecommendations(book.BookUuid);
+        var recommendations = await bookService.GetRecommendations(book.BookUuid);
         logger.LogInformation("ProductRecommendations: serving {Count} recommendations for '{Title}' ({Uuid})", recommendations.Count, book.Title, uuid);
 
         var items = recommendations.Select(KoboStoreEntityMapper.ToProductRecommendationItem).ToList();
@@ -70,7 +70,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
 
     public async Task<KoboProxyResponse> AudiobookProduct(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
             return await koboProxyService.Proxy(request);
 
@@ -80,7 +80,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
 
     public async Task<KoboProxyResponse> EbookProduct(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
             return await koboProxyService.Proxy(request);
 
@@ -105,7 +105,7 @@ public class KoboProductService(IKoboProxyService koboProxyService, IAlexandriaL
             if (!Guid.TryParse(id.Trim(), out var uuid))
                 continue;
 
-            var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+            var book = await bookService.GetBookByEntitlementUuid(uuid);
             if (book is null)
                 continue;
 

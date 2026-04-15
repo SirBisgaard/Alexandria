@@ -61,10 +61,10 @@ public sealed class KoboAnalyticsServiceTests
 
     private static KoboAnalyticsService CreateService(List<Book> books, FakeReadingStateRepository? readingStateRepo = null, FakeProxyService? proxyService = null)
     {
-        var libraryService = new FakeLibraryService(books);
+        var bookService = new FakeBookService(books);
         readingStateRepo ??= new FakeReadingStateRepository();
         proxyService ??= new FakeProxyService();
-        return new KoboAnalyticsService(proxyService, libraryService, readingStateRepo, NullLogger<KoboAnalyticsService>.Instance);
+        return new KoboAnalyticsService(proxyService, bookService, readingStateRepo, NullLogger<KoboAnalyticsService>.Instance);
     }
 
     [TestMethod]
@@ -207,34 +207,19 @@ public sealed class KoboAnalyticsServiceTests
 
     // --- Test doubles ---
 
-    private class FakeLibraryService(List<Book> books) : IAlexandriaLibraryService
+    private class FakeBookService(List<Book> books) : IBookService
     {
         public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books);
         public Task<Book?> GetBookByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.BookUuid == uuid));
         public Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid) => Task.FromResult(books.FirstOrDefault(b => b.EntitlementUuid == entitlementUuid));
-        public Task SetBookArchiveStatus(Guid uuid, bool isArchived) => Task.CompletedTask;
-        public Task<List<BookCollection>> GetCollections(CollectionSortOptions? sortOptions = null) => Task.FromResult<List<BookCollection>>([]);
-        public Task<CollectionWithBooks?> GetCollectionWithBooks(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<CollectionWithBooks?>(null);
-        public Task UpsertCollection(BookCollection collection) => Task.CompletedTask;
-        public Task<List<BookCollection>> GetCollectionsModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
-        public Task<List<Author>> GetAuthors(AuthorSortOptions? sortOptions = null) => Task.FromResult<List<Author>>([]);
-        public Task<Author?> GetAuthorByName(string name, BookSortOptions? sortOptions = null) => Task.FromResult<Author?>(null);
-        public Task<List<Series>> GetSeries(SeriesSortOptions? sortOptions = null) => Task.FromResult<List<Series>>([]);
-        public Task<Series?> GetSeriesByUuid(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<Series?>(null);
         public Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null) => Task.FromResult<byte[]?>(null);
+        public Task SetBookArchiveStatus(Guid uuid, bool isArchived) => Task.CompletedTask;
         public Task UpdateReadingStatus(Guid uuid, ReadingStatus status) => Task.CompletedTask;
         public Task<Book?> UpdateBookMetadata(Book book) => Task.FromResult<Book?>(null);
         public Task<Book?> UpdateBookCover(Guid uuid, byte[] coverData, string mediaType) => Task.FromResult<Book?>(null);
         public Task<Book?> RemoveBookCover(Guid uuid) => Task.FromResult<Book?>(null);
-        public Task<int> Sync(IProgress<(int current, int total)>? progress = null) => Task.FromResult(0);
-        public Task<Author?> GetAuthorByUuid(Guid uuid, BookSortOptions? sortOptions = null) => Task.FromResult<Author?>(null);
-        public Task<Author?> UpdateAuthor(Author author) => Task.FromResult<Author?>(null);
-        public Task<Series?> UpdateSeries(Series series) => Task.FromResult<Series?>(null);
-        public Task<Series?> GetSeriesByName(string name) => Task.FromResult<Series?>(null);
-        public Task<List<string>> GetPublishers() => Task.FromResult<List<string>>([]);
         public Task<List<Book>> GetRecommendations(Guid bookUuid, int count = 5) => Task.FromResult<List<Book>>([]);
-        public Task<Author?> MergeAuthor(Guid sourceUuid, Guid targetUuid) => Task.FromResult<Author?>(null);
-        public Task<Series?> MergeSeries(Guid sourceUuid, Guid targetUuid) => Task.FromResult<Series?>(null);
+        public Task<List<string>> GetPublishers() => Task.FromResult<List<string>>([]);
     }
 
     internal class FakeReadingStateRepository : IReadingStateRepository

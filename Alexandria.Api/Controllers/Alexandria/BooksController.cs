@@ -8,20 +8,20 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/books")]
-public class BooksController(IAlexandriaLibraryService alexandriaLibraryService, ILogger<BooksController> logger) : AlexandriaControllerBase
+public class BooksController(IBookService bookService, ILogger<BooksController> logger) : AlexandriaControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
         var options = new BookSortOptions(sort ?? BookSortField.Recent, order ?? SortOrder.Desc);
-        var books = await alexandriaLibraryService.GetBooks(options);
+        var books = await bookService.GetBooks(options);
         return Ok(books.Select(ApiMapper.ToBookResponse));
     }
 
     [HttpGet("{uuid:guid}")]
     public async Task<IActionResult> GetBook(Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await bookService.GetBookByUuid(uuid);
         if (book is null)
             return NotFound();
         return Ok(ApiMapper.ToBookResponse(book));
@@ -31,7 +31,7 @@ public class BooksController(IAlexandriaLibraryService alexandriaLibraryService,
     public async Task<IActionResult> UpdateReadingStatus(Guid uuid, [FromBody] UpdateStatusRequest request)
     {
         logger.LogInformation("Updating reading status for {Uuid} to {Status}", uuid, request.Status);
-        await alexandriaLibraryService.UpdateReadingStatus(uuid, request.Status);
+        await bookService.UpdateReadingStatus(uuid, request.Status);
         return Ok();
     }
 
@@ -39,17 +39,17 @@ public class BooksController(IAlexandriaLibraryService alexandriaLibraryService,
     public async Task<IActionResult> UpdateArchiveStatus(Guid uuid, [FromBody] UpdateArchiveRequest request)
     {
         logger.LogInformation("Setting archive status for {Uuid} to {IsArchived}", uuid, request.IsArchived);
-        var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var book = await bookService.GetBookByUuid(uuid);
         if (book is null)
             return NotFound();
-        await alexandriaLibraryService.SetBookArchiveStatus(uuid, request.IsArchived);
+        await bookService.SetBookArchiveStatus(uuid, request.IsArchived);
         return Ok();
     }
 
     [HttpGet("{uuid:guid}/cover")]
     public async Task<IActionResult> GetBookCover(Guid uuid, [FromQuery] int? width = null, [FromQuery] int? height = null)
     {
-        var cover = await alexandriaLibraryService.GetBookCover(uuid, width, height);
+        var cover = await bookService.GetBookCover(uuid, width, height);
         if (cover is null)
             return NotFound();
         return File(cover, "image/jpeg");
@@ -59,7 +59,7 @@ public class BooksController(IAlexandriaLibraryService alexandriaLibraryService,
     public async Task<IActionResult> UpdateBookMetadata(Guid uuid, [FromBody] UpdateBookMetadataRequest request)
     {
         logger.LogInformation("Updating metadata for book {Uuid}", uuid);
-        var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var existing = await bookService.GetBookByUuid(uuid);
         if (existing is null)
             return NotFound();
 
@@ -72,7 +72,7 @@ public class BooksController(IAlexandriaLibraryService alexandriaLibraryService,
         if (request.Contributors is null)
             book.Contributors = existing.Contributors;
 
-        var result = await alexandriaLibraryService.UpdateBookMetadata(book);
+        var result = await bookService.UpdateBookMetadata(book);
         return Ok(ApiMapper.ToBookResponse(result!));
     }
 
@@ -90,14 +90,14 @@ public class BooksController(IAlexandriaLibraryService alexandriaLibraryService,
         if (cover.Length > 10 * 1024 * 1024)
             return BadRequest("Cover file must be smaller than 10 MB.");
 
-        var existing = await alexandriaLibraryService.GetBookByUuid(uuid);
+        var existing = await bookService.GetBookByUuid(uuid);
         if (existing is null)
             return NotFound();
 
         using var ms = new MemoryStream();
         await cover.CopyToAsync(ms);
 
-        var result = await alexandriaLibraryService.UpdateBookCover(uuid, ms.ToArray(), cover.ContentType);
+        var result = await bookService.UpdateBookCover(uuid, ms.ToArray(), cover.ContentType);
         return Ok(ApiMapper.ToBookResponse(result!));
     }
 
@@ -105,7 +105,7 @@ public class BooksController(IAlexandriaLibraryService alexandriaLibraryService,
     public async Task<IActionResult> RemoveBookCover(Guid uuid)
     {
         logger.LogInformation("Removing cover for book {Uuid}", uuid);
-        var result = await alexandriaLibraryService.RemoveBookCover(uuid);
+        var result = await bookService.RemoveBookCover(uuid);
         if (result is null)
             return NotFound();
         return Ok(ApiMapper.ToBookResponse(result));

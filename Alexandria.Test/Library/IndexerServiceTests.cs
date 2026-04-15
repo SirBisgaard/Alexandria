@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Library;
 
 [TestClass]
-public sealed class AlexandriaIndexerServiceTests
+public sealed class IndexerServiceTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
 
@@ -58,7 +58,7 @@ public sealed class AlexandriaIndexerServiceTests
         return (bookRepository, authorRepository, seriesRepository, connectionProvider);
     }
 
-    private AlexandriaIndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
+    private IndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
     {
         var epubMetadataHandler = new EpubMetadataHandler();
         var converter = new KepubifyConverter();
@@ -70,7 +70,7 @@ public sealed class AlexandriaIndexerServiceTests
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        return new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<AlexandriaSettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
+        return new IndexerService(contentManager, bookRepository, new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
     }
 
     [TestMethod]

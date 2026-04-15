@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
+public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
 {
     /// <summary>
     /// Serves KEPUB file for local books, proxies to Kobo for store books.
@@ -18,7 +18,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
     /// </summary>
     public async Task<KoboProxyResponse> Download(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("Download: book {Uuid} not local, proxying to Kobo", uuid);
@@ -49,7 +49,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
     /// </summary>
     public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("CoverImage: book {Uuid} not local, redirecting to Kobo CDN", uuid);
@@ -82,7 +82,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
     /// </summary>
     public async Task<KoboProxyResponse> DownloadManifest(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("DownloadManifest: book {Uuid} not local, proxying to Kobo", uuid);
@@ -100,7 +100,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
 
     public async Task<KoboProxyResponse> AudiobookChapter(KoboProxyRequest request, Guid uuid, int partId)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("AudiobookChapter: book {Uuid} not local, proxying to Kobo", uuid);

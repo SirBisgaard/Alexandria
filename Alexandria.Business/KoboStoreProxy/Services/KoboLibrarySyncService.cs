@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IAlexandriaSettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
+public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, ICollectionService collectionService, ISettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
 {
     /// <summary>
     /// Rewrites 4 resource URLs (library_sync, image_host, image_url_template, image_url_quality_template)
@@ -98,7 +98,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
             }
         }
 
-        var allBooks = await alexandriaLibraryService.GetBooks();
+        var allBooks = await bookService.GetBooks();
         var syncedDates = await koboDeviceSyncRepository.GetSyncedModifiedDates(deviceKey);
 
         if (!koboDeviceSyncTokenService.IsActive(deviceKey))
@@ -129,7 +129,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
 
         foreach (var uuid in batchUuids)
         {
-            var book = await alexandriaLibraryService.GetBookByUuid(uuid);
+            var book = await bookService.GetBookByUuid(uuid);
             if (book is null)
                 continue;
 
@@ -212,13 +212,13 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     /// </summary>
     public async Task<KoboProxyResponse> Metadata(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("Metadata: book {Uuid} not local, proxying to Kobo", uuid);
             return await koboProxyService.Proxy(request);
         }
-        var allBooks = await alexandriaLibraryService.GetBooks();
+        var allBooks = await bookService.GetBooks();
         var relatedGroupId = GetRelatedGroupId(book, BuildWorkGroupLookup(allBooks));
         var deviceBaseUrl = $"{alexandriaSettings.KoboApiUrl}/{request.DeviceKey}";
 
@@ -232,7 +232,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     /// </summary>
     public async Task<KoboProxyResponse> DeleteBook(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("DeleteBook: book {Uuid} not local, proxying to Kobo", uuid);
@@ -240,7 +240,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         }
 
         logger.LogInformation("DeleteBook: archiving '{Title}' ({Uuid})", book.Title, uuid);
-        await alexandriaLibraryService.SetBookArchiveStatus(book.BookUuid, true);
+        await bookService.SetBookArchiveStatus(book.BookUuid, true);
 
         return new KoboProxyResponse { StatusCode = StatusCodes.Status204NoContent, Headers = new Dictionary<string, string[]>(), Body = [] };
     }
@@ -260,7 +260,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     /// </summary>
     private async Task<List<KoboStoreSyncResultItem>> GetCollectionSyncItems(DateTimeOffset lastSync, List<Book> allBooks)
     {
-        var collections = lastSync == DateTimeOffset.MinValue ? await alexandriaLibraryService.GetCollections() : await alexandriaLibraryService.GetCollectionsModifiedSince(lastSync);
+        var collections = lastSync == DateTimeOffset.MinValue ? await collectionService.GetCollections() : await collectionService.GetCollectionsModifiedSince(lastSync);
         var entitlementLookup = allBooks.ToDictionary(b => b.BookUuid, b => b.EntitlementUuid);
 
         return collections.Select(c =>
@@ -298,7 +298,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                 ModifiedAt = DateTimeOffset.TryParse(tag.LastModified, out var modified) ? modified : DateTimeOffset.UtcNow
             };
 
-            await alexandriaLibraryService.UpsertCollection(collection);
+            await collectionService.UpsertCollection(collection);
             logger.LogInformation("LibrarySync: persisting store collection '{Name}' ({Uuid}) with {Count} books", collection.Name, collection.CollectionUuid, collection.BookUuids.Count);
         }
     }

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class AlexandriaSettingsService(ISettingsRepository settingsRepository, IKoboTrafficLogRepository koboTrafficLogRepository, ILogger<AlexandriaSettingsService> logger) : IAlexandriaSettingsService
+public class SettingsService(ISettingsRepository settingsRepository, IKoboTrafficLogRepository koboTrafficLogRepository, ILogger<SettingsService> logger) : ISettingsService
 {
     private static AppSettings? cached;
 

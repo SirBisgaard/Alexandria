@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboReadingStateService(IKoboProxyService koboProxyService, IAlexandriaLibraryService alexandriaLibraryService, IReadingStateRepository readingStateRepository, ILogger<KoboReadingStateService> logger) : IKoboReadingStateService
+public class KoboReadingStateService(IKoboProxyService koboProxyService, IBookService bookService, IReadingStateRepository readingStateRepository, ILogger<KoboReadingStateService> logger) : IKoboReadingStateService
 {
     /// <summary>
     /// Handles GET/PUT for reading state on local books. Store books are proxied to Kobo.
@@ -20,7 +20,7 @@ public class KoboReadingStateService(IKoboProxyService koboProxyService, IAlexan
     /// </summary>
     public async Task<KoboProxyResponse> ReadingState(KoboProxyRequest request, Guid uuid)
     {
-        var book = await alexandriaLibraryService.GetBookByEntitlementUuid(uuid);
+        var book = await bookService.GetBookByEntitlementUuid(uuid);
         if (book is null)
         {
             logger.LogInformation("ReadingState: book {Uuid} not local, proxying to Kobo", uuid);

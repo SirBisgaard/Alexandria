@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Library;
 
 [TestClass]
-public sealed class AlexandriaLibraryServiceTests
+public sealed class BookServiceTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
 
@@ -54,7 +54,7 @@ public sealed class AlexandriaLibraryServiceTests
 
     private AlexandriaSettings CreateSettings() => new() { PublicUrl = "http://localhost", DataFolder = testDir, EbookFolder = booksDir, AudiobookFolder = Path.Combine(testDir, "audiobooks") };
 
-    private async Task<(AlexandriaLibraryService service, BookRepository bookRepository)> CreateService()
+    private async Task<(BookService service, BookRepository bookRepository)> CreateService()
     {
         var settings = CreateSettings();
         var connectionProvider = new SqliteConnectionProvider(settings);
@@ -73,10 +73,9 @@ public sealed class AlexandriaLibraryServiceTests
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexerService = new AlexandriaIndexerService(contentManager, bookRepository, new AlexandriaSettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<AlexandriaSettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<AlexandriaIndexerService>.Instance);
+        var indexerService = new IndexerService(contentManager, bookRepository, new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
-        var collectionRepository = new FakeCollectionRepository();
-        var service = new AlexandriaLibraryService(bookRepository, readingStateRepository, collectionRepository, contentManager, indexerService, authorRepository, seriesRepository);
+        var service = new BookService(bookRepository, readingStateRepository, contentManager, indexerService);
 
         await indexerService.Index();
         return (service, bookRepository);
@@ -257,14 +256,5 @@ public sealed class AlexandriaLibraryServiceTests
         public Task<KoboStoreReadingState?> GetByBookUuid(Guid bookUuid) => Task.FromResult<KoboStoreReadingState?>(null);
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult<ReadingProgress?>(null);
         public Task Upsert(Guid bookUuid, KoboStoreReadingState state) => Task.CompletedTask;
-    }
-
-    private class FakeCollectionRepository : ICollectionRepository
-    {
-        public Task<List<BookCollection>> GetAll() => Task.FromResult<List<BookCollection>>([]);
-        public Task<BookCollection?> FindByUuid(Guid uuid) => Task.FromResult<BookCollection?>(null);
-        public Task Upsert(BookCollection collection) => Task.CompletedTask;
-        public Task Delete(Guid uuid) => Task.CompletedTask;
-        public Task<List<BookCollection>> GetModifiedSince(DateTimeOffset since) => Task.FromResult<List<BookCollection>>([]);
     }
 }

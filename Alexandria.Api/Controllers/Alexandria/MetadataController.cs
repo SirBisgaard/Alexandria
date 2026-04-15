@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria")]
-public class MetadataController(IAlexandriaLibraryService alexandriaLibraryService) : AlexandriaControllerBase
+public class MetadataController(IBookService bookService) : AlexandriaControllerBase
 {
     [HttpGet("publishers")]
     public async Task<IActionResult> GetPublishers()
     {
-        var publishers = await alexandriaLibraryService.GetPublishers();
+        var publishers = await bookService.GetPublishers();
         return Ok(publishers);
     }
 
