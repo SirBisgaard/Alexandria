@@ -43,8 +43,8 @@ $(function () {
                 '<div class="about-modal-content">' +
                     '<p>Named after the ancient Library of Alexandria, Alexandria is an offline library manager for Kobo e-readers, supporting both ebooks and audiobooks.</p>' +
                     '<p>It works by acting as a transparent proxy between your Kobo and the Kobo store, intercepting sync endpoints to seamlessly inject your personal library into the standard Kobo reading experience.</p>' +
-                    '<p>Your books appear alongside store purchases on your device, complete with covers, reading progress, and metadata &mdash; no sideloading or USB transfers required.</p>' +
-                    '<p>Drop EPUB or M4B files into the library folder, and they will sync to your device automatically. Use the web interface to edit metadata, manage collections, and track your reading progress.</p>' +
+                    '<p>Your books appear alongside store purchases on every paired device, complete with covers, reading progress, and metadata &mdash; no sideloading or USB transfers required.</p>' +
+                    '<p>Drop EPUB or M4B files into the library folder, and they sync to each Kobo automatically. Pair any number of devices, share the library across multiple users, and use the web interface to edit metadata, manage collections, and track reading progress.</p>' +
                     '<div class="about-logo">Alexandria</div>' +
                 '</div>' +
             '</div>' +

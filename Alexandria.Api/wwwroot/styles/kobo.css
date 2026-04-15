@@ -882,9 +882,14 @@ a.series-list-item {
     font-family: "Times New Roman", Times, serif;
 }
 
-#about-modal, #settings-modal,
+#settings-modal,
 #user-modal, #device-modal {
     max-width: 350px;
+    min-height: auto;
+}
+
+#about-modal {
+    max-width: 480px;
     min-height: auto;
 }
 
