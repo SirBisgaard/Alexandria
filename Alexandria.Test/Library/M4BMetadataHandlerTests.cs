@@ -1,6 +1,7 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Models;
 using Alexandria.DataAccess.Files.Services;
 
 namespace Alexandria.Tests.Library;
@@ -445,6 +446,37 @@ public sealed class M4BMetadataHandlerTests
         var newSize = new FileInfo(m4BCopy).Length;
         var ratio = (double)newSize / originalSize;
         Assert.IsTrue(ratio > 0.95 && ratio < 1.05, $"File size changed by {(ratio - 1) * 100:F1}% — likely re-encoded instead of stream copy.");
+    }
+
+    /// <summary>
+    /// When the grouping tag carries multiple series in Audiobookshelf's "Name #Idx; Name #Idx"
+    /// format, we take the first (primary) series and discard the rest. Our domain model and the
+    /// Kobo sync protocol both carry a single series per book, so collapsing at parse time keeps
+    /// the DB clean instead of storing garbage like "Series One #1; Series Two" as a series name.
+    /// </summary>
+    [TestMethod]
+    public async Task ExtractMetadata_MultiSeriesGroupingTag_TakesFirstSeries()
+    {
+        var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+        var existing = await handler.ExtractMetadata(m4BCopy);
+
+        var tags = new Dictionary<string, string>
+        {
+            ["title"] = existing.Title,
+            ["grouping"] = "Series One #1; Series Two #2"
+        };
+        var chapters = existing.Chapters.Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title)).ToList();
+
+        var ffmpeg = new FfmpegHandler();
+        var tempPath = m4BCopy + ".tmp";
+        await ffmpeg.WriteMetadata(m4BCopy, tempPath, tags, chapters);
+        File.Move(tempPath, m4BCopy, overwrite: true);
+
+        var re = await handler.ExtractMetadata(m4BCopy);
+
+        Assert.IsNotNull(re.Series);
+        Assert.AreEqual("Series One", re.Series.Name);
+        Assert.AreEqual(1m, re.Series.Index);
     }
 
     [TestMethod]

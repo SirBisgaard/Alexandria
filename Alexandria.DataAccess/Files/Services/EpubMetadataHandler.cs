@@ -168,9 +168,6 @@ public class EpubMetadataHandler : IEpubMetadataHandler
             }
         }
 
-        // TODO: Remove once all EPUBs have been re-indexed without legacy alexandria: meta tags.
-        RemoveLegacyAlexandriaMeta(metadataEl);
-
         // Write series as standard EPUB3 (belongs-to-collection). Custom tags (calibre, etc.) are preserved.
         RemoveEpub3SeriesMeta(metadataEl);
         WriteEpub3SeriesMeta(metadataEl, metadata.SeriesName, metadata.SeriesIndex);
@@ -585,14 +582,21 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         }
     }
 
+    /// <summary>
+    /// EPUB 3 permits multiple belongs-to-collection metas per publication (a book can be
+    /// in a literary series *and* a box-set collection at the same time). Our domain holds
+    /// one series, so we pick: first a collection whose refining collection-type is "series",
+    /// then fall back to the first belongs-to-collection in document order (for EPUBs that
+    /// omit collection-type — common in the wild).
+    /// </summary>
     private static void ParseEpub3Series(XElement metadataEl, EpubMetadata result)
     {
-        var collectionMeta = MetaElements(metadataEl)
-            .FirstOrDefault(m =>
-                string.Equals(
-                    m.Attribute("property")?.Value,
-                    "belongs-to-collection",
-                    StringComparison.OrdinalIgnoreCase));
+        var candidates = MetaElements(metadataEl)
+            .Where(m => string.Equals(m.Attribute("property")?.Value, "belongs-to-collection", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var collectionMeta = candidates.FirstOrDefault(m => IsSeriesTypeCollection(metadataEl, m))
+                             ?? candidates.FirstOrDefault();
 
         if (collectionMeta is null)
             return;
@@ -617,6 +621,20 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
         if (positionMeta is not null && decimal.TryParse(positionMeta.Value.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var pos))
             result.SeriesIndex = pos;
+    }
+
+    private static bool IsSeriesTypeCollection(XElement metadataEl, XElement collectionMeta)
+    {
+        var refineId = collectionMeta.Attribute("id")?.Value;
+        if (refineId is null)
+            return false;
+
+        var typeMeta = MetaElements(metadataEl)
+            .FirstOrDefault(m =>
+                m.Attribute("refines")?.Value == $"#{refineId}" &&
+                string.Equals(m.Attribute("property")?.Value, "collection-type", StringComparison.OrdinalIgnoreCase));
+
+        return typeMeta is not null && string.Equals(typeMeta.Value.Trim(), "series", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? FindMetaByName(XElement metadataEl, string name)
@@ -767,22 +785,6 @@ public class EpubMetadataHandler : IEpubMetadataHandler
         if (!string.IsNullOrEmpty(value))
         {
             metadataEl.Add(new XElement(Opf + "meta", new XAttribute("name", name), new XAttribute("content", value)));
-        }
-    }
-
-    /// <summary>
-    /// Removes legacy alexandria: meta tags from before the switch to dc:identifier and EPUB3 series.
-    /// TODO: Remove this method once all EPUBs have been re-indexed.
-    /// </summary>
-    private static void RemoveLegacyAlexandriaMeta(XElement metadataEl)
-    {
-        string[] legacyNames = ["alexandria:uuid", "alexandria:series", "alexandria:series_index", "alexandria:series_total"];
-        foreach (var name in legacyNames)
-        {
-            MetaElements(metadataEl)
-                .Where(m => string.Equals(m.Attribute("name")?.Value, name, StringComparison.OrdinalIgnoreCase))
-                .ToList()
-                .ForEach(m => m.Remove());
         }
     }
 

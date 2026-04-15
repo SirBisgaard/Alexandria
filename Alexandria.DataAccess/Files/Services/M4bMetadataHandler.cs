@@ -24,7 +24,9 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
     /// M4B/MP4 has no dedicated narrator field, and "composer" is the de facto convention used
     /// by audiobook tools (Audiobookshelf, mp3tag, etc.). Series is parsed from the "grouping"
     /// tag in "Series Name #N" format, using LastIndexOf('#') to handle names containing '#'
-    /// (e.g., "C# Programming"). SERIES/PART custom tags are the fallback.
+    /// (e.g., "C# Programming"). Multi-series groupings ("A #1; B #2", written by Audiobookshelf
+    /// et al.) are collapsed to the first series — our domain and the Kobo sync protocol only
+    /// carry one series per book. SERIES/PART custom tags are the fallback.
     /// </summary>
     private async Task<Book> ExtractMetadataViaFfprobe(string filePath)
     {
@@ -226,11 +228,15 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
 
     private static Series ParseGrouping(string grouping)
     {
-        var hashIndex = grouping.LastIndexOf('#');
-        if (hashIndex > 0 && decimal.TryParse(grouping[(hashIndex + 1)..].Trim(), out var index))
-            return new Series { Name = grouping[..hashIndex].Trim(), Index = index };
+        var primary = grouping.Split(';', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(primary))
+            return new Series { Name = grouping.Trim() };
 
-        return new Series { Name = grouping };
+        var hashIndex = primary.LastIndexOf('#');
+        if (hashIndex > 0 && decimal.TryParse(primary[(hashIndex + 1)..].Trim(), out var index))
+            return new Series { Name = primary[..hashIndex].Trim(), Index = index };
+
+        return new Series { Name = primary };
     }
 
     private static string? GetTag(JsonElement tags, string key)

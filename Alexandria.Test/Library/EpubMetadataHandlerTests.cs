@@ -621,6 +621,71 @@ public sealed class EpubMetadataHandlerTests
         Assert.AreEqual(99, result.Series?.Index);
     }
 
+    /// <summary>
+    /// EPUB 3 permits multiple belongs-to-collection metas (each with its own id and refining
+    /// group-position). Our domain and the Kobo sync protocol carry a single series per book,
+    /// so when an EPUB declares more than one series-typed collection we take the first in
+    /// document order and discard the rest — matching the stance we take for M4B grouping tags.
+    /// </summary>
+    [TestMethod]
+    public void Extract_MultipleBelongsToCollection_TakesFirstSeries()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        InjectCollection(epubPath, collectionId: "series02", name: "Secondary Series", position: "7");
+
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
+
+        Assert.AreEqual("The Last Kingdom", result.Series?.Name);
+        Assert.AreEqual(1, result.Series?.Index);
+    }
+
+    /// <summary>
+    /// When an EPUB mixes a box-set-style collection (collection-type=collection) with a
+    /// literary series (collection-type=series), we must prefer the series regardless of
+    /// document order — a box set is a grouping, not a series, and shoving it into Book.Series
+    /// would misrepresent the book.
+    /// </summary>
+    [TestMethod]
+    public void Extract_CollectionTypeSeries_PreferredOverPlainCollection()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        // Wipe the existing EPUB3 series so we fully control the collection order below.
+        RemoveEpub3SeriesFromEpub(epubPath);
+
+        // Box set first (would win on document order alone), then the real series.
+        InjectCollection(epubPath, collectionId: "boxset01", name: "Big Box Set", position: "1", collectionType: "collection");
+        InjectCollection(epubPath, collectionId: "series01", name: "Real Series", position: "4", collectionType: "series");
+
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
+
+        Assert.AreEqual("Real Series", result.Series?.Name);
+        Assert.AreEqual(4, result.Series?.Index);
+    }
+
+    /// <summary>
+    /// Many EPUBs in the wild omit the collection-type refiner entirely. Treat an unlabeled
+    /// belongs-to-collection as the fallback — take first-in-order. Required so we don't
+    /// regress on EPUBs produced by tools that only emit belongs-to-collection + group-position.
+    /// </summary>
+    [TestMethod]
+    public void Extract_UntypedBelongsToCollection_StillParsed()
+    {
+        var handler = new EpubMetadataHandler();
+        var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
+
+        RemoveEpub3SeriesFromEpub(epubPath);
+        InjectCollection(epubPath, collectionId: "c1", name: "Untyped Series", position: "2", collectionType: null);
+
+        var (result, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
+
+        Assert.AreEqual("Untyped Series", result.Series?.Name);
+        Assert.AreEqual(2, result.Series?.Index);
+    }
+
     [TestMethod]
     public void Extract_CalibreFallsBackWhenNoEpub3Series()
     {
@@ -750,6 +815,44 @@ public sealed class EpubMetadataHandlerTests
 
         Assert.IsNotNull(book.WordCount);
         Assert.IsGreaterThan(0, book.WordCount.Value);
+    }
+
+    private static void InjectCollection(string epubPath, string collectionId, string name, string position, string? collectionType = "series")
+    {
+        var opfNs = (System.Xml.Linq.XNamespace)"http://www.idpf.org/2007/opf";
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update);
+
+        var opfEntry = zip.Entries.First(e => e.FullName.EndsWith(".opf"));
+        System.Xml.Linq.XDocument opfDoc;
+        using (var opfStream = opfEntry.Open())
+            opfDoc = System.Xml.Linq.XDocument.Load(opfStream);
+
+        var metadataEl = opfDoc.Descendants(opfNs + "metadata").First();
+
+        var collectionEl = new System.Xml.Linq.XElement(opfNs + "meta", name);
+        collectionEl.SetAttributeValue("property", "belongs-to-collection");
+        collectionEl.SetAttributeValue("id", collectionId);
+        metadataEl.Add(collectionEl);
+
+        if (collectionType is not null)
+        {
+            var typeEl = new System.Xml.Linq.XElement(opfNs + "meta", collectionType);
+            typeEl.SetAttributeValue("property", "collection-type");
+            typeEl.SetAttributeValue("refines", $"#{collectionId}");
+            metadataEl.Add(typeEl);
+        }
+
+        var posEl = new System.Xml.Linq.XElement(opfNs + "meta", position);
+        posEl.SetAttributeValue("property", "group-position");
+        posEl.SetAttributeValue("refines", $"#{collectionId}");
+        metadataEl.Add(posEl);
+
+        opfEntry.Delete();
+        var newEntry = zip.CreateEntry(opfEntry.FullName);
+        using var writeStream = newEntry.Open();
+        opfDoc.Save(writeStream);
     }
 
     private static void RemoveEpub3SeriesFromEpub(string epubPath)
