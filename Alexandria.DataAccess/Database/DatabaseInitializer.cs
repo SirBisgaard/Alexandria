@@ -1,12 +1,12 @@
+using Alexandria.Business.Authentication.Interfaces;
 using Alexandria.DataAccess.Database.Interfaces;
-using Alexandria.DataAccess.Database.Repositories;
 using Alexandria.Business.Library.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Database;
 
-public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
+public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, IPasswordHasher passwordHasher, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
     public async Task Initialize()
     {
@@ -20,7 +20,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
 
             var migrations = new (int Version, Action<SqliteConnection> Apply)[]
             {
-                (1, MigrateV1_UnifiedSchema)
+                (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher))
             };
 
             foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -58,7 +58,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         cmd.ExecuteNonQuery();
     }
 
-    private static void MigrateV1_UnifiedSchema(SqliteConnection connection)
+    private static void MigrateV1_UnifiedSchema(SqliteConnection connection, IPasswordHasher passwordHasher)
     {
         using var seriesCmd = connection.CreateCommand();
         seriesCmd.CommandText = """
@@ -334,7 +334,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         // Generate the default user.
         GuidExtensions.SetNamespace(uuidSeed);
         var defaultUserUuid = Guid.GenerateUuidV5("Alexander");
-        var defaultPasswordHash = UserRepository.HashPassword("TheGreat", uuidSeed);
+        var defaultPasswordHash = passwordHasher.Hash("TheGreat");
         var now = DateTimeOffset.UtcNow.ToString("O");
 
         using var userSeedCmd = connection.CreateCommand();

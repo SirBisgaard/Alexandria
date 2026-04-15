@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Alexandria.Api.Authentication;
 using Alexandria.Api.Middleware;
 using Alexandria.Business.Authentication;
+using Alexandria.Business.Authentication.Interfaces;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
@@ -85,6 +86,7 @@ builder.Services.AddTransient<ISettingsService, SettingsService>();
 // Authentication
 var authSecrets = new AuthSecretProvider();
 builder.Services.AddSingleton(authSecrets);
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
 builder.Services.AddAuthentication(options =>
 {

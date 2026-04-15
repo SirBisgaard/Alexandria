@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Interfaces;
 
@@ -128,12 +126,6 @@ public class UserRepository(ISqliteConnectionProvider connectionProvider) : IUse
             cmd.Parameters.AddWithValue("@modifiedAt", now);
             cmd.ExecuteNonQuery();
         });
-    }
-
-    public static string HashPassword(string password, Guid salt)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(salt + password));
-        return Convert.ToHexStringLower(bytes);
     }
 
     private static User MapUser(Microsoft.Data.Sqlite.SqliteDataReader reader)

@@ -1,3 +1,4 @@
+using Alexandria.Business.Authentication;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Extensions;
@@ -58,7 +59,7 @@ public sealed class BookServiceTests
     {
         var settings = CreateSettings();
         var connectionProvider = new SqliteConnectionProvider(settings);
-        var initializer = new DatabaseInitializer(connectionProvider, NullLogger<DatabaseInitializer>.Instance);
+        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
         var authorRepository = new AuthorRepository(connectionProvider);
         var seriesRepository = new SeriesRepository(connectionProvider);

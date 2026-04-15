@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Alexandria.Business.Authentication;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
@@ -58,7 +59,7 @@ public sealed class IndexerPerformanceTests
 
         var settings = CreateSettings();
         var connectionProvider = new SqliteConnectionProvider(settings);
-        var initializer = new DatabaseInitializer(connectionProvider, NullLogger<DatabaseInitializer>.Instance);
+        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
 
         // Raw repositories (no caching layer)

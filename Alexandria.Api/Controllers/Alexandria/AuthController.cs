@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Authentication;
-using Alexandria.Business.Interfaces;
+using Alexandria.Business.Authentication.Interfaces;
 using Alexandria.DataAccess.Database.Interfaces;
-using Alexandria.DataAccess.Database.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +11,7 @@ namespace Alexandria.Api.Controllers;
 [ApiController]
 [Route("/api/alexandria/auth")]
 [Authorize(AuthenticationSchemes = "Alexandria")]
-public class AuthController(IUserRepository userRepository, ISettingsRepository settingsRepository, AuthSecretProvider authSecrets) : AlexandriaControllerBase
+public class AuthController(IUserRepository userRepository, IPasswordHasher passwordHasher, AuthSecretProvider authSecrets) : AlexandriaControllerBase
 {
     [HttpPost("login")]
     [AllowAnonymous]
@@ -22,9 +21,7 @@ public class AuthController(IUserRepository userRepository, ISettingsRepository 
         if (user is null)
             return Unauthorized(new { error = "Invalid username or password" });
 
-        var settings = await settingsRepository.Get();
-        var hash = UserRepository.HashPassword(request.Password, settings.UuidSeed);
-        if (hash != user.Password)
+        if (!passwordHasher.Verify(request.Password, user.Password))
             return Unauthorized(new { error = "Invalid username or password" });
 
         var token = TokenHelpers.Mint(user.UserUuid.ToString(), authSecrets.GetUserHmacKey(), TokenHelpers.UserTokenTtl);

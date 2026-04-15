@@ -11,7 +11,7 @@ services:
       - ./Data/Alexandria:/app/content/data
     environment:
       # Logging
-      - Logging__LogLevel__Default=Warning
+      - Logging__LogLevel__Default=Information
       # AlexandriaSettings
       - AlexandriaSettings__PublicUrl=http://localhost
       - AlexandriaSettings__DataFolder=/app/content/data

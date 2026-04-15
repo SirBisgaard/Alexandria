@@ -1,15 +1,14 @@
 using System.Security.Claims;
 using Alexandria.Api.Models.Requests;
-using Alexandria.Business.Interfaces;
+using Alexandria.Business.Authentication.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Interfaces;
-using Alexandria.DataAccess.Database.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/users")]
-public class UserController(IUserRepository userRepository, ISettingsRepository settingsRepository) : AlexandriaControllerBase
+public class UserController(IUserRepository userRepository, IPasswordHasher passwordHasher) : AlexandriaControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetUsers()
@@ -29,12 +28,11 @@ public class UserController(IUserRepository userRepository, ISettingsRepository 
         if (existing is not null)
             return BadRequest(new { error = "Username already exists" });
 
-        var settings = await settingsRepository.Get();
         var user = new User
         {
             UserUuid = Guid.NewGuid(),
             Username = request.Username,
-            Password = UserRepository.HashPassword(request.Password, settings.UuidSeed),
+            Password = passwordHasher.Hash(request.Password),
             DisplayName = request.DisplayName
         };
 
@@ -53,10 +51,7 @@ public class UserController(IUserRepository userRepository, ISettingsRepository 
         user.DisplayName = request.DisplayName;
 
         if (!string.IsNullOrEmpty(request.Password))
-        {
-            var settings = await settingsRepository.Get();
-            user.Password = UserRepository.HashPassword(request.Password, settings.UuidSeed);
-        }
+            user.Password = passwordHasher.Hash(request.Password);
 
         await userRepository.Update(user);
         return Ok(new { user.UserUuid, user.Username, user.DisplayName });
