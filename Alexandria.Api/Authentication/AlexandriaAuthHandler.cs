@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using Alexandria.Business.Auth;
+using Alexandria.Business.Authentication;
 using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;

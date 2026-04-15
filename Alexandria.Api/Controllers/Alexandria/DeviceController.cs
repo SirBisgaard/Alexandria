@@ -1,15 +1,12 @@
 using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alexandria.Api.Controllers;
+namespace Alexandria.Api.Controllers.Alexandria;
 
-[ApiController]
 [Route("/api/alexandria/devices")]
-[Authorize(AuthenticationSchemes = "Alexandria")]
-public class DeviceController(IKoboDeviceRepository deviceRepository) : ControllerBase
+public class DeviceController(IKoboDeviceRepository deviceRepository) : AlexandriaControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetDevices()

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Alexandria.Business.Auth;
+namespace Alexandria.Business.Authentication;
 
 /// <summary>
 /// Derives HMAC keys for user tokens from the application's UUID seed.

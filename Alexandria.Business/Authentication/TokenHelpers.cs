@@ -1,12 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Alexandria.Business.Auth;
+namespace Alexandria.Business.Authentication;
 
 /// <summary>
 /// Mints and verifies HMAC-signed tokens used for both user and device auth.
 /// Format: <c>base64url(id|expiryUnixSeconds) + "." + base64url(HMAC-SHA256(key, id|expiryUnixSeconds))</c>.
-/// Expiry is signed into the payload — tampering with either <c>id</c> or the unix-seconds
+/// Expiry is signed in to the payload — tampering with either <c>id</c> or the unix-seconds
 /// expiry invalidates the signature. Tokens are self-contained (no server-side session table).
 /// </summary>
 public static class TokenHelpers

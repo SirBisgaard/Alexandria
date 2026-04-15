@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Alexandria.Business.Auth;
+using Alexandria.Business.Authentication;
 
 namespace Alexandria.Tests.Auth;
 

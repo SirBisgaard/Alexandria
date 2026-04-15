@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Alexandria.Api.Authentication;
 using Alexandria.Api.Middleware;
-using Alexandria.Business.Auth;
+using Alexandria.Business.Authentication;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;

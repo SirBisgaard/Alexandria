@@ -4,7 +4,7 @@ using Alexandria.Business.KoboStoreProxy.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alexandria.Api.Controllers;
+namespace Alexandria.Api.Controllers.Kobo;
 
 /// <summary>
 /// Intercepts specific Kobo store API endpoints to inject local Alexandria library books.

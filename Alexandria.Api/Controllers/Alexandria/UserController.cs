@@ -4,15 +4,12 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Interfaces;
 using Alexandria.DataAccess.Database.Repositories;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alexandria.Api.Controllers;
+namespace Alexandria.Api.Controllers.Alexandria;
 
-[ApiController]
 [Route("/api/alexandria/users")]
-[Authorize(AuthenticationSchemes = "Alexandria")]
-public class UserController(IUserRepository userRepository, ISettingsRepository settingsRepository) : ControllerBase
+public class UserController(IUserRepository userRepository, ISettingsRepository settingsRepository) : AlexandriaControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetUsers()

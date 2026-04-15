@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using Alexandria.Api.Models.Requests;
-using Alexandria.Business.Auth;
+using Alexandria.Business.Authentication;
 using Alexandria.Business.Interfaces;
 using Alexandria.DataAccess.Database.Interfaces;
 using Alexandria.DataAccess.Database.Repositories;
@@ -12,7 +12,7 @@ namespace Alexandria.Api.Controllers;
 [ApiController]
 [Route("/api/alexandria/auth")]
 [Authorize(AuthenticationSchemes = "Alexandria")]
-public class AuthController(IUserRepository userRepository, ISettingsRepository settingsRepository, AuthSecretProvider authSecrets) : ControllerBase
+public class AuthController(IUserRepository userRepository, ISettingsRepository settingsRepository, AuthSecretProvider authSecrets) : AlexandriaControllerBase
 {
     [HttpPost("login")]
     [AllowAnonymous]

@@ -4,7 +4,7 @@ using Alexandria.Business.KoboStoreProxy.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alexandria.Api.Controllers;
+namespace Alexandria.Api.Controllers.Kobo;
 
 /// <summary>
 /// Catch-all controller that transparently proxies any request not matched by
