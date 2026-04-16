@@ -12,7 +12,8 @@ public class FfmpegHandler : IFfmpegHandler
     /// via libmp3lame; MP3 sources are remuxed without re-encoding.
     /// The cancellation token kills the ffmpeg process if the client disconnects.
     /// </summary>
-    // AAC remux alternative (zero-copy): -vn -c:a copy -f adts pipe:1
+    // Kobo devices do not support AAC/ADTS streams — chapters must be served as MP3.
+    // AAC remux (-c:a copy -f adts) was tried but playback fails on the device (verified 2026-04-16).
     public async Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken)
     {
         var codecArgs = codec == "mp3" ? "-c:a copy" : "-acodec libmp3lame -q:a 2";

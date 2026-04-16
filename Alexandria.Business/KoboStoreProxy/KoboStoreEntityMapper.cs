@@ -157,9 +157,6 @@ public static class KoboStoreEntityMapper
         };
     }
 
-    public static string CodecToMimeType(string? codec) => codec switch { "mp3" => "audio/mpeg", "opus" => "audio/opus", _ => "audio/aac" };
-    public static string CodecToExtension(string? codec) => codec switch { "mp3" => "mp3", "opus" => "opus", _ => "aac" };
-
     public static KoboStoreProductRecommendationItem ToProductRecommendationItem(Book book) => book.File.MediaType == MediaType.Audiobook
         ? new KoboStoreProductRecommendationItem { Audiobook = ToAudiobookProduct(book) }
         : new KoboStoreProductRecommendationItem { Book = ToEbookProduct(book) };
