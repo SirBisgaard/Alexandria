@@ -136,6 +136,12 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper) : IM4BFileHandler
         await ffmpegWrapper.StreamChapter(book.File.SourcePath, chapter.StartTime, chapter.EndTime, book.File.AudioCodec, book.File.AudioBitrate, outputStream, cancellationToken);
     }
 
+    public async Task TranscodeChapterToFile(Book book, int chapterIndex, string outputPath, CancellationToken cancellationToken)
+    {
+        var chapter = book.Chapters[chapterIndex];
+        await ffmpegWrapper.TranscodeChapterToFile(book.File.SourcePath, chapter.StartTime, chapter.EndTime, book.File.AudioCodec, book.File.AudioBitrate, outputPath, cancellationToken);
+    }
+
     /// <summary>
     /// Writes metadata into the M4B file via ffmpeg. Only standard ID3/MP4 tags are written —
     /// non-standard tags (custom TXXX frames, etc.) can cause media players to fail reading

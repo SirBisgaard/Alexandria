@@ -75,17 +75,17 @@ public sealed class IndexerPerformanceTests
         // Timing ffmpeg wrapper
         var timingFfmpeg = new TimingFfmpegWrapper(new FfmpegWrapper(), timings);
         var m4BHandler = new M4BFileHandler(timingFfmpeg);
-        var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
 
         // File indexers with timing wrappers
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
+        var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
         var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubFileHandler(), new KepubifyWrapper(), coverThumbnailService), timings);
-        var audiobookIndexer = new TimingFileContentIndexer(new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService), timings);
+        var audiobookIndexer = new TimingFileContentIndexer(new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService, settingsService, m4BHandler, NullLogger<FileM4BAudiobookIndexer>.Instance), timings);
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubFileHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
         var indexer = new IndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, NullLogger<IndexerService>.Instance);
 
         // Run full index with timing

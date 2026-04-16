@@ -8,6 +8,7 @@ public interface IM4BFileHandler
     Task<byte[]?> ExtractCoverBytes(string filePath);
     Task<string?> ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid);
     Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken);
+    Task TranscodeChapterToFile(Book book, int chapterIndex, string outputPath, CancellationToken cancellationToken);
     Task EmbedMetadata(Book book);
     Task EmbedCover(Book book, byte[] coverData, string mediaType);
     Task RemoveCover(Book book);

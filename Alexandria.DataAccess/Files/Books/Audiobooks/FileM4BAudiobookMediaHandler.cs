@@ -1,20 +1,35 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
+using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileM4BAudiobookMediaHandler(IM4BFileHandler m4BFileHandler) : IFileContentMediaHandler
+public class FileM4BAudiobookMediaHandler(IM4BFileHandler m4BFileHandler, AlexandriaSettings settings) : IFileContentMediaHandler
 {
     public string[] SupportedExtensions => [".m4b"];
 
     public Task<byte[]?> ReadContent(Book book) => throw new NotSupportedException();
 
+    /// <summary>
+    /// Serves a pre-transcoded chapter MP3 from <see cref="AlexandriaSettings.ChaptersFolder"/> when
+    /// one exists (produced by <see cref="M4BFileTreatment.TranscodeAtIndex"/>), otherwise falls
+    /// back to on-demand transcoding via ffmpeg. The fallback keeps <see cref="M4BFileTreatment.Nothing"/>
+    /// working unchanged and tolerates partial pre-transcodes mid-index-run.
+    /// </summary>
     public async Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken)
     {
         if (chapterIndex < 0 || chapterIndex >= book.Chapters.Count)
             throw new ArgumentOutOfRangeException(nameof(chapterIndex));
+
+        var cachedPath = Path.Combine(settings.ChaptersFolder, book.BookUuid.ToString(), $"{chapterIndex}.mp3");
+        if (File.Exists(cachedPath))
+        {
+            await using var source = new FileStream(cachedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            await source.CopyToAsync(outputStream, cancellationToken);
+            return;
+        }
 
         await m4BFileHandler.StreamChapter(book, chapterIndex, outputStream, cancellationToken);
     }

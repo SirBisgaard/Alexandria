@@ -70,10 +70,11 @@ public sealed class AudiobookIndexerTests
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
-        var audioIndexer = new FileM4BAudiobookIndexer(settings, mediaHandler, coverThumbnailService);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
+        var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
+        var audioIndexer = new FileM4BAudiobookIndexer(settings, mediaHandler, coverThumbnailService, settingsService, m4BHandler, NullLogger<FileM4BAudiobookIndexer>.Instance);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new IndexerService(contentManager, bookRepository, new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
+        var indexer = new IndexerService(contentManager, bookRepository, settingsService, authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
         return (indexer, contentManager);
     }
 
@@ -258,7 +259,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
 
@@ -273,7 +274,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
         book.Title = "Completely Different Title";
@@ -291,7 +292,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
         book.File.SourcePath = filePath;
@@ -314,7 +315,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var coverDir = Path.Combine(testDir, "covers-original");
         Directory.CreateDirectory(coverDir);
@@ -339,7 +340,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
         book.File.SourcePath = filePath;

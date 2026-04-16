@@ -1,10 +1,13 @@
+using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
+public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, ILogger<FileM4BAudiobookIndexer> logger) : IFileContentIndexer
 {
     public string[] SupportedExtensions => [".m4b"];
 
@@ -37,19 +40,51 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobo
         return path;
     }
 
-    public Task CreateDerivativeFiles(Book book, string sourcePath)
+    /// <summary>
+    /// When <see cref="M4BFileTreatment.TranscodeAtIndex"/> is selected, pre-transcodes each chapter
+    /// to an MP3 file under <see cref="AlexandriaSettings.ChaptersFolder"/>/{bookUuid}/{chapterIndex}.mp3.
+    /// Per-chapter existence check makes re-runs a no-op (same pattern as the KEPUB derivative).
+    /// </summary>
+    public async Task CreateDerivativeFiles(Book book, string sourcePath)
     {
-        return Task.CompletedTask;
+        var appSettings = await settingsService.Get();
+        if (appSettings.M4BFileTreatment != M4BFileTreatment.TranscodeAtIndex)
+            return;
+
+        var bookFolder = Path.Combine(settings.ChaptersFolder, book.BookUuid.ToString());
+        Directory.CreateDirectory(bookFolder);
+
+        for (var i = 0; i < book.Chapters.Count; i++)
+        {
+            var outputPath = Path.Combine(bookFolder, $"{i}.mp3");
+            if (File.Exists(outputPath))
+                continue;
+            logger.LogInformation("Pre-transcoding chapter {ChapterIndex}/{ChapterCount} for {BookTitle}", i + 1, book.Chapters.Count, book.Title);
+            await m4BFileHandler.TranscodeChapterToFile(book, i, outputPath, CancellationToken.None);
+        }
     }
 
     public void DeleteDerivedFiles(Book book)
     {
         if (book.File.CoverFilePath is not null && File.Exists(book.File.CoverFilePath))
             File.Delete(book.File.CoverFilePath);
+
+        var chapterFolder = Path.Combine(settings.ChaptersFolder, book.BookUuid.ToString());
+        if (Directory.Exists(chapterFolder))
+            Directory.Delete(chapterFolder, recursive: true);
     }
 
     public void CleanupOrphanedFiles(HashSet<Guid> validBookUuids, HashSet<string> validCoverPaths)
     {
+        if (!Directory.Exists(settings.ChaptersFolder))
+            return;
+
+        foreach (var dir in Directory.GetDirectories(settings.ChaptersFolder))
+        {
+            var name = Path.GetFileName(dir);
+            if (Guid.TryParse(name, out var uuid) && !validBookUuids.Contains(uuid))
+                Directory.Delete(dir, recursive: true);
+        }
     }
 
     private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;

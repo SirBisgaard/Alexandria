@@ -49,6 +49,44 @@ public class FfmpegWrapper : IFfmpegWrapper
         }
     }
 
+    /// <summary>
+    /// Transcodes a single chapter to an MP3 file at <paramref name="outputPath"/>. Codec/quality
+    /// selection matches <see cref="StreamChapter"/> so cached files are byte-identical to what
+    /// on-demand streaming would produce for the same source.
+    /// </summary>
+    public async Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, string? codec, int? bitrate, string outputPath, CancellationToken cancellationToken)
+    {
+        var quality = codec == "mp3" ? (int?)null : SelectLameQuality(bitrate);
+        var codecArgs = quality is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {quality}";
+        var duration = endTime - startTime;
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = "ffmpeg",
+            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 \"{outputPath}\"",
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        process.Start();
+
+        try
+        {
+            await process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"ffmpeg chapter transcode failed with exit code {process.ExitCode}");
+        }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+            throw;
+        }
+    }
+
     public async Task<string> GetMetadataJson(string inputPath)
     {
         using var process = new Process();
