@@ -19,7 +19,7 @@ RUN dotnet publish "./Alexandria.Api.csproj" -c $BUILD_CONFIGURATION -o /app/pub
 
 FROM base AS final
 WORKDIR /app
-RUN apt-get update && apt-get install -y ffmpeg --no-install-recommends
+COPY --from=mwader/static-ffmpeg:7 /ffmpeg /ffprobe /usr/local/bin/
 COPY --from=publish /app/publish .
 RUN chmod +x /app/kepubify
 USER $APP_UID
