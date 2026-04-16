@@ -8,21 +8,20 @@ namespace Alexandria.DataAccess.Externals;
 public class FfmpegHandler : IFfmpegHandler
 {
     /// <summary>
-    /// Streams an audiobook chapter directly to the output stream by remuxing the raw audio
-    /// from the source file (no re-encoding). The output container format is chosen based on
-    /// the source codec (ADTS for AAC, mp3 for MP3). Both formats are pipe-safe.
+    /// Streams an audiobook chapter to the output stream as MP3. Non-MP3 sources are transcoded
+    /// via libmp3lame; MP3 sources are remuxed without re-encoding.
     /// The cancellation token kills the ffmpeg process if the client disconnects.
     /// </summary>
-    // MP3 re-encode alternative (slower, lossy): -vn -acodec libmp3lame -q:a 2 -f mp3 pipe:1
+    // AAC remux alternative (zero-copy): -vn -c:a copy -f adts pipe:1
     public async Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken)
     {
-        var outputFormat = codec == "mp3" ? "mp3" : "adts";
+        var codecArgs = codec == "mp3" ? "-c:a copy" : "-acodec libmp3lame -q:a 2";
         var duration = endTime - startTime;
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
             FileName = "ffmpeg",
-            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn -c:a copy -f {outputFormat} pipe:1",
+            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 pipe:1",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
