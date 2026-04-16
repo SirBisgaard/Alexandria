@@ -48,7 +48,16 @@ public static class ApiMapper
         CreatedAt = book.CreatedAt,
         ModifiedAt = book.ModifiedAt,
         IsArchived = book.IsArchived,
-        ReadingProgress = book.ReadingProgress is not null ? ToReadingProgressResponse(book.ReadingProgress) : null
+        ReadingProgress = book.ReadingProgress is not null ? ToReadingProgressResponse(book.ReadingProgress) : null,
+        Chapters = book.Chapters.Select(c => new AudiobookChapterResponse
+        {
+            ChapterIndex = c.ChapterIndex,
+            Title = c.Title,
+            Duration = c.Duration,
+            StartTime = c.StartTime,
+            EndTime = c.EndTime,
+            FileName = c.FileName
+        }).ToList()
     };
 
     public static AuthorResponse ToAuthorResponse(Author author) => new()

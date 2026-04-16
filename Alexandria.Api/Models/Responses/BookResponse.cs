@@ -27,4 +27,5 @@ public class BookResponse
     public DateTimeOffset ModifiedAt { get; set; }
     public bool IsArchived { get; set; }
     public ReadingProgressResponse? ReadingProgress { get; set; }
+    public List<AudiobookChapterResponse> Chapters { get; set; } = [];
 }
