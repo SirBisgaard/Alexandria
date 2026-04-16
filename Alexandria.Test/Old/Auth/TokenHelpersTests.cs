@@ -34,7 +34,9 @@ public sealed class TokenHelpersTests
     {
         var token = TokenHelpers.Mint("alice", Key, TimeSpan.FromMinutes(5));
         var dot = token.IndexOf('.');
-        var tampered = token[..(dot + 1)] + FlipLastChar(token[(dot + 1)..]);
+        var sig = token[(dot + 1)..];
+        var flipped = sig[0] == 'A' ? 'B' : 'A';
+        var tampered = token[..(dot + 1)] + flipped + sig[1..];
 
         var ok = TokenHelpers.TryVerify(tampered, Key, out _);
 
@@ -89,14 +91,5 @@ public sealed class TokenHelpersTests
 
         Assert.IsTrue(ok);
         Assert.AreEqual("alice|bob", id);
-    }
-
-    private static string FlipLastChar(string s)
-    {
-        if (s.Length == 0)
-            return s;
-        var last = s[^1];
-        var flipped = last == 'A' ? 'B' : 'A';
-        return s[..^1] + flipped;
     }
 }
