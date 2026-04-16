@@ -7,7 +7,7 @@ namespace Alexandria.Tests.Library;
 [TestClass]
 public sealed class FfmpegHandlerTests
 {
-    private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Audiobooks");
+    private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
 
     private string outputDir = null!;
 

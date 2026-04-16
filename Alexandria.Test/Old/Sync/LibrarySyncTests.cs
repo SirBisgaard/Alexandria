@@ -242,10 +242,10 @@ public sealed class LibrarySyncTests
         Assert.IsNotNull(items[0].NewEntitlement, "Un-archived book should appear as NewEntitlement");
     }
 
-    // --- Metadata / file hash change tests ---
+    // --- Metadata / ModifiedAt change tests ---
 
     [TestMethod]
-    public async Task MetadataChanged_FileHashDiffers_ForceDeleteAndReAdd()
+    public async Task MetadataChanged_ModifiedAtDiffers_ForceDeleteAndReAdd()
     {
         var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
         var book = MakeBook("Updated", lastSync.AddHours(-1), modifiedAt: DateTimeOffset.UtcNow);
@@ -269,7 +269,7 @@ public sealed class LibrarySyncTests
     }
 
     [TestMethod]
-    public async Task GeneralUpdate_SameHash_SendsChangedEntitlement()
+    public async Task GeneralUpdate_SameModifiedAt_SendsChangedEntitlement()
     {
         var lastSync = DateTimeOffset.UtcNow.AddMinutes(-5);
         var book = MakeBook("Updated", lastSync.AddHours(-1), modifiedAt: DateTimeOffset.UtcNow);

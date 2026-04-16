@@ -9,7 +9,7 @@ namespace Alexandria.Tests.Library;
 [TestClass]
 public sealed class M4BMetadataHandlerTests
 {
-    private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Audiobooks");
+    private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
     private static readonly string FantasticBeastsFileName = "J.K. Rowling - Wizarding World #0 - Fantastic Beasts and Where to Find Them.m4b";
     private static readonly string HuttGambitFileName = "A.C. Crispin - The Han Solo Trilogy #2 - The Hutt Gambit.m4b";
 

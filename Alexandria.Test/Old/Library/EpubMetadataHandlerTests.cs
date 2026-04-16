@@ -7,7 +7,7 @@ namespace Alexandria.Tests.Library;
 [TestClass]
 public sealed class EpubMetadataHandlerTests
 {
-    private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Books");
+    private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Books");
 
     private string outputDir = null!;
 

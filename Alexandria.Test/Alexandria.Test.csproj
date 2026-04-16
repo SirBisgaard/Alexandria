@@ -22,10 +22,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="TestData\Books\**\*.epub">
+        <Content Include="Old\TestData\Books\**\*.epub">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="TestData\Audiobooks\**\*.m4b">
+        <Content Include="Old\TestData\Audiobooks\**\*.m4b">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

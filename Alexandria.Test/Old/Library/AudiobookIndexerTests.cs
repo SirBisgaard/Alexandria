@@ -17,7 +17,7 @@ namespace Alexandria.Tests.Library;
 [TestClass]
 public sealed class AudiobookIndexerTests
 {
-    private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "TestData", "Audiobooks");
+    private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
     private static readonly string FantasticBeastsFileName = "J.K. Rowling - Wizarding World #0 - Fantastic Beasts and Where to Find Them.m4b";
 
     private string testDir = null!;
