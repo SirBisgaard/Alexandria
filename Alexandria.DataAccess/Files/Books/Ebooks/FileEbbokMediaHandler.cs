@@ -23,9 +23,9 @@ public class FileEbbokMediaHandler(IEpubFileHandler epubFileHandler, IFileReposi
         return desired.MetadataEquals(current);
     }
 
-    public void EmbedMetadata(string filePath, Book book) => epubFileHandler.EmbedMetadata(filePath, book);
+    public void EmbedMetadata(Book book) => epubFileHandler.EmbedMetadata(book.File.SourcePath, book);
 
-    public void EmbedCover(string filePath, byte[] coverData, string mediaType) => epubFileHandler.EmbedCover(filePath, coverData, mediaType);
+    public void EmbedCover(Book book, byte[] coverData, string mediaType) => epubFileHandler.EmbedCover(book.File.SourcePath, coverData, mediaType);
 
-    public void RemoveCover(string filePath) => epubFileHandler.RemoveCover(filePath);
+    public void RemoveCover(Book book) => epubFileHandler.RemoveCover(book.File.SourcePath);
 }

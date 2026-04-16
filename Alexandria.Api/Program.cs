@@ -61,10 +61,14 @@ builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();
 builder.Services.AddTransient<IFileContentIndexer, FileEbookIndexer>();
 builder.Services.AddTransient<IFfmpegWrapper, FfmpegWrapper>();
 builder.Services.AddTransient<IM4BFileHandler, M4BFileHandler>();
-builder.Services.AddTransient<FileAudiobookMediaHandler>();
-builder.Services.AddTransient<IFileContentIndexer, FileAudiobookIndexer>();
+builder.Services.AddTransient<FileM4BAudiobookMediaHandler>();
+builder.Services.AddTransient<IFileContentIndexer, FileM4BAudiobookIndexer>();
 builder.Services.AddTransient<IFileContentMediaHandler, FileEbbokMediaHandler>();
-builder.Services.AddTransient<IFileContentMediaHandler, FileAudiobookMediaHandler>();
+builder.Services.AddTransient<IFileContentMediaHandler, FileM4BAudiobookMediaHandler>();
+builder.Services.AddTransient<IMp3FileHandler, Mp3FileHandler>();
+builder.Services.AddTransient<FileMp3AudiobookMediaHandler>();
+builder.Services.AddTransient<IFileContentIndexer, FileMp3AudiobookIndexer>();
+builder.Services.AddTransient<IFileContentMediaHandler, FileMp3AudiobookMediaHandler>();
 builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.

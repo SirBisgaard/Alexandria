@@ -130,9 +130,10 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper) : IM4BFileHandler
         return coverPath;
     }
 
-    public async Task StreamChapter(string sourcePath, AudiobookChapter chapter, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken)
+    public async Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken)
     {
-        await ffmpegWrapper.StreamChapter(sourcePath, chapter.StartTime, chapter.EndTime, codec, bitrate, outputStream, cancellationToken);
+        var chapter = book.Chapters[chapterIndex];
+        await ffmpegWrapper.StreamChapter(book.File.SourcePath, chapter.StartTime, chapter.EndTime, book.File.AudioCodec, book.File.AudioBitrate, outputStream, cancellationToken);
     }
 
     /// <summary>
@@ -141,31 +142,31 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper) : IM4BFileHandler
     /// cover art. Uses atomic write via temp file because ffmpeg can't read and write the same file.
     /// Existing chapters are re-extracted and re-embedded to prevent loss during the rewrite.
     /// </summary>
-    public async Task EmbedMetadata(string filePath, Book book)
+    public async Task EmbedMetadata(Book book)
     {
-        var existing = await ExtractMetadata(filePath);
+        var existing = await ExtractMetadata(book.File.SourcePath);
         if (existing.MetadataEquals(book))
             return;
 
         var tags = BuildStandardTagDictionary(book);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(filePath, (input, output) => ffmpegWrapper.WriteMetadata(input, output, tags, chapters));
+        await WriteViaFfmpeg(book.File.SourcePath, (input, output) => ffmpegWrapper.WriteMetadata(input, output, tags, chapters));
     }
 
-    public async Task EmbedCover(string filePath, byte[] coverData, string mediaType)
+    public async Task EmbedCover(Book book, byte[] coverData, string mediaType)
     {
-        var existing = await ExtractMetadata(filePath);
+        var existing = await ExtractMetadata(book.File.SourcePath);
         var tags = BuildStandardTagDictionary(existing);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(filePath, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, tags, chapters, coverData));
+        await WriteViaFfmpeg(book.File.SourcePath, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, tags, chapters, coverData));
     }
 
-    public async Task RemoveCover(string filePath)
+    public async Task RemoveCover(Book book)
     {
-        var existing = await ExtractMetadata(filePath);
+        var existing = await ExtractMetadata(book.File.SourcePath);
         var tags = BuildStandardTagDictionary(existing);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(filePath, (input, output) => ffmpegWrapper.WriteMetadataRemoveCover(input, output, tags, chapters));
+        await WriteViaFfmpeg(book.File.SourcePath, (input, output) => ffmpegWrapper.WriteMetadataRemoveCover(input, output, tags, chapters));
     }
 
     private static async Task WriteViaFfmpeg(string filePath, Func<string, string, Task> action)

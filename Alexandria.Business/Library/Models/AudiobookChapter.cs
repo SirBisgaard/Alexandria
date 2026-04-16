@@ -19,4 +19,7 @@ public class AudiobookChapter
 
     /// <summary>Absolute end offset in seconds from the beginning of the audiobook.</summary>
     public double EndTime { get; set; }
+
+    /// <summary>Source filename for MP3 folder audiobooks. Null for M4B (single-file) audiobooks.</summary>
+    public string? FileName { get; set; }
 }

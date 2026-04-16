@@ -68,8 +68,8 @@ public sealed class IndexerServiceTests
         var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, converter, coverThumbnailService);
         var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
         var m4BMetadataHandler = new M4BFileHandler(new FfmpegWrapper());
-        var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
-        var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
+        var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4BMetadataHandler);
+        var audiobookIndexer = new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
         return new IndexerService(contentManager, bookRepository, new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
     }

@@ -76,16 +76,16 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
         if (!handler.MetadataEquals(book, book.File.SourcePath))
         {
-            handler.EmbedMetadata(book.File.SourcePath, book);
+            handler.EmbedMetadata(book);
             modified = true;
         }
 
         if (coverUpdate is not null)
         {
             if (coverUpdate.RemoveCover)
-                handler.RemoveCover(book.File.SourcePath);
+                handler.RemoveCover(book);
             else if (coverUpdate.CoverData is not null)
-                handler.EmbedCover(book.File.SourcePath, coverUpdate.CoverData, coverUpdate.MediaType!);
+                handler.EmbedCover(book, coverUpdate.CoverData, coverUpdate.MediaType!);
             modified = true;
         }
 

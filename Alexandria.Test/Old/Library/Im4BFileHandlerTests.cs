@@ -237,11 +237,10 @@ public sealed class IM4BFileHandlerTests
     public async Task StreamChapter_FantasticBeasts_StreamsValidData()
     {
         var book = await ExtractBook(FantasticBeastsFileName);
-        var chapter = book.Chapters[0];
-        var sourcePath = Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName);
+        book.File.SourcePath = Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName);
 
         using var memoryStream = new MemoryStream();
-        await handler.StreamChapter(sourcePath, chapter, book.File.AudioCodec, book.File.AudioBitrate, memoryStream, CancellationToken.None);
+        await handler.StreamChapter(book, 0, memoryStream, CancellationToken.None);
         Assert.IsGreaterThan(0, memoryStream.Length);
     }
 
@@ -259,9 +258,10 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
         book.Title = "New Test Title";
 
-        await handler.EmbedMetadata(m4BCopy, book);
+        await handler.EmbedMetadata(book);
 
         var reExtracted = await handler.ExtractMetadata(m4BCopy);
         Assert.AreEqual("New Test Title", reExtracted.Title);
@@ -272,10 +272,11 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
         book.Authors = [new Author { Name = "Test Author" }];
         book.Series = new Series { Name = "Test Series", Index = 3m };
 
-        await handler.EmbedMetadata(m4BCopy, book);
+        await handler.EmbedMetadata(book);
 
         var reExtracted = await handler.ExtractMetadata(m4BCopy);
         Assert.IsNotEmpty(reExtracted.Authors);
@@ -290,6 +291,7 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
 
         book.Title = "Roundtrip Title";
         book.Authors = [new Author { Name = "Roundtrip Author" }];
@@ -300,7 +302,7 @@ public sealed class IM4BFileHandlerTests
         book.Subjects = ["Roundtrip Genre"];
         book.Series = new Series { Name = "Roundtrip Series", Index = 5m };
 
-        await handler.EmbedMetadata(m4BCopy, book);
+        await handler.EmbedMetadata(book);
 
         var re = await handler.ExtractMetadata(m4BCopy);
         Assert.AreEqual("Roundtrip Title", re.Title);
@@ -328,8 +330,9 @@ public sealed class IM4BFileHandlerTests
         Assert.IsNotNull(originalCoverPath, "Test file should have a cover.");
 
         var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
         book.Title = "Cover Preservation Test";
-        await handler.EmbedMetadata(m4BCopy, book);
+        await handler.EmbedMetadata(book);
 
         var reExtractDir = Path.Combine(outputDir, "cover-after");
         Directory.CreateDirectory(reExtractDir);
@@ -350,7 +353,9 @@ public sealed class IM4BFileHandlerTests
         Assert.IsNotNull(coverPath);
         var coverBytes = await File.ReadAllBytesAsync(coverPath);
 
-        await handler.EmbedCover(m4BCopy, coverBytes, "image/jpeg");
+        var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
+        await handler.EmbedCover(book, coverBytes, "image/jpeg");
 
         var extractDir = Path.Combine(outputDir, "re-extracted");
         Directory.CreateDirectory(extractDir);
@@ -366,13 +371,14 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var original = await handler.ExtractMetadata(m4BCopy);
+        original.File.SourcePath = m4BCopy;
         var coverDir = Path.Combine(outputDir, "source-cover");
         Directory.CreateDirectory(coverDir);
         var coverPath = await handler.ExtractCover(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), coverDir, Guid.NewGuid());
         Assert.IsNotNull(coverPath);
         var coverBytes = await File.ReadAllBytesAsync(coverPath);
 
-        await handler.EmbedCover(m4BCopy, coverBytes, "image/jpeg");
+        await handler.EmbedCover(original, coverBytes, "image/jpeg");
 
         var re = await handler.ExtractMetadata(m4BCopy);
         Assert.AreEqual(original.Title, re.Title);
@@ -385,8 +391,10 @@ public sealed class IM4BFileHandlerTests
     public async Task RemoveCover_Roundtrip_ExtractReturnsNull()
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
+        var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
 
-        await handler.RemoveCover(m4BCopy);
+        await handler.RemoveCover(book);
 
         var extractDir = Path.Combine(outputDir, "after-remove");
         Directory.CreateDirectory(extractDir);
@@ -399,8 +407,9 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var original = await handler.ExtractMetadata(m4BCopy);
+        original.File.SourcePath = m4BCopy;
 
-        await handler.RemoveCover(m4BCopy);
+        await handler.RemoveCover(original);
 
         var re = await handler.ExtractMetadata(m4BCopy);
         Assert.AreEqual(original.Title, re.Title);
@@ -414,12 +423,13 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var original = await handler.ExtractMetadata(m4BCopy);
+        original.File.SourcePath = m4BCopy;
         var originalChapterCount = original.Chapters.Count;
         var firstChapter = original.Chapters[0];
         var lastChapter = original.Chapters[^1];
 
         original.Title = "Chapter Preservation Test";
-        await handler.EmbedMetadata(m4BCopy, original);
+        await handler.EmbedMetadata(original);
 
         var re = await handler.ExtractMetadata(m4BCopy);
         Assert.HasCount(originalChapterCount, re.Chapters);
@@ -441,8 +451,9 @@ public sealed class IM4BFileHandlerTests
         var originalSize = new FileInfo(m4BCopy).Length;
 
         var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
         book.Title = "Audio Stream Test";
-        await handler.EmbedMetadata(m4BCopy, book);
+        await handler.EmbedMetadata(book);
 
         var newSize = new FileInfo(m4BCopy).Length;
         var ratio = (double)newSize / originalSize;
@@ -485,9 +496,10 @@ public sealed class IM4BFileHandlerTests
     {
         var m4BCopy = CopyM4BToOutputDir(FantasticBeastsFileName);
         var book = await handler.ExtractMetadata(m4BCopy);
+        book.File.SourcePath = m4BCopy;
         book.Title = "Title with = equals; semicolon # hash";
 
-        await handler.EmbedMetadata(m4BCopy, book);
+        await handler.EmbedMetadata(book);
 
         var re = await handler.ExtractMetadata(m4BCopy);
         Assert.AreEqual("Title with = equals; semicolon # hash", re.Title);

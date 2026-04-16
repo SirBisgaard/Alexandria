@@ -4,16 +4,19 @@ using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
+public class FileMp3AudiobookIndexer(AlexandriaSettings settings, FileMp3AudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
 {
-    public string[] SupportedExtensions => [".m4b"];
+    public string[] SupportedExtensions => ["__.mp3"];
 
     public string[] GetContentFiles()
     {
         if (!Directory.Exists(settings.AudiobookFolder))
             return [];
 
-        return Directory.GetFiles(settings.AudiobookFolder, "*.m4b");
+        return Directory.GetDirectories(settings.AudiobookFolder)
+            .Where(dir => Directory.GetFiles(dir, "*.mp3").Length > 0)
+            .Select(dir => dir + "__.mp3")
+            .ToArray();
     }
 
     public Book ExtractMetadata(string filePath) => mediaHandler.ExtractMetadata(filePath);
@@ -53,20 +56,4 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
     }
 
     private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
-
-    private string? ConvertCoverToJpeg(string? coverFilePath)
-    {
-        if (coverFilePath is null)
-            return null;
-
-        var extension = Path.GetExtension(coverFilePath);
-        if (extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase))
-            return coverFilePath;
-
-        var jpegBytes = coverThumbnailService.ConvertToJpeg(File.ReadAllBytes(coverFilePath));
-        var jpegPath = Path.ChangeExtension(coverFilePath, ".jpg");
-        File.WriteAllBytes(jpegPath, jpegBytes);
-        File.Delete(coverFilePath);
-        return jpegPath;
-    }
 }

@@ -67,7 +67,7 @@ public class Book
 
     public List<Author> Authors { get; set; } = [];
 
-    /// <summary>Audiobook chapters extracted from the M4B file. Empty for ebooks.</summary>
+    /// <summary>Audiobook chapters extracted from the audiobook files. Empty for ebooks.</summary>
     public List<AudiobookChapter> Chapters { get; set; } = [];
 
     /// <summary>Non-author contributors (e.g. narrators). Role is free-form but audiobooks only support "Narrator".</summary>

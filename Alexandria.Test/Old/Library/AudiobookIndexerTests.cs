@@ -70,8 +70,8 @@ public sealed class AudiobookIndexerTests
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
-        var audioIndexer = new FileAudiobookIndexer(settings, mediaHandler, coverThumbnailService);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
+        var audioIndexer = new FileM4BAudiobookIndexer(settings, mediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
         var indexer = new IndexerService(contentManager, bookRepository, new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance), authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
         return (indexer, contentManager);
@@ -258,7 +258,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
 
@@ -273,7 +273,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
         book.Title = "Completely Different Title";
@@ -291,13 +291,14 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var book = mediaHandler.ExtractMetadata(filePath);
+        book.File.SourcePath = filePath;
         book.Title = "Embedded Title";
         book.Authors = [new Author { Name = "Embedded Author" }];
 
-        mediaHandler.EmbedMetadata(filePath, book);
+        mediaHandler.EmbedMetadata(book);
 
         var reExtracted = mediaHandler.ExtractMetadata(filePath);
         Assert.AreEqual("Embedded Title", reExtracted.Title);
@@ -313,7 +314,7 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
         var coverDir = Path.Combine(testDir, "covers-original");
         Directory.CreateDirectory(coverDir);
@@ -321,7 +322,9 @@ public sealed class AudiobookIndexerTests
         Assert.IsNotNull(originalCoverPath);
         var coverBytes = await File.ReadAllBytesAsync(originalCoverPath);
 
-        mediaHandler.EmbedCover(filePath, coverBytes, "image/jpeg");
+        var book = mediaHandler.ExtractMetadata(filePath);
+        book.File.SourcePath = filePath;
+        mediaHandler.EmbedCover(book, coverBytes, "image/jpeg");
 
         var extractDir = Path.Combine(testDir, "covers-reextracted");
         Directory.CreateDirectory(extractDir);
@@ -336,10 +339,12 @@ public sealed class AudiobookIndexerTests
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
         var m4BHandler = new M4BFileHandler(new FfmpegWrapper());
-        var mediaHandler = new FileAudiobookMediaHandler(m4BHandler);
+        var mediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
         var filePath = Path.Combine(audiobookDir, FantasticBeastsFileName);
+        var book = mediaHandler.ExtractMetadata(filePath);
+        book.File.SourcePath = filePath;
 
-        mediaHandler.RemoveCover(filePath);
+        mediaHandler.RemoveCover(book);
 
         var extractDir = Path.Combine(testDir, "covers-after-remove");
         Directory.CreateDirectory(extractDir);

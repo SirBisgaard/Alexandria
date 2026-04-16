@@ -75,13 +75,13 @@ public sealed class IndexerPerformanceTests
         // Timing ffmpeg wrapper
         var timingFfmpeg = new TimingFfmpegWrapper(new FfmpegWrapper(), timings);
         var m4bHandler = new M4BFileHandler(timingFfmpeg);
-        var audiobookMediaHandler = new FileAudiobookMediaHandler(m4bHandler);
+        var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4bHandler);
 
         // File indexers with timing wrappers
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubFileHandler(), new KepubifyWrapper(), coverThumbnailService), timings);
-        var audiobookIndexer = new TimingFileContentIndexer(new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService), timings);
+        var audiobookIndexer = new TimingFileContentIndexer(new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService), timings);
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubFileHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);

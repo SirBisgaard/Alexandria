@@ -170,6 +170,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 Duration REAL NOT NULL,
                 StartTime REAL NOT NULL,
                 EndTime REAL NOT NULL,
+                FileName TEXT,
                 PRIMARY KEY (BookUuid, ChapterIndex),
                 FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
             )

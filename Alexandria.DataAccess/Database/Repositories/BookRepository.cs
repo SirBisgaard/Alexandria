@@ -356,7 +356,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
     private static List<AudiobookChapter> LoadChapters(SqliteConnection connection, Guid bookUuid)
     {
         using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT ChapterIndex, Title, Duration, StartTime, EndTime FROM AudiobookChapters WHERE BookUuid = @uuid ORDER BY ChapterIndex";
+        cmd.CommandText = "SELECT ChapterIndex, Title, Duration, StartTime, EndTime, FileName FROM AudiobookChapters WHERE BookUuid = @uuid ORDER BY ChapterIndex";
         cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
 
         using var reader = cmd.ExecuteReader();
@@ -369,7 +369,8 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
                 Title = reader.GetString(1),
                 Duration = reader.GetDouble(2),
                 StartTime = reader.GetDouble(3),
-                EndTime = reader.GetDouble(4)
+                EndTime = reader.GetDouble(4),
+                FileName = reader.IsDBNull(5) ? null : reader.GetString(5)
             });
         }
         return chapters;
@@ -414,12 +415,13 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         foreach (var chapter in chapters)
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "INSERT OR REPLACE INTO AudiobookChapters (BookUuid, ChapterIndex, Title, Duration, StartTime, EndTime) VALUES (@uuid, @index, @title, @duration, @startTime, @endTime)";
+            cmd.CommandText = "INSERT OR REPLACE INTO AudiobookChapters (BookUuid, ChapterIndex, Title, Duration, StartTime, EndTime, FileName) VALUES (@uuid, @index, @title, @duration, @startTime, @endTime, @fileName)";
             cmd.Parameters.AddWithValue("@uuid", bookUuid.ToString());
             cmd.Parameters.AddWithValue("@index", chapter.ChapterIndex);
             cmd.Parameters.AddWithValue("@title", chapter.Title);
             cmd.Parameters.AddWithValue("@duration", chapter.Duration);
             cmd.Parameters.AddWithValue("@startTime", chapter.StartTime);
+            cmd.Parameters.AddWithValue("@fileName", (object?)chapter.FileName ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@endTime", chapter.EndTime);
             cmd.ExecuteNonQuery();
         }
