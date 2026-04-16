@@ -97,12 +97,31 @@ Generated test data should be created in temporary directories during `[TestInit
 #### Indexing
 
 - New files are indexed and persisted with correct metadata, UUIDs, and timestamps
-- Re-indexing unchanged files is a no-op (CreatedAt and ModifiedAt preserved)
+- Re-indexing unchanged files is a no-op (CreatedAt and ModifiedAt preserved, fast path skips reprocessing when metadata + cover both match)
 - Re-indexing changed files (different metadata) updates ModifiedAt but preserves CreatedAt and UUID
-- Stale entries (file deleted from disk) are removed from the database along with their derivatives
+- Moved files (same metadata, different path) preserve the original BookUuid so reading state and device sync state are retained
+- Stale entries (file deleted from disk) are removed from the database along with their derivatives (KEPUB, cover, pre-transcoded chapter cache)
 - Non-existent or empty library folders produce no errors
 - UUID v5 generation is deterministic for same title+authors
 - `ReindexBook` preserves the original UUID after metadata edits
+- `WordsPerPage` setting is respected when computing book statistics
+
+#### M4B File Treatment Modes
+
+The `M4BFileTreatment` setting controls how M4B audiobooks are processed during indexing. Business tests should cover each mode.
+
+- **`Nothing`** — no derivatives created at index time. Chapter endpoint transcodes AAC to MP3 on demand via `FfmpegWrapper`. Verify that no files are written to `ChaptersFolder` during indexing
+- **`TranscodeAtIndex`** — each chapter is pre-transcoded to MP3 during indexing and cached at `ChaptersFolder/{bookUuid}/{chapterIndex}.mp3`. Chapter transcoding is parallelized across chapters of a book. Verify that all expected MP3 files are created, the chapter endpoint serves from the cache (no on-demand ffmpeg process), and that cache files are cleaned up when a book is removed or reindexed
+- **`ConvertAtIndex`** — the pre-index `FileMp3AudiobookConverter` converts each `.m4b` in `AudiobookFolder` to an MP3 folder (named `{Author} - {Series} #{Index} - {Title}`), then deletes the original M4B file. The resulting folder is indexed by `FileMp3AudiobookIndexer` on the same run. Verify that the M4B is deleted, the MP3 folder is created with correct naming, ID3 tags and cover are preserved, and the book is indexed as an MP3 folder audiobook
+
+#### File Converter Plugins (`IFileConverter`)
+
+Pre-index converters run before file discovery in `IndexerService.Index()`. They receive the current list of existing books and a cancellation token. The DI container registers converters as `IEnumerable<IFileConverter>` and the indexer invokes each in turn.
+
+- Converter no-ops when its guarding setting is not active (e.g. `FileMp3AudiobookConverter` does nothing unless `M4BFileTreatment == ConvertAtIndex`)
+- Cached derivatives keyed to a book being converted are preserved or migrated across the conversion
+- Converter failure on one file does not block the rest of the indexing run
+- Cancellation is respected promptly (the converter checks the token between files)
 
 #### Book Service
 
@@ -123,7 +142,10 @@ Generated test data should be created in temporary directories during `[TestInit
 
 - Get/update application settings
 - `SyncLibraryAtBoot` flag behavior
+- `M4BFileTreatment` round-trips through the DB and surfaces to the API
+- `WordsPerPage` default and override behavior
 - Indexed timestamp tracking
+- Proxy-log cleanup runs when `ProxyLoggingEnabled` is disabled
 
 **How they work:**
 
@@ -205,7 +227,9 @@ This is the most critical test category. The Kobo device is a black box with und
 - Manifest `Navigation` entries match chapter metadata from the database
 - `GET /audiobook/{uuid}/chapter/{partId}` returns `audio/mpeg` content type for all audiobooks
 - MP3 folder audiobook chapters are streamed directly from the source MP3 file (no transcode)
-- M4B audiobook chapters are transcoded from AAC to MP3 via libmp3lame (or remuxed if source is already MP3)
+- M4B audiobook chapters under `Nothing` treatment are transcoded on demand from AAC to MP3 via libmp3lame (or remuxed if source is already MP3)
+- M4B audiobook chapters under `TranscodeAtIndex` treatment are served from the pre-transcoded cache at `ChaptersFolder/{bookUuid}/{chapterIndex}.mp3` with no ffmpeg invocation on the request path
+- M4B audiobook chapters under `ConvertAtIndex` treatment are served as MP3 folder audiobooks (the source M4B has been deleted at index time)
 
 #### Cover Endpoint
 
@@ -265,6 +289,9 @@ This is the most critical test category. The Kobo device is a black box with und
 | Database write | Time to insert/update books with full metadata | Bulk inserts |
 | API (full stack) | Round-trip time for key endpoints with a seeded library | `WebApplicationFactory` with generated library |
 | Chapter transcode quality | AAC-to-MP3 transcode time and output size per libmp3lame `-q:a` level (0–9) | Synthetic M4B with a chapter of representative length |
+| TranscodeAtIndex | Wall-clock time to pre-transcode all chapters of an M4B library | Generate N synthetic M4Bs with multiple chapters each |
+| ConvertAtIndex | Wall-clock time to convert an M4B library into MP3 folders | Generate N synthetic M4Bs with multiple chapters each |
+| M4BFileTreatment comparison | Side-by-side timing of first-run indexing under each treatment mode | Same synthetic M4B library indexed three times (one per mode) |
 
 #### Chapter Transcode Quality Comparison
 
@@ -361,10 +388,13 @@ Alexandria.Test/
 │   └── ...
 ├── Business/                 ← Business logic tests
 │   ├── IndexerServiceTests.cs
+│   ├── IndexerM4BTreatmentTests.cs
+│   ├── FileMp3AudiobookConverterTests.cs
 │   ├── BookServiceTests.cs
 │   ├── AuthorServiceTests.cs
 │   ├── SeriesServiceTests.cs
-│   └── CollectionServiceTests.cs
+│   ├── CollectionServiceTests.cs
+│   └── SettingsServiceTests.cs
 ├── Integration/              ← Full API integration tests
 │   ├── BooksApiTests.cs
 │   ├── AuthApiTests.cs
