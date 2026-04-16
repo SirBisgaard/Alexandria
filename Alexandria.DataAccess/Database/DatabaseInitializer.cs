@@ -326,7 +326,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         var proxyLoggingEnabled = true;
         var wordsPerPage = 250;
         var syncLibraryAtBoot = false;
-        var m4bFileTreatment = (alexandriaSettings.M4bFileTreatment ?? M4bFileTreatment.Nothing).ToString();
+        var m4BFileTreatment = (alexandriaSettings.M4BFileTreatment ?? M4BFileTreatment.Nothing).ToString();
 
         using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
@@ -338,9 +338,9 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         settingsSeedCmd.Parameters.AddWithValue("@proxyLoggingEnabled", proxyLoggingEnabled ? 1 : 0);
         settingsSeedCmd.Parameters.AddWithValue("@wordsPerPage", wordsPerPage);
         settingsSeedCmd.Parameters.AddWithValue("@syncLibraryAtBoot", syncLibraryAtBoot ? 1 : 0);
-        settingsSeedCmd.Parameters.AddWithValue("@m4bFileTreatment", m4bFileTreatment);
+        settingsSeedCmd.Parameters.AddWithValue("@m4bFileTreatment", m4BFileTreatment);
         settingsSeedCmd.ExecuteNonQuery();
-        logger.LogInformation("Database seeded with settings — UuidSeed: {UuidSeed}, SyncBatchSize: {SyncBatchSize}, ProxyLoggingEnabled: {ProxyLoggingEnabled}, WordsPerPage: {WordsPerPage}, SyncLibraryAtBoot: {SyncLibraryAtBoot}, M4bFileTreatment: {M4bFileTreatment}", uuidSeed, syncBatchSize, proxyLoggingEnabled, wordsPerPage, syncLibraryAtBoot, m4bFileTreatment);
+        logger.LogInformation("Database seeded with settings — UuidSeed: {UuidSeed}, SyncBatchSize: {SyncBatchSize}, ProxyLoggingEnabled: {ProxyLoggingEnabled}, WordsPerPage: {WordsPerPage}, SyncLibraryAtBoot: {SyncLibraryAtBoot}, M4bFileTreatment: {M4bFileTreatment}", uuidSeed, syncBatchSize, proxyLoggingEnabled, wordsPerPage, syncLibraryAtBoot, m4BFileTreatment);
 
         using var usersCmd = connection.CreateCommand();
         usersCmd.CommandText = """

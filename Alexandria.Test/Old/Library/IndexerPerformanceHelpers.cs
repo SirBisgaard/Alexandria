@@ -182,12 +182,12 @@ public static class PerformanceReport
         var records = timings.ToList();
 
         var epubCount = records.Count(r => r.Phase == "extract-metadata" && r.FilePath.EndsWith(".epub", StringComparison.OrdinalIgnoreCase));
-        var m4bCount = records.Count(r => r.Phase == "extract-metadata" && r.FilePath.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase));
+        var m4BCount = records.Count(r => r.Phase == "extract-metadata" && r.FilePath.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase));
 
         sb.AppendLine("=== ALEXANDRIA INDEXER PERFORMANCE REPORT ===");
         sb.AppendLine($"Ebooks:     {ebookFolder}");
         sb.AppendLine($"Audiobooks: {audiobookFolder}");
-        sb.AppendLine($"Files: {epubCount + m4bCount} ({epubCount} EPUB, {m4bCount} M4B)");
+        sb.AppendLine($"Files: {epubCount + m4BCount} ({epubCount} EPUB, {m4BCount} M4B)");
         sb.AppendLine($"Total: {FormatMs(totalElapsedMs)}");
         sb.AppendLine();
 

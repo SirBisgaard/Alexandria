@@ -135,7 +135,7 @@ public static class ApiMapper
         ProxyLoggingEnabled = settings.ProxyLoggingEnabled,
         WordsPerPage = settings.WordsPerPage,
         SyncLibraryAtBoot = settings.SyncLibraryAtBoot,
-        M4bFileTreatment = settings.M4bFileTreatment.ToString(),
+        M4BFileTreatment = settings.M4BFileTreatment.ToString(),
         Version = BuildVersion
     };
 
@@ -155,7 +155,7 @@ public static class ApiMapper
         ProxyLoggingEnabled = request.ProxyLoggingEnabled,
         WordsPerPage = request.WordsPerPage,
         SyncLibraryAtBoot = request.SyncLibraryAtBoot,
-        M4bFileTreatment = request.M4bFileTreatment
+        M4BFileTreatment = request.M4BFileTreatment
     };
 
     public static Book ToBook(UpdateBookMetadataRequest request) => new()

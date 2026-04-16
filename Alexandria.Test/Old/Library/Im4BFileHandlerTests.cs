@@ -7,7 +7,7 @@ using Alexandria.DataAccess.Externals.Models;
 namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
-public sealed class IM4BFileHandlerTests
+public sealed class Im4BFileHandlerTests
 {
     private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
     private static readonly string FantasticBeastsFileName = "J.K. Rowling - Wizarding World #0 - Fantastic Beasts and Where to Find Them.m4b";

@@ -24,7 +24,7 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
                 ProxyLoggingEnabled = reader.GetInt32(reader.GetOrdinal("ProxyLoggingEnabled")) == 1,
                 WordsPerPage = reader.GetInt32(reader.GetOrdinal("WordsPerPage")),
                 SyncLibraryAtBoot = reader.GetInt32(reader.GetOrdinal("SyncLibraryAtBoot")) == 1,
-                M4bFileTreatment = Enum.Parse<M4bFileTreatment>(reader.GetString(reader.GetOrdinal("M4bFileTreatment")))
+                M4BFileTreatment = Enum.Parse<M4BFileTreatment>(reader.GetString(reader.GetOrdinal("M4bFileTreatment")))
             };
         });
     }
@@ -50,7 +50,7 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
             cmd.Parameters.AddWithValue("@proxyLoggingEnabled", settings.ProxyLoggingEnabled ? 1 : 0);
             cmd.Parameters.AddWithValue("@wordsPerPage", settings.WordsPerPage);
             cmd.Parameters.AddWithValue("@syncLibraryAtBoot", settings.SyncLibraryAtBoot ? 1 : 0);
-            cmd.Parameters.AddWithValue("@m4bFileTreatment", settings.M4bFileTreatment.ToString());
+            cmd.Parameters.AddWithValue("@m4bFileTreatment", settings.M4BFileTreatment.ToString());
             cmd.ExecuteNonQuery();
         });
     }

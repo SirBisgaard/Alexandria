@@ -24,5 +24,5 @@ public class AppSettings
     public bool SyncLibraryAtBoot { get; set; }
 
     /// <summary>Controls how M4B audiobook files are processed during library indexing.</summary>
-    public M4bFileTreatment M4bFileTreatment { get; set; } = M4bFileTreatment.Nothing;
+    public M4BFileTreatment M4BFileTreatment { get; set; } = M4BFileTreatment.Nothing;
 }

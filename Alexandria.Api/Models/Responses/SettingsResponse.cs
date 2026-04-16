@@ -8,6 +8,6 @@ public class SettingsResponse
 
     public int WordsPerPage { get; set; }
     public bool SyncLibraryAtBoot { get; set; }
-    public string M4bFileTreatment { get; set; } = string.Empty;
+    public string M4BFileTreatment { get; set; } = string.Empty;
     public string? Version { get; set; }
 }

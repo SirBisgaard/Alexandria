@@ -16,5 +16,5 @@ public record UpdateSettingsRequest
 
     public bool SyncLibraryAtBoot { get; set; }
 
-    public M4bFileTreatment M4bFileTreatment { get; set; }
+    public M4BFileTreatment M4BFileTreatment { get; set; }
 }

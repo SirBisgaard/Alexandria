@@ -73,7 +73,7 @@ public record KoboStoreProductRecommendationAudiobook
     public bool IsFree { get; set; }
 
     [JsonPropertyName("ISBN")]
-    public string? ISBN { get; set; }
+    public string? Isbn { get; set; }
 
     [JsonPropertyName("PublicationDate")]
     public string? PublicationDate { get; set; }

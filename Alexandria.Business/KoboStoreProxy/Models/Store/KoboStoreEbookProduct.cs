@@ -23,7 +23,7 @@ public record KoboStoreEbookProduct
     public string? Language { get; set; }
 
     [JsonPropertyName("ISBN")]
-    public string? ISBN { get; set; }
+    public string? Isbn { get; set; }
 
     [JsonPropertyName("PublicationDate")]
     public string? PublicationDate { get; set; }

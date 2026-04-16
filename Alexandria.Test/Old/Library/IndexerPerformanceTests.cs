@@ -74,8 +74,8 @@ public sealed class IndexerPerformanceTests
 
         // Timing ffmpeg wrapper
         var timingFfmpeg = new TimingFfmpegWrapper(new FfmpegWrapper(), timings);
-        var m4bHandler = new M4BFileHandler(timingFfmpeg);
-        var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4bHandler);
+        var m4BHandler = new M4BFileHandler(timingFfmpeg);
+        var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler);
 
         // File indexers with timing wrappers
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
@@ -106,8 +106,8 @@ public sealed class IndexerPerformanceTests
             Assert.AreNotEqual(string.Empty, book.Title);
         }
 
-        var m4bBooks = books.Where(b => b.File.MediaType == MediaType.Audiobook).ToList();
-        foreach (var book in m4bBooks)
+        var m4BBooks = books.Where(b => b.File.MediaType == MediaType.Audiobook).ToList();
+        foreach (var book in m4BBooks)
         {
             Assert.IsGreaterThan(0, book.File.Duration!.Value, $"Audiobook '{book.Title}' should have duration.");
             Assert.IsNotEmpty(book.Chapters, $"Audiobook '{book.Title}' should have chapters.");
@@ -121,18 +121,18 @@ public sealed class IndexerPerformanceTests
         if (!Directory.Exists(AudiobookFolder))
             Assert.Inconclusive("Audiobook folder not available — skipping.");
 
-        var m4bFiles = Directory.GetFiles(AudiobookFolder, "*.m4b");
-        if (m4bFiles.Length == 0)
+        var m4BFiles = Directory.GetFiles(AudiobookFolder, "*.m4b");
+        if (m4BFiles.Length == 0)
             Assert.Inconclusive("No M4B files found — skipping.");
 
         var ffmpegHandler = new FfmpegWrapper();
 
         // Sample: 10 largest + 5 smallest
-        var sorted = m4bFiles.Select(f => new FileInfo(f)).OrderByDescending(f => f.Length).ToList();
+        var sorted = m4BFiles.Select(f => new FileInfo(f)).OrderByDescending(f => f.Length).ToList();
         var sample = sorted.Take(10).Concat(sorted.TakeLast(5)).DistinctBy(f => f.FullName).ToList();
 
         Console.WriteLine("=== FFPROBE + FFMPEG COVER PERFORMANCE (M4B FILES — SAMPLED) ===");
-        Console.WriteLine($"Total M4B files: {m4bFiles.Length}, sampling {sample.Count}");
+        Console.WriteLine($"Total M4B files: {m4BFiles.Length}, sampling {sample.Count}");
         Console.WriteLine();
 
         Console.WriteLine("--- FFPROBE (metadata + chapters) ---");
