@@ -82,6 +82,14 @@ $(function () {
         e.preventDefault();
         updateDevice();
     });
+
+    $("#device-copy-url-btn").on("click", function () {
+        var url = $("#device-url").val();
+        navigator.clipboard.writeText(url).then(function () {
+            $("#device-copy-url-btn").text("Copied!");
+            setTimeout(function () { $("#device-copy-url-btn").text("Copy Url"); }, 2000);
+        });
+    });
 });
 
 function openPairModal() {
@@ -238,6 +246,8 @@ function openDeviceModal(device) {
     $("#device-error").hide().text("");
     $("#device-uuid").val(device.deviceUuid);
     $("#device-nickname").val(device.nickname || "");
+    $("#device-url").val(window.location.origin + "/api/kobo/" + device.deviceUuid);
+    $("#device-copy-url-btn").text("Copy Url");
     $("#device-modal-backdrop").addClass("open");
 }
 

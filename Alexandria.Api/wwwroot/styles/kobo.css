@@ -883,8 +883,13 @@ a.series-list-item {
 }
 
 #settings-modal,
-#user-modal, #device-modal {
+#user-modal {
     max-width: 350px;
+    min-height: auto;
+}
+
+#device-modal {
+    max-width: 550px;
     min-height: auto;
 }
 

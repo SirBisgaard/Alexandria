@@ -102,6 +102,20 @@
                     <input type="text" id="device-nickname" class="bm-edit-input">
                 </div>
                 <div class="bm-edit-error-banner" id="device-error" style="display: none;"></div>
+                <div style="margin-top: 16px; width: 100%; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <p style="margin-bottom: 12px;">Copy the URL below and set it as the API endpoint on your Kobo:</p>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="device-url" class="bm-edit-input" readonly style="flex: 1; font-family: monospace; font-size: 13px; height: 43px;">
+                        <button type="button" class="bm-edit-btn" id="device-copy-url-btn" title="Copy URL" style="height: 43px;">Copy</button>
+                    </div>
+                    <ol style="margin-top: 12px; font-size: 13px; opacity: 0.7; padding-left: 18px;">
+                        <li>Connect your Kobo to your computer via USB.</li>
+                        <li>Open the file <code>.kobo/Kobo/eReader.conf</code> on the device.</li>
+                        <li>Find <code>api_endpoint</code> under <code>[OneStoreServices]</code>.</li>
+                        <li>Replace the value with the URL above.</li>
+                        <li>Save the file, eject the device, and press Sync on your Kobo.</li>
+                    </ol>
+                </div>
                 <div class="bm-edit-buttons" style="justify-content: flex-end;">
                     <button type="button" class="bm-edit-btn" id="device-cancel-btn">Cancel</button>
                     <button type="submit" class="bm-edit-btn bm-edit-btn-primary" id="device-save-btn">Save</button>
