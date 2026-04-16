@@ -98,9 +98,9 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
             return;
         }
 
-        logger.LogInformation("AudiobookChapter: streaming chapter {PartId} of '{Title}' ({Uuid}) as {Codec}", partId, book.Title, uuid, book.File.AudioCodec ?? "aac");
+        logger.LogInformation("AudiobookChapter: streaming chapter {PartId}/{TotalChapters} of '{Title}' ({Uuid}) as {Codec}", partId, book.Chapters.Count, book.Title, uuid, book.File.AudioCodec ?? "aac");
         HttpContext.Response.StatusCode = 200;
-        HttpContext.Response.ContentType = KoboStoreEntityMapper.CodecToMimeType(book.File.AudioCodec);
+        HttpContext.Response.ContentType = "audio/mpeg";
         await contentDeliveryService.StreamAudiobookChapter(book, partId, HttpContext.Response.Body, HttpContext.RequestAborted);
     }
 

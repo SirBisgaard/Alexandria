@@ -151,8 +151,8 @@ public static class KoboStoreEntityMapper
                 Duration = c.Duration,
                 Id = c.ChapterIndex,
                 Url = $"{deviceBaseUrl}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}",
-                MediaType = CodecToMimeType(book.File.AudioCodec),
-                FileExtension = CodecToExtension(book.File.AudioCodec)
+                MediaType = "audio/mpeg",
+                FileExtension = "mp3"
             }).ToList()
         };
     }
