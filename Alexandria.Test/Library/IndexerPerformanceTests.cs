@@ -106,10 +106,10 @@ public sealed class IndexerPerformanceTests
             Assert.AreNotEqual(string.Empty, book.Title);
         }
 
-        var m4bBooks = books.Where(b => b.MediaType == MediaType.Audiobook).ToList();
+        var m4bBooks = books.Where(b => b.File.MediaType == MediaType.Audiobook).ToList();
         foreach (var book in m4bBooks)
         {
-            Assert.IsGreaterThan(0, book.Duration!.Value, $"Audiobook '{book.Title}' should have duration.");
+            Assert.IsGreaterThan(0, book.File.Duration!.Value, $"Audiobook '{book.Title}' should have duration.");
             Assert.IsNotEmpty(book.Chapters, $"Audiobook '{book.Title}' should have chapters.");
         }
     }

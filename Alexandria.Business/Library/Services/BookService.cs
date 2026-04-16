@@ -146,7 +146,7 @@ public class BookService(IBookRepository bookRepository, IReadingStateRepository
             return [];
 
         var allBooks = await bookRepository.GetAll();
-        var candidates = allBooks.Where(b => b.BookUuid != bookUuid && !b.IsArchived && b.MediaType == book.MediaType).ToList();
+        var candidates = allBooks.Where(b => b.BookUuid != bookUuid && !b.IsArchived && b.File.MediaType == book.File.MediaType).ToList();
         var results = new List<Book>();
         var used = new HashSet<Guid>();
 

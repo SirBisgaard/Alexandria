@@ -91,9 +91,9 @@ public sealed class IndexerServiceTests
         {
             Assert.AreNotEqual(string.Empty, book.Title);
             Assert.IsNotEmpty(book.Authors);
-            Assert.IsNotNull(book.KepubFilePath);
-            Assert.IsTrue(File.Exists(book.KepubFilePath), $"KEPUB should exist for {book.Title}");
-            Assert.IsGreaterThan(0, book.TotalFileSize, $"TotalFileSize should be positive for {book.Title}");
+            Assert.IsNotNull(book.File.KepubFilePath);
+            Assert.IsTrue(File.Exists(book.File.KepubFilePath), $"KEPUB should exist for {book.Title}");
+            Assert.IsGreaterThan(0, book.File.TotalFileSize, $"TotalFileSize should be positive for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt, $"CreatedAt should be set for {book.Title}");
             Assert.AreNotEqual(default(DateTimeOffset), book.ModifiedAt, $"LastModified should be set for {book.Title}");
             Assert.AreEqual(book.CreatedAt, book.ModifiedAt, $"CreatedAt and LastModified should match on first index for {book.Title}");
@@ -158,7 +158,7 @@ public sealed class IndexerServiceTests
         await indexer.Index();
         var books = await bookRepository.GetAll();
         Assert.HasCount(1, books);
-        var kepubPath = books[0].KepubFilePath!;
+        var kepubPath = books[0].File.KepubFilePath!;
         Assert.IsTrue(File.Exists(kepubPath));
 
         // Delete the epub so the entry becomes stale.
@@ -194,9 +194,9 @@ public sealed class IndexerServiceTests
 
         // Simulate a file change by modifying the epub's metadata.
         var handler = new EpubMetadataHandler();
-        var metadata = handler.ExtractMetadata(books[0].SourcePath);
+        var metadata = handler.ExtractMetadata(books[0].File.SourcePath);
         metadata.Title = "Modified Title For Change Test";
-        handler.EmbedMetadata(books[0].SourcePath, metadata);
+        handler.EmbedMetadata(books[0].File.SourcePath, metadata);
 
         await Task.Delay(50);
 
@@ -208,7 +208,7 @@ public sealed class IndexerServiceTests
         var book = books[0];
         Assert.AreEqual(originalCreatedAt, book.CreatedAt, "CreatedAt must be preserved.");
         Assert.IsTrue(book.ModifiedAt > originalModifiedAt, "LastModified must be updated.");
-        Assert.IsGreaterThan(0, book.TotalFileSize, "TotalFileSize must be set.");
+        Assert.IsGreaterThan(0, book.File.TotalFileSize, "TotalFileSize must be set.");
     }
 
     [TestMethod]

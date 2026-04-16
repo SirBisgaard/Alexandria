@@ -8,45 +8,45 @@ public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService 
 {
     public async Task<byte[]?> ReadKepub(Book book)
     {
-        if (book.KepubFilePath is null || !File.Exists(book.KepubFilePath))
+        if (book.File.KepubFilePath is null || !File.Exists(book.File.KepubFilePath))
         {
             return null;
         }
-        return await File.ReadAllBytesAsync(book.KepubFilePath);
+        return await File.ReadAllBytesAsync(book.File.KepubFilePath);
     }
 
     public async Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null)
     {
         if (width.HasValue && height.HasValue)
         {
-            var thumbnail = await coverThumbnailService.GetOrCreateThumbnail(book.CoverFilePath, book.BookUuid, width.Value, height.Value, quality ?? 80);
+            var thumbnail = await coverThumbnailService.GetOrCreateThumbnail(book.File.CoverFilePath, book.BookUuid, width.Value, height.Value, quality ?? 80);
             if (thumbnail is not null)
             {
                 return thumbnail;
             }
         }
 
-        if (book.CoverFilePath is null || !File.Exists(book.CoverFilePath))
+        if (book.File.CoverFilePath is null || !File.Exists(book.File.CoverFilePath))
         {
             return null;
         }
-        return await File.ReadAllBytesAsync(book.CoverFilePath);
+        return await File.ReadAllBytesAsync(book.File.CoverFilePath);
     }
 
     public void DeleteCover(Book book)
     {
         coverThumbnailService.DeleteThumbnails(book.BookUuid);
-        if (book.CoverFilePath is not null && File.Exists(book.CoverFilePath))
+        if (book.File.CoverFilePath is not null && File.Exists(book.File.CoverFilePath))
         {
-            File.Delete(book.CoverFilePath);
+            File.Delete(book.File.CoverFilePath);
         }
     }
 
     public void DeleteKepub(Book book)
     {
-        if (book.KepubFilePath is not null && File.Exists(book.KepubFilePath))
+        if (book.File.KepubFilePath is not null && File.Exists(book.File.KepubFilePath))
         {
-            File.Delete(book.KepubFilePath);
+            File.Delete(book.File.KepubFilePath);
         }
     }
 

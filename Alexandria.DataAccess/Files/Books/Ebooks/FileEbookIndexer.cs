@@ -43,8 +43,8 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{book.BookUuid}.kepub.epub");
         if (!File.Exists(kepubPath))
             await kepubifyConverter.Convert(sourcePath, kepubPath);
-        book.KepubFilePath = kepubPath;
-        book.TotalFileSize = fileRepository.GetFileSize(kepubPath);
+        book.File.KepubFilePath = kepubPath;
+        book.File.TotalFileSize = fileRepository.GetFileSize(kepubPath);
     }
 
     public void DeleteDerivedFiles(Book book)

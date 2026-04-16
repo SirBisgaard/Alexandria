@@ -89,7 +89,7 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
             return await koboProxyService.Proxy(request);
         }
 
-        if (book.MediaType != MediaType.Audiobook)
+        if (book.File.MediaType != MediaType.Audiobook)
             return new KoboProxyResponse { StatusCode = StatusCodes.Status404NotFound, Headers = new Dictionary<string, string[]>(), Body = [] };
 
         logger.LogInformation("DownloadManifest: serving manifest for '{Title}' ({Uuid})", book.Title, uuid);
@@ -98,28 +98,17 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
         return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, manifest);
     }
 
-    public async Task<KoboProxyResponse> AudiobookChapter(KoboProxyRequest request, Guid uuid, int partId)
+    public async Task<Book?> ResolveLocalAudiobook(Guid uuid)
     {
-        var book = await bookService.GetBookByEntitlementUuid(uuid);
-        if (book is null)
-        {
-            logger.LogInformation("AudiobookChapter: book {Uuid} not local, proxying to Kobo", uuid);
-            return await koboProxyService.Proxy(request);
-        }
+        return await bookService.GetBookByEntitlementUuid(uuid);
+    }
 
-        var chapterBytes = await contentManager.GetChapterFile(book, partId);
-        if (chapterBytes is null)
-            return new KoboProxyResponse { StatusCode = StatusCodes.Status404NotFound, Headers = new Dictionary<string, string[]>(), Body = [] };
+    public async Task StreamAudiobookChapter(Book book, int partId, Stream outputStream, CancellationToken cancellationToken)
+    {
+        if (partId < 0 || partId >= book.Chapters.Count)
+            throw new ArgumentOutOfRangeException(nameof(partId));
 
-        logger.LogInformation("AudiobookChapter: serving chapter {PartId} of '{Title}' ({Uuid})", partId, book.Title, uuid);
-        return new KoboProxyResponse
-        {
-            StatusCode = StatusCodes.Status200OK,
-            Headers = new Dictionary<string, string[]>
-            {
-                { "Content-Type", ["audio/mpeg"] }
-            },
-            Body = chapterBytes
-        };
+        logger.LogInformation("AudiobookChapter: streaming chapter {PartId} of '{Title}' ({Uuid})", partId, book.Title, book.EntitlementUuid);
+        await contentManager.StreamChapter(book, partId, outputStream, cancellationToken);
     }
 }

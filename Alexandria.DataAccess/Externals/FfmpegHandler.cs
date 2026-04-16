@@ -7,20 +7,22 @@ namespace Alexandria.DataAccess.Externals;
 
 public class FfmpegHandler : IFfmpegHandler
 {
-    public async Task ExtractChapterAsMp3(string inputPath, double startTime, double endTime, string outputPath)
+    /// <summary>
+    /// Streams an audiobook chapter directly to the output stream by remuxing the raw audio
+    /// from the source file (no re-encoding). The output container format is chosen based on
+    /// the source codec (ADTS for AAC, mp3 for MP3). Both formats are pipe-safe.
+    /// The cancellation token kills the ffmpeg process if the client disconnects.
+    /// </summary>
+    // MP3 re-encode alternative (slower, lossy): -vn -acodec libmp3lame -q:a 2 -f mp3 pipe:1
+    public async Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken)
     {
-        var duration = endTime - startTime;
-        await RunFfmpeg($"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn -acodec libmp3lame -q:a 2 \"{outputPath}\"");
-    }
-
-    public async Task<byte[]> ExtractChapterAsMp3ToMemory(string inputPath, double startTime, double endTime)
-    {
+        var outputFormat = codec == "mp3" ? "mp3" : "adts";
         var duration = endTime - startTime;
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
             FileName = "ffmpeg",
-            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn -acodec libmp3lame -q:a 2 -f mp3 pipe:1",
+            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn -c:a copy -f {outputFormat} pipe:1",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -29,15 +31,21 @@ public class FfmpegHandler : IFfmpegHandler
 
         process.Start();
 
-        using var memoryStream = new MemoryStream();
-        await process.StandardOutput.BaseStream.CopyToAsync(memoryStream);
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        try
+        {
+            await process.StandardOutput.BaseStream.CopyToAsync(outputStream, cancellationToken);
+            await process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
 
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"ffmpeg failed with exit code {process.ExitCode}: {error}");
-
-        return memoryStream.ToArray();
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"ffmpeg chapter extraction failed with exit code {process.ExitCode}");
+        }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+            throw;
+        }
     }
 
     public async Task<string> GetMetadataJson(string inputPath)
@@ -46,7 +54,7 @@ public class FfmpegHandler : IFfmpegHandler
         process.StartInfo = new ProcessStartInfo
         {
             FileName = "ffprobe",
-            Arguments = $"-v quiet -print_format json -show_format -show_chapters \"{inputPath}\"",
+            Arguments = $"-v quiet -print_format json -show_format -show_chapters -show_streams \"{inputPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

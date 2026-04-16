@@ -31,7 +31,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
         var (metadata, _) = ParseMetadata(opfDoc);
         var book = ToBook(metadata);
-        book.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
+        book.File.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
         return book;
     }
 
@@ -79,7 +79,7 @@ public class EpubMetadataHandler : IEpubMetadataHandler
 
         var (metadata, metadataEl) = ParseMetadata(opfDoc);
         var book = ToBook(metadata);
-        book.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
+        book.File.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
         var coverFilePath = WriteCoverToDisk(zip, opfDoc, opfPath, coverOutputDirectory, metadataEl, coverUuid);
 
         return (book, coverFilePath);

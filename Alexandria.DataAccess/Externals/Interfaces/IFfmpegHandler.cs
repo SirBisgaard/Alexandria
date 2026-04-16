@@ -4,8 +4,7 @@ namespace Alexandria.DataAccess.Externals.Interfaces;
 
 public interface IFfmpegHandler
 {
-    Task ExtractChapterAsMp3(string inputPath, double startTime, double endTime, string outputPath);
-    Task<byte[]> ExtractChapterAsMp3ToMemory(string inputPath, double startTime, double endTime);
+    Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken);
     Task<string> GetMetadataJson(string inputPath);
     Task<byte[]?> ExtractCoverImage(string inputPath);
     Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters);

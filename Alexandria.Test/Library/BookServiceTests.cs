@@ -144,7 +144,7 @@ public sealed class BookServiceTests
 
         // Verify the EPUB file itself was modified by re-extracting metadata directly.
         var handler = new EpubMetadataHandler();
-        var (freshMetadata, _) = handler.ExtractAll(original.SourcePath, coversDir, Guid.NewGuid());
+        var (freshMetadata, _) = handler.ExtractAll(original.File.SourcePath, coversDir, Guid.NewGuid());
         Assert.AreEqual("Roundtrip Title", freshMetadata.Title);
         Assert.HasCount(1, freshMetadata.Authors);
         Assert.AreEqual("Roundtrip Author", freshMetadata.Authors[0].Name);
@@ -163,19 +163,19 @@ public sealed class BookServiceTests
         await service.UpdateBookMetadata(updateBook);
 
         // The EPUB, KEPUB, and cover files should all be writable after the operation completes.
-        Assert.IsTrue(CanWriteFile(original.SourcePath), "EPUB file should not be locked after metadata update.");
+        Assert.IsTrue(CanWriteFile(original.File.SourcePath), "EPUB file should not be locked after metadata update.");
 
         var updated = await bookRepository.FindByUuid(original.BookUuid);
         Assert.IsNotNull(updated);
 
-        if (updated.KepubFilePath is not null)
+        if (updated.File.KepubFilePath is not null)
         {
-            Assert.IsTrue(CanWriteFile(updated.KepubFilePath), "KEPUB file should not be locked after metadata update.");
+            Assert.IsTrue(CanWriteFile(updated.File.KepubFilePath), "KEPUB file should not be locked after metadata update.");
         }
 
-        if (updated.CoverFilePath is not null)
+        if (updated.File.CoverFilePath is not null)
         {
-            Assert.IsTrue(CanWriteFile(updated.CoverFilePath), "Cover file should not be locked after metadata update.");
+            Assert.IsTrue(CanWriteFile(updated.File.CoverFilePath), "Cover file should not be locked after metadata update.");
         }
     }
 
@@ -198,15 +198,15 @@ public sealed class BookServiceTests
         var (service, bookRepository) = await CreateService();
 
         var original = await FindLifeAndFate(bookRepository);
-        Assert.IsNotNull(original.CoverFilePath, "Life and Fate should have a cover after indexing.");
-        Assert.IsTrue(File.Exists(original.CoverFilePath));
+        Assert.IsNotNull(original.File.CoverFilePath, "Life and Fate should have a cover after indexing.");
+        Assert.IsTrue(File.Exists(original.File.CoverFilePath));
 
         var result = await service.RemoveBookCover(original.BookUuid);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(original.BookUuid, result.BookUuid);
-        Assert.IsNull(result.CoverFilePath, "CoverFilePath should be null after cover removal.");
-        Assert.IsFalse(File.Exists(original.CoverFilePath), "Cover file should be deleted from disk.");
+        Assert.IsNull(result.File.CoverFilePath, "CoverFilePath should be null after cover removal.");
+        Assert.IsFalse(File.Exists(original.File.CoverFilePath), "Cover file should be deleted from disk.");
     }
 
     [TestMethod]
@@ -216,15 +216,15 @@ public sealed class BookServiceTests
 
         var original = await FindLifeAndFate(bookRepository);
 
-        var lastWriteTime = File.GetLastWriteTimeUtc(original.SourcePath);
+        var lastWriteTime = File.GetLastWriteTimeUtc(original.File.SourcePath);
 
-        var updateBook = new Book { BookUuid = original.BookUuid, Title = original.Title, Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description, Subtitle = original.Subtitle, Rights = original.Rights, IsAbridged = original.IsAbridged, Contributors = original.Contributors, Subjects = original.Subjects, Identifiers = original.Identifiers };
+        var updateBook = new Book { BookUuid = original.BookUuid, Title = original.Title, Authors = original.Authors, Language = original.Language, Publisher = original.Publisher, Series = original.Series, PublicationDate = original.PublicationDate, Description = original.Description, Subtitle = original.Subtitle, Rights = original.Rights, File = new BookFile { IsAbridged = original.File.IsAbridged }, Contributors = original.Contributors, Subjects = original.Subjects, Identifiers = original.Identifiers };
 
         var result = await service.UpdateBookMetadata(updateBook);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(original.BookUuid, result.BookUuid);
-        Assert.AreEqual(lastWriteTime, File.GetLastWriteTimeUtc(original.SourcePath), "EPUB file should not have been modified.");
+        Assert.AreEqual(lastWriteTime, File.GetLastWriteTimeUtc(original.File.SourcePath), "EPUB file should not have been modified.");
     }
 
     [TestMethod]

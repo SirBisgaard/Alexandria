@@ -13,6 +13,6 @@ public interface IFileContentManager
     Task<Book> GetBook(Book book);
     Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null);
     Task<byte[]?> GetContentFile(Book book);
-    Task<byte[]?> GetChapterFile(Book book, int chapterIndex);
+    Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken);
     Task<byte[]?> GetCoverFile(Book book, int? width = null, int? height = null, int? quality = null);
 }

@@ -18,7 +18,7 @@ public sealed class KoboAnalyticsServiceTests
     private static Book MakeBook(string title, MediaType mediaType = MediaType.Audiobook)
     {
         var uuid = Guid.NewGuid();
-        return new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", SourcePath = "/test.m4b", TotalFileSize = 1000, CreatedAt = DateTimeOffset.UtcNow, ModifiedAt = DateTimeOffset.UtcNow, MediaType = mediaType };
+        return new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", CreatedAt = DateTimeOffset.UtcNow, ModifiedAt = DateTimeOffset.UtcNow, File = new BookFile { SourcePath = "/test.m4b", TotalFileSize = 1000, MediaType = mediaType } };
     }
 
     private static KoboStoreAnalyticsRequest MakeAnalyticsRequest(params KoboStoreAnalyticsEvent[] events) => new()

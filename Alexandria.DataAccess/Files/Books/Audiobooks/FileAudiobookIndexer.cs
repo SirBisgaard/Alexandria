@@ -44,8 +44,8 @@ public class FileAudiobookIndexer(AlexandriaSettings settings, FileAudiobookMedi
 
     public void DeleteDerivedFiles(Book book)
     {
-        if (book.CoverFilePath is not null && File.Exists(book.CoverFilePath))
-            File.Delete(book.CoverFilePath);
+        if (book.File.CoverFilePath is not null && File.Exists(book.File.CoverFilePath))
+            File.Delete(book.File.CoverFilePath);
     }
 
     public void CleanupOrphanedFiles(HashSet<Guid> validBookUuids, HashSet<string> validCoverPaths)

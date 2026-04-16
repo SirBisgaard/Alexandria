@@ -28,7 +28,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             var existingBooks = await bookRepository.GetAll();
             var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
             foreach (var book in existingBooks)
-                existingByPath[book.SourcePath] = book;
+                existingByPath[book.File.SourcePath] = book;
 
             var totalFiles = contentManager.GetBookFilesCount();
             var discoveredBooks = new List<Book>();
@@ -40,9 +40,9 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             await foreach (var (metadata, coverBytes) in contentManager.GetAllBooks())
             {
                 progress?.Report((++fileCount, totalFiles));
-                discoveredPaths.Add(metadata.SourcePath);
+                discoveredPaths.Add(metadata.File.SourcePath);
 
-                var existingAtPath = existingByPath.GetValueOrDefault(metadata.SourcePath);
+                var existingAtPath = existingByPath.GetValueOrDefault(metadata.File.SourcePath);
 
                 // Unchanged — metadata + cover both match existing.
                 if (existingAtPath is not null && existingAtPath.MetadataEquals(metadata) && CoverUnchanged(existingAtPath, coverBytes))
@@ -60,7 +60,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
                     metadata.GenerateBookUuid();
 
                 metadata.BookUuid = bookUuid;
-                metadata.CoverFilePath = contentManager.SaveCover(metadata.SourcePath, coverBytes, bookUuid);
+                metadata.File.CoverFilePath = contentManager.SaveCover(metadata.File.SourcePath, coverBytes, bookUuid);
                 var book = metadata;
                 discoveredBooks.Add(book);
                 await contentManager.CreateDerivativeFiles(book);
@@ -69,12 +69,12 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
                 var existingMatch = existingAtPath ?? existingBooks.FirstOrDefault(b => b.BookUuid == bookUuid);
                 if (existingMatch is not null && existingAtPath is not null)
                 {
-                    logger.LogInformation("Reindexing externally modified file: {Title} ({SourcePath})", existingMatch.Title, metadata.SourcePath);
+                    logger.LogInformation("Reindexing externally modified file: {Title} ({SourcePath})", existingMatch.Title, metadata.File.SourcePath);
                     await HandleExistingBook(book, existingMatch, wordsPerPage);
                 }
                 else if (existingMatch is not null)
                 {
-                    logger.LogInformation("Reindexing moved file: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.SourcePath, metadata.SourcePath);
+                    logger.LogInformation("Reindexing moved file: {Title} ({OldPath} -> {NewPath})", existingMatch.Title, existingMatch.File.SourcePath, metadata.File.SourcePath);
                     await HandleMovedBook(book, existingMatch, wordsPerPage);
                 }
                 else
@@ -114,7 +114,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             if (desiredMetadata is not null || coverUpdate is not null)
             {
                 var bookToUpdate = desiredMetadata ?? existing;
-                bookToUpdate.SourcePath = existing.SourcePath;
+                bookToUpdate.File.SourcePath = existing.File.SourcePath;
                 await contentManager.UpdateBook(bookToUpdate, coverUpdate);
             }
 
@@ -129,7 +129,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             await PersistBook(refreshed, false);
             await databasePersistence.Flush();
 
-            logger.LogInformation("Reindexing book: {mediaType}:{Title} from {filePath}", refreshed.MediaType, refreshed.Title, refreshed.SourcePath);
+            logger.LogInformation("Reindexing book: {mediaType}:{Title} from {filePath}", refreshed.File.MediaType, refreshed.Title, refreshed.File.SourcePath);
         }
         finally
         {
@@ -148,12 +148,12 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
         await PersistBook(discovered, true);
 
-        logger.LogInformation("Indexing new book: {mediaType}:{Title} from {filePath}", discovered.MediaType, discovered.Title, discovered.SourcePath);
+        logger.LogInformation("Indexing new book: {mediaType}:{Title} from {filePath}", discovered.File.MediaType, discovered.Title, discovered.File.SourcePath);
     }
 
     private async Task HandleExistingBook(Book discovered, Book existing, int wordsPerPage)
     {
-        logger.LogInformation("Updating changed book: {Title} ({SourcePath})", discovered.Title, discovered.SourcePath);
+        logger.LogInformation("Updating changed book: {Title} ({SourcePath})", discovered.Title, discovered.File.SourcePath);
 
         discovered.EntitlementUuid = existing.EntitlementUuid;
         discovered.CreatedAt = existing.CreatedAt;
@@ -166,7 +166,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
     private async Task HandleMovedBook(Book discovered, Book existing, int wordsPerPage)
     {
-        logger.LogInformation("Updating moved book: {Title} ({SourcePath})", discovered.Title, discovered.SourcePath);
+        logger.LogInformation("Updating moved book: {Title} ({SourcePath})", discovered.Title, discovered.File.SourcePath);
 
         discovered.EntitlementUuid = existing.EntitlementUuid;
         discovered.CreatedAt = existing.CreatedAt;
@@ -207,13 +207,13 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
     private static bool CoverUnchanged(Book existing, byte[]? freshCoverBytes)
     {
-        if (existing.CoverFilePath is null && freshCoverBytes is null)
+        if (existing.File.CoverFilePath is null && freshCoverBytes is null)
             return true;
-        if (existing.CoverFilePath is null || freshCoverBytes is null)
+        if (existing.File.CoverFilePath is null || freshCoverBytes is null)
             return false;
-        if (!File.Exists(existing.CoverFilePath))
+        if (!File.Exists(existing.File.CoverFilePath))
             return false;
-        var existingBytes = File.ReadAllBytes(existing.CoverFilePath);
+        var existingBytes = File.ReadAllBytes(existing.File.CoverFilePath);
         return existingBytes.AsSpan().SequenceEqual(freshCoverBytes);
     }
 
@@ -223,7 +223,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
     /// </summary>
     private static Guid? FindMovedBookUuid(Book freshMetadata, List<Book> existingBooks, HashSet<string> discoveredPaths)
     {
-        return existingBooks.FirstOrDefault(b => !discoveredPaths.Contains(b.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
+        return existingBooks.FirstOrDefault(b => !discoveredPaths.Contains(b.File.SourcePath) && b.MetadataEquals(freshMetadata))?.BookUuid;
     }
 
     /// <summary>
@@ -234,13 +234,13 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
     private static void PreserveUserEdits(Book discovered, Book existing)
     {
         discovered.Subtitle = existing.Subtitle;
-        discovered.IsAbridged = existing.IsAbridged;
+        discovered.File.IsAbridged = existing.File.IsAbridged;
 
-        if (discovered.MediaType == MediaType.Ebook)
+        if (discovered.File.MediaType == MediaType.Ebook)
         {
             // EPUB provides all Dublin Core fields — nothing extra to preserve
         }
-        else if (discovered.MediaType == MediaType.Audiobook)
+        else if (discovered.File.MediaType == MediaType.Audiobook)
         {
             // M4B only supports standard ID3/MP4 tags — fields not embeddable are preserved from DB
             if (!string.IsNullOrEmpty(existing.Language))
@@ -262,8 +262,8 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
     private static void ComputePageCount(Book book, int wordsPerPage)
     {
-        if (book.WordCount is not null)
-            book.PageCount = (int)Math.Ceiling((double)book.WordCount.Value / wordsPerPage);
+        if (book.File.WordCount is not null)
+            book.File.PageCount = (int)Math.Ceiling((double)book.File.WordCount.Value / wordsPerPage);
     }
 
     private async Task HandleStaleBooks(List<Book> existingBooks, HashSet<Guid> claimedUuids)
@@ -271,7 +271,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
         var staleBooks = existingBooks.Where(b => !claimedUuids.Contains(b.BookUuid)).ToList();
         foreach (var stale in staleBooks)
         {
-            logger.LogInformation("Removing stale entry: {Title} ({SourcePath})", stale.Title, stale.SourcePath);
+            logger.LogInformation("Removing stale entry: {Title} ({SourcePath})", stale.Title, stale.File.SourcePath);
             await bookRepository.Remove(stale.BookUuid);
         }
 

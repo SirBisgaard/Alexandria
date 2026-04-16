@@ -15,7 +15,7 @@ public class CollectionsController(ICollectionService collectionService, IBookSe
         var options = new CollectionSortOptions(sort ?? CollectionSortField.CollectionName, order ?? SortOrder.Asc);
         var collections = await collectionService.GetCollections(options);
         var books = await bookService.GetBooks();
-        var bookMediaTypes = books.ToDictionary(b => b.BookUuid, b => b.MediaType);
+        var bookMediaTypes = books.ToDictionary(b => b.BookUuid, b => b.File.MediaType);
         return Ok(collections.Select(c => ApiMapper.ToCollectionResponse(c, bookMediaTypes)));
     }
 

@@ -314,7 +314,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     {
         return books
             .GroupBy(b => b.GenerateWorkUuid())
-            .Where(g => g.Select(b => b.MediaType).Distinct().Count() > 1)
+            .Where(g => g.Select(b => b.File.MediaType).Distinct().Count() > 1)
             .Select(g => g.Key)
             .ToHashSet();
     }

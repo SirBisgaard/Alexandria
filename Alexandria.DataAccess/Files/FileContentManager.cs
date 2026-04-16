@@ -22,7 +22,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         {
             var indexer = GetIndexerFor(filePath);
             var metadata = indexer.ExtractMetadata(filePath);
-            metadata.SourcePath = filePath;
+            metadata.File.SourcePath = filePath;
             var coverBytes = indexer.ExtractCoverBytes(filePath);
             yield return (metadata, coverBytes);
         }
@@ -36,14 +36,14 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     public void CleanupStaleDerivatives(List<Book> currentBooks, List<Book>? previousBooks)
     {
         var currentUuids = currentBooks.Select(b => b.BookUuid).ToHashSet();
-        var validCoverPaths = currentBooks.Where(b => b.CoverFilePath is not null).Select(b => b.CoverFilePath!).ToHashSet();
+        var validCoverPaths = currentBooks.Where(b => b.File.CoverFilePath is not null).Select(b => b.File.CoverFilePath!).ToHashSet();
 
         if (previousBooks is not null)
         {
             foreach (var existing in previousBooks)
             {
-                if (!currentUuids.Contains(existing.BookUuid) && (existing.CoverFilePath is null || !validCoverPaths.Contains(existing.CoverFilePath)))
-                    GetIndexerFor(existing.SourcePath).DeleteDerivedFiles(existing);
+                if (!currentUuids.Contains(existing.BookUuid) && (existing.File.CoverFilePath is null || !validCoverPaths.Contains(existing.File.CoverFilePath)))
+                    GetIndexerFor(existing.File.SourcePath).DeleteDerivedFiles(existing);
             }
         }
 
@@ -53,12 +53,12 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
     public async Task<Book> GetBook(Book book)
     {
-        var indexer = GetIndexerFor(book.SourcePath);
-        var freshBook = indexer.ExtractMetadata(book.SourcePath);
+        var indexer = GetIndexerFor(book.File.SourcePath);
+        var freshBook = indexer.ExtractMetadata(book.File.SourcePath);
         freshBook.BookUuid = book.BookUuid;
-        freshBook.SourcePath = book.SourcePath;
-        freshBook.CoverFilePath = indexer.SaveCover(indexer.ExtractCoverBytes(book.SourcePath), book.BookUuid);
-        await indexer.CreateDerivativeFiles(freshBook, book.SourcePath);
+        freshBook.File.SourcePath = book.File.SourcePath;
+        freshBook.File.CoverFilePath = indexer.SaveCover(indexer.ExtractCoverBytes(book.File.SourcePath), book.BookUuid);
+        await indexer.CreateDerivativeFiles(freshBook, book.File.SourcePath);
         return freshBook;
     }
 
@@ -70,22 +70,22 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     /// </summary>
     public async Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null)
     {
-        var handler = GetHandlerFor(book.SourcePath);
-        var indexer = GetIndexerFor(book.SourcePath);
+        var handler = GetHandlerFor(book.File.SourcePath);
+        var indexer = GetIndexerFor(book.File.SourcePath);
         var modified = false;
 
-        if (!handler.MetadataEquals(book, book.SourcePath))
+        if (!handler.MetadataEquals(book, book.File.SourcePath))
         {
-            handler.EmbedMetadata(book.SourcePath, book);
+            handler.EmbedMetadata(book.File.SourcePath, book);
             modified = true;
         }
 
         if (coverUpdate is not null)
         {
             if (coverUpdate.RemoveCover)
-                handler.RemoveCover(book.SourcePath);
+                handler.RemoveCover(book.File.SourcePath);
             else if (coverUpdate.CoverData is not null)
-                handler.EmbedCover(book.SourcePath, coverUpdate.CoverData, coverUpdate.MediaType!);
+                handler.EmbedCover(book.File.SourcePath, coverUpdate.CoverData, coverUpdate.MediaType!);
             modified = true;
         }
 
@@ -97,15 +97,15 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
     public Task CreateDerivativeFiles(Book book)
     {
-        var indexer = GetIndexerFor(book.SourcePath);
-        return indexer.CreateDerivativeFiles(book, book.SourcePath);
+        var indexer = GetIndexerFor(book.File.SourcePath);
+        return indexer.CreateDerivativeFiles(book, book.File.SourcePath);
     }
 
-    public Task<byte[]?> GetContentFile(Book book) => GetHandlerFor(book.SourcePath).ReadContent(book);
+    public Task<byte[]?> GetContentFile(Book book) => GetHandlerFor(book.File.SourcePath).ReadContent(book);
 
-    public Task<byte[]?> GetChapterFile(Book book, int chapterIndex) => GetHandlerFor(book.SourcePath).ReadChapter(book, chapterIndex);
+    public Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken) => GetHandlerFor(book.File.SourcePath).StreamChapter(book, chapterIndex, outputStream, cancellationToken);
 
-    public Task<byte[]?> GetCoverFile(Book book, int? width = null, int? height = null, int? quality = null) => GetHandlerFor(book.SourcePath).ReadCover(book, width, height, quality);
+    public Task<byte[]?> GetCoverFile(Book book, int? width = null, int? height = null, int? quality = null) => GetHandlerFor(book.File.SourcePath).ReadCover(book, width, height, quality);
 
     private IFileContentIndexer GetIndexerFor(string filePath)
     {

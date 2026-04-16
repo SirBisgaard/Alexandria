@@ -36,10 +36,10 @@ public sealed class LibrarySyncTests
     private static Book MakeBook(string title, DateTimeOffset createdAt, DateTimeOffset? modifiedAt = null, MediaType mediaType = MediaType.Ebook)
     {
         var uuid = Guid.NewGuid();
-        var book = new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", SourcePath = mediaType == MediaType.Audiobook ? "/test.m4b" : "/test.epub", TotalFileSize = 1000, CreatedAt = createdAt, ModifiedAt = modifiedAt ?? createdAt, MediaType = mediaType };
+        var book = new Book { BookUuid = uuid, EntitlementUuid = uuid, Title = title, Authors = [new Author { AuthorUuid = Guid.NewGuid(), Name = "Test Author" }], Language = "en", CreatedAt = createdAt, ModifiedAt = modifiedAt ?? createdAt, File = new BookFile { SourcePath = mediaType == MediaType.Audiobook ? "/test.m4b" : "/test.epub", TotalFileSize = 1000, MediaType = mediaType } };
         if (mediaType == MediaType.Audiobook)
         {
-            book.Duration = 3600;
+            book.File.Duration = 3600;
             book.Chapters = [new AudiobookChapter { ChapterIndex = 0, Title = "Chapter 1", Duration = 1800 }, new AudiobookChapter { ChapterIndex = 1, Title = "Chapter 2", Duration = 1800 }];
         }
         return book;

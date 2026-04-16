@@ -7,12 +7,19 @@ namespace Alexandria.DataAccess.Database.Repositories;
 
 public class BookRepository(ISqliteConnectionProvider connectionProvider, IAuthorRepository authorRepository, ISeriesRepository seriesRepository) : IBookRepository
 {
+    private const string SelectBooksWithFiles = """
+        SELECT b.BookUuid, b.EntitlementUuid, b.Title, b.Subtitle, b.Language, b.Isbn, b.PublicationDate, b.Description, b.Publisher, b.CreatedAt, b.ModifiedAt, b.IsArchived, b.Rights, b.Source, b.Type, b.Relation, b.Coverage, b.Format,
+               f.MediaType, f.SourcePath, f.CoverFilePath, f.KepubFilePath, f.TotalFileSize, f.PageCount, f.WordCount, f.Duration, f.IsAbridged, f.AudioCodec, f.AudioBitrate
+        FROM Books b
+        INNER JOIN BookFiles f ON b.BookUuid = f.BookUuid
+        """;
+
     public async Task<List<Book>> GetAll()
     {
         var books = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM Books";
+            cmd.CommandText = SelectBooksWithFiles;
 
             using var reader = cmd.ExecuteReader();
             var result = new List<Book>();
@@ -41,7 +48,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         var book = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM Books WHERE BookUuid = @uuid";
+            cmd.CommandText = SelectBooksWithFiles + " WHERE b.BookUuid = @uuid";
             cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
 
             using var reader = cmd.ExecuteReader();
@@ -69,7 +76,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         var book = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM Books WHERE EntitlementUuid = @uuid";
+            cmd.CommandText = SelectBooksWithFiles + " WHERE b.EntitlementUuid = @uuid";
             cmd.Parameters.AddWithValue("@uuid", entitlementUuid.ToString());
 
             using var reader = cmd.ExecuteReader();
@@ -97,7 +104,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         var book = await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM Books WHERE SourcePath = @path COLLATE NOCASE";
+            cmd.CommandText = SelectBooksWithFiles + " WHERE f.SourcePath = @path COLLATE NOCASE";
             cmd.Parameters.AddWithValue("@path", sourcePath);
 
             using var reader = cmd.ExecuteReader();
@@ -124,13 +131,22 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
     {
         await connectionProvider.Write(connection =>
         {
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = """
-                INSERT INTO Books (BookUuid, EntitlementUuid, MediaType, SourcePath, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
-                VALUES (@bookUuid, @entitlementUuid, @mediaType, @sourcePath, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
+            using var bookCmd = connection.CreateCommand();
+            bookCmd.CommandText = """
+                INSERT INTO Books (BookUuid, EntitlementUuid, Title, Subtitle, Language, Isbn, PublicationDate, Description, Publisher, CreatedAt, ModifiedAt, IsArchived, Rights, Source, Type, Relation, Coverage, Format)
+                VALUES (@bookUuid, @entitlementUuid, @title, @subtitle, @language, @isbn, @publicationDate, @description, @publisher, @createdAt, @modifiedAt, @isArchived, @rights, @source, @type, @relation, @coverage, @format)
                 """;
-            AddBookParameters(cmd, book);
-            cmd.ExecuteNonQuery();
+            AddBookParameters(bookCmd, book);
+            bookCmd.ExecuteNonQuery();
+
+            using var fileCmd = connection.CreateCommand();
+            fileCmd.CommandText = """
+                INSERT INTO BookFiles (BookUuid, MediaType, SourcePath, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, AudioCodec, AudioBitrate)
+                VALUES (@bookUuid, @mediaType, @sourcePath, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @audioCodec, @audioBitrate)
+                """;
+            AddBookFileParameters(fileCmd, book);
+            fileCmd.ExecuteNonQuery();
+
             SaveSubTableData(connection, book);
         });
     }
@@ -139,13 +155,22 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
     {
         await connectionProvider.Write(connection =>
         {
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = """
-                UPDATE Books SET EntitlementUuid = @entitlementUuid, MediaType = @mediaType, SourcePath = @sourcePath, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
+            using var bookCmd = connection.CreateCommand();
+            bookCmd.CommandText = """
+                UPDATE Books SET EntitlementUuid = @entitlementUuid, Title = @title, Subtitle = @subtitle, Language = @language, Isbn = @isbn, PublicationDate = @publicationDate, Description = @description, Publisher = @publisher, CreatedAt = @createdAt, ModifiedAt = @modifiedAt, IsArchived = @isArchived, Rights = @rights, Source = @source, Type = @type, Relation = @relation, Coverage = @coverage, Format = @format
                 WHERE BookUuid = @bookUuid
                 """;
-            AddBookParameters(cmd, book);
-            cmd.ExecuteNonQuery();
+            AddBookParameters(bookCmd, book);
+            bookCmd.ExecuteNonQuery();
+
+            using var fileCmd = connection.CreateCommand();
+            fileCmd.CommandText = """
+                UPDATE BookFiles SET MediaType = @mediaType, SourcePath = @sourcePath, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, AudioCodec = @audioCodec, AudioBitrate = @audioBitrate
+                WHERE BookUuid = @bookUuid
+                """;
+            AddBookFileParameters(fileCmd, book);
+            fileCmd.ExecuteNonQuery();
+
             DeleteSubTableData(connection, book.BookUuid);
             SaveSubTableData(connection, book);
         });
@@ -177,6 +202,16 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             deleteReadingStates.Parameters.AddWithValue("@uuid", uuid.ToString());
             deleteReadingStates.ExecuteNonQuery();
 
+            using var deleteSyncedFiles = connection.CreateCommand();
+            deleteSyncedFiles.CommandText = "DELETE FROM KoboDeviceSyncedFiles WHERE BookUuid = @uuid";
+            deleteSyncedFiles.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteSyncedFiles.ExecuteNonQuery();
+
+            using var deleteBookFiles = connection.CreateCommand();
+            deleteBookFiles.CommandText = "DELETE FROM BookFiles WHERE BookUuid = @uuid";
+            deleteBookFiles.Parameters.AddWithValue("@uuid", uuid.ToString());
+            deleteBookFiles.ExecuteNonQuery();
+
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "DELETE FROM Books WHERE BookUuid = @uuid";
             cmd.Parameters.AddWithValue("@uuid", uuid.ToString());
@@ -203,8 +238,6 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
     {
         cmd.Parameters.AddWithValue("@bookUuid", book.BookUuid.ToString());
         cmd.Parameters.AddWithValue("@entitlementUuid", book.EntitlementUuid.ToString());
-        cmd.Parameters.AddWithValue("@mediaType", book.MediaType.ToString());
-        cmd.Parameters.AddWithValue("@sourcePath", book.SourcePath);
         cmd.Parameters.AddWithValue("@title", book.Title);
         cmd.Parameters.AddWithValue("@subtitle", (object?)book.Subtitle ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@language", book.Language);
@@ -212,13 +245,6 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         cmd.Parameters.AddWithValue("@publicationDate", (object?)book.PublicationDate ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@description", (object?)book.Description ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@publisher", (object?)book.Publisher ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@coverFilePath", (object?)book.CoverFilePath ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@kepubFilePath", (object?)book.KepubFilePath ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@totalFileSize", book.TotalFileSize);
-        cmd.Parameters.AddWithValue("@pageCount", (object?)book.PageCount ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@wordCount", (object?)book.WordCount ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@duration", (object?)book.Duration ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@isAbridged", book.IsAbridged.HasValue ? (book.IsAbridged.Value ? 1 : 0) : DBNull.Value);
         cmd.Parameters.AddWithValue("@createdAt", book.CreatedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@modifiedAt", book.ModifiedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@isArchived", book.IsArchived ? 1 : 0);
@@ -230,14 +256,28 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         cmd.Parameters.AddWithValue("@format", (object?)book.Format ?? DBNull.Value);
     }
 
+    private static void AddBookFileParameters(SqliteCommand cmd, Book book)
+    {
+        cmd.Parameters.AddWithValue("@bookUuid", book.BookUuid.ToString());
+        cmd.Parameters.AddWithValue("@mediaType", book.File.MediaType.ToString());
+        cmd.Parameters.AddWithValue("@sourcePath", book.File.SourcePath);
+        cmd.Parameters.AddWithValue("@coverFilePath", (object?)book.File.CoverFilePath ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@kepubFilePath", (object?)book.File.KepubFilePath ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@totalFileSize", book.File.TotalFileSize);
+        cmd.Parameters.AddWithValue("@pageCount", (object?)book.File.PageCount ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@wordCount", (object?)book.File.WordCount ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@duration", (object?)book.File.Duration ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@isAbridged", book.File.IsAbridged.HasValue ? (book.File.IsAbridged.Value ? 1 : 0) : DBNull.Value);
+        cmd.Parameters.AddWithValue("@audioCodec", (object?)book.File.AudioCodec ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@audioBitrate", (object?)book.File.AudioBitrate ?? DBNull.Value);
+    }
+
     private static Book MapBook(SqliteDataReader reader)
     {
         return new Book
         {
             BookUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("BookUuid"))),
             EntitlementUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("EntitlementUuid"))),
-            MediaType = Enum.Parse<MediaType>(reader.GetString(reader.GetOrdinal("MediaType"))),
-            SourcePath = reader.GetString(reader.GetOrdinal("SourcePath")),
             Title = reader.GetString(reader.GetOrdinal("Title")),
             Subtitle = reader.IsDBNull(reader.GetOrdinal("Subtitle")) ? null : reader.GetString(reader.GetOrdinal("Subtitle")),
             Language = reader.GetString(reader.GetOrdinal("Language")),
@@ -245,13 +285,6 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             PublicationDate = reader.IsDBNull(reader.GetOrdinal("PublicationDate")) ? null : reader.GetString(reader.GetOrdinal("PublicationDate")),
             Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
             Publisher = reader.IsDBNull(reader.GetOrdinal("Publisher")) ? null : reader.GetString(reader.GetOrdinal("Publisher")),
-            CoverFilePath = reader.IsDBNull(reader.GetOrdinal("CoverFilePath")) ? null : reader.GetString(reader.GetOrdinal("CoverFilePath")),
-            KepubFilePath = reader.IsDBNull(reader.GetOrdinal("KepubFilePath")) ? null : reader.GetString(reader.GetOrdinal("KepubFilePath")),
-            TotalFileSize = reader.GetInt64(reader.GetOrdinal("TotalFileSize")),
-            PageCount = reader.IsDBNull(reader.GetOrdinal("PageCount")) ? null : reader.GetInt32(reader.GetOrdinal("PageCount")),
-            WordCount = reader.IsDBNull(reader.GetOrdinal("WordCount")) ? null : reader.GetInt32(reader.GetOrdinal("WordCount")),
-            Duration = reader.IsDBNull(reader.GetOrdinal("Duration")) ? null : reader.GetInt32(reader.GetOrdinal("Duration")),
-            IsAbridged = reader.IsDBNull(reader.GetOrdinal("IsAbridged")) ? null : reader.GetInt32(reader.GetOrdinal("IsAbridged")) == 1,
             CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
             ModifiedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ModifiedAt"))),
             IsArchived = reader.GetInt32(reader.GetOrdinal("IsArchived")) == 1,
@@ -260,7 +293,22 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
             Type = reader.IsDBNull(reader.GetOrdinal("Type")) ? null : reader.GetString(reader.GetOrdinal("Type")),
             Relation = reader.IsDBNull(reader.GetOrdinal("Relation")) ? null : reader.GetString(reader.GetOrdinal("Relation")),
             Coverage = reader.IsDBNull(reader.GetOrdinal("Coverage")) ? null : reader.GetString(reader.GetOrdinal("Coverage")),
-            Format = reader.IsDBNull(reader.GetOrdinal("Format")) ? null : reader.GetString(reader.GetOrdinal("Format"))
+            Format = reader.IsDBNull(reader.GetOrdinal("Format")) ? null : reader.GetString(reader.GetOrdinal("Format")),
+            File = new BookFile
+            {
+                BookUuid = Guid.Parse(reader.GetString(reader.GetOrdinal("BookUuid"))),
+                MediaType = Enum.Parse<MediaType>(reader.GetString(reader.GetOrdinal("MediaType"))),
+                SourcePath = reader.GetString(reader.GetOrdinal("SourcePath")),
+                CoverFilePath = reader.IsDBNull(reader.GetOrdinal("CoverFilePath")) ? null : reader.GetString(reader.GetOrdinal("CoverFilePath")),
+                KepubFilePath = reader.IsDBNull(reader.GetOrdinal("KepubFilePath")) ? null : reader.GetString(reader.GetOrdinal("KepubFilePath")),
+                TotalFileSize = reader.GetInt64(reader.GetOrdinal("TotalFileSize")),
+                PageCount = reader.IsDBNull(reader.GetOrdinal("PageCount")) ? null : reader.GetInt32(reader.GetOrdinal("PageCount")),
+                WordCount = reader.IsDBNull(reader.GetOrdinal("WordCount")) ? null : reader.GetInt32(reader.GetOrdinal("WordCount")),
+                Duration = reader.IsDBNull(reader.GetOrdinal("Duration")) ? null : reader.GetInt32(reader.GetOrdinal("Duration")),
+                IsAbridged = reader.IsDBNull(reader.GetOrdinal("IsAbridged")) ? null : reader.GetInt32(reader.GetOrdinal("IsAbridged")) == 1,
+                AudioCodec = reader.IsDBNull(reader.GetOrdinal("AudioCodec")) ? null : reader.GetString(reader.GetOrdinal("AudioCodec")),
+                AudioBitrate = reader.IsDBNull(reader.GetOrdinal("AudioBitrate")) ? null : reader.GetInt32(reader.GetOrdinal("AudioBitrate"))
+            }
         };
     }
 
@@ -269,7 +317,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         book.Identifiers = LoadStringSubTable(connection, "BookIdentifiers", book.BookUuid);
         book.Subjects = LoadStringSubTable(connection, "BookSubjects", book.BookUuid);
         book.Contributors = LoadContributors(connection, book.BookUuid);
-        if (book.MediaType == MediaType.Audiobook)
+        if (book.File.MediaType == MediaType.Audiobook)
             book.Chapters = LoadChapters(connection, book.BookUuid);
     }
 

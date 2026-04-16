@@ -29,7 +29,7 @@ function renderEntityEditModal(type, entity) {
     var bookListHtml = "";
     for (var i = 0; i < books.length; i++) {
         var b = books[i];
-        var coverSrc = b.hasCover ? coverUrl(b.bookUuid, COVER_SMALL.w, COVER_SMALL.h) : "";
+        var coverSrc = b.file.hasCover ? coverUrl(b.bookUuid, COVER_SMALL.w, COVER_SMALL.h) : "";
         bookListHtml +=
             '<div class="entity-edit-book-item">' +
                 '<div class="cover-frame entity-edit-book-cover">' +

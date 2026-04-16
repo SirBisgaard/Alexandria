@@ -81,7 +81,7 @@ public sealed class M4BMetadataHandlerTests
     public async Task Extract_FantasticBeasts_ReturnsCorrectDuration()
     {
         var book = await ExtractBook(FantasticBeastsFileName);
-        Assert.AreEqual(6856, book.Duration);
+        Assert.AreEqual(6856, book.File.Duration);
     }
 
     [TestMethod]
@@ -127,14 +127,14 @@ public sealed class M4BMetadataHandlerTests
     public async Task Extract_FantasticBeasts_ReturnsMediaTypeAudiobook()
     {
         var book = await ExtractBook(FantasticBeastsFileName);
-        Assert.AreEqual(MediaType.Audiobook, book.MediaType);
+        Assert.AreEqual(MediaType.Audiobook, book.File.MediaType);
     }
 
     [TestMethod]
     public async Task Extract_FantasticBeasts_ReturnsPositiveFileSize()
     {
         var book = await ExtractBook(FantasticBeastsFileName);
-        Assert.IsGreaterThan(0, book.TotalFileSize);
+        Assert.IsGreaterThan(0, book.File.TotalFileSize);
     }
 
     [TestMethod]
@@ -234,14 +234,15 @@ public sealed class M4BMetadataHandlerTests
     // --- Chapter extraction ---
 
     [TestMethod]
-    public async Task ExtractChapterAsMp3_FantasticBeasts_ReturnsValidBytes()
+    public async Task StreamChapter_FantasticBeasts_StreamsValidData()
     {
         var book = await ExtractBook(FantasticBeastsFileName);
         var chapter = book.Chapters[0];
+        var sourcePath = Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName);
 
-        var bytes = await handler.ExtractChapterAsMp3(Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName), chapter);
-
-        Assert.IsGreaterThan(0, bytes.Length);
+        using var memoryStream = new MemoryStream();
+        await handler.StreamChapter(sourcePath, chapter, book.File.AudioCodec, memoryStream, CancellationToken.None);
+        Assert.IsGreaterThan(0, memoryStream.Length);
     }
 
     // --- Embed metadata ---

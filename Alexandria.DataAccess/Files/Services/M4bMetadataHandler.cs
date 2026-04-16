@@ -39,18 +39,21 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
 
         var book = new Book
         {
-            MediaType = MediaType.Audiobook,
             Title = GetTag(tags, "title") ?? Path.GetFileNameWithoutExtension(filePath),
             Description = GetTag(tags, "description") ?? GetTag(tags, "comment"),
             Publisher = GetTag(tags, "publisher") ?? GetTag(tags, "PUBLISHER"),
             Language = GetTag(tags, "LANGUAGE") ?? GetTag(tags, "language") ?? "",
             PublicationDate = GetTag(tags, "date"),
             Rights = GetTag(tags, "copyright"),
-            TotalFileSize = new FileInfo(filePath).Length
+            File = new BookFile
+            {
+                MediaType = MediaType.Audiobook,
+                TotalFileSize = new FileInfo(filePath).Length
+            }
         };
 
         if (format.TryGetProperty("duration", out var dur) && double.TryParse(dur.GetString(), CultureInfo.InvariantCulture, out var duration))
-            book.Duration = (int)Math.Round(duration);
+            book.File.Duration = (int)Math.Round(duration);
 
         var artists = GetTag(tags, "artist") ?? GetTag(tags, "album_artist");
         if (artists is not null)
@@ -101,6 +104,17 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
             }
         }
 
+        if (root.TryGetProperty("streams", out var streams))
+        {
+            var audioStream = streams.EnumerateArray().FirstOrDefault(s => s.TryGetProperty("codec_type", out var ct) && ct.GetString() == "audio");
+            if (audioStream.ValueKind != JsonValueKind.Undefined)
+            {
+                book.File.AudioCodec = audioStream.TryGetProperty("codec_name", out var cn) ? cn.GetString() : null;
+                if (audioStream.TryGetProperty("bit_rate", out var br) && int.TryParse(br.GetString(), out var bitrate))
+                    book.File.AudioBitrate = bitrate;
+            }
+        }
+
         return book;
     }
 
@@ -117,9 +131,9 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return coverPath;
     }
 
-    public async Task<byte[]> ExtractChapterAsMp3(string sourcePath, AudiobookChapter chapter)
+    public async Task StreamChapter(string sourcePath, AudiobookChapter chapter, string? codec, Stream outputStream, CancellationToken cancellationToken)
     {
-        return await ffmpegHandler.ExtractChapterAsMp3ToMemory(sourcePath, chapter.StartTime, chapter.EndTime);
+        await ffmpegHandler.StreamChapter(sourcePath, chapter.StartTime, chapter.EndTime, codec, outputStream, cancellationToken);
     }
 
     /// <summary>

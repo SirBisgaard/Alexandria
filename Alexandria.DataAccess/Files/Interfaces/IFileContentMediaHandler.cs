@@ -6,7 +6,7 @@ public interface IFileContentMediaHandler
 {
     string[] SupportedExtensions { get; }
     Task<byte[]?> ReadContent(Book book);
-    Task<byte[]?> ReadChapter(Book book, int chapterIndex);
+    Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken);
     Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null);
     Book ExtractMetadata(string filePath);
     bool MetadataEquals(Book desired, string filePath);

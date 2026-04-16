@@ -52,7 +52,7 @@ function formatFileSize(bytes) {
 function bookCountText(books) {
     var ebooks = 0, audiobooks = 0;
     for (var i = 0; i < books.length; i++) {
-        if (books[i].mediaType === "Audiobook")
+        if (books[i].file.mediaType === "Audiobook")
             audiobooks++;
         else
             ebooks++;
@@ -110,8 +110,8 @@ var AUDIOBOOK_BADGE = '<svg class="audiobook-badge" viewBox="0 0 24 24" xmlns="h
 function bookCoverHtml(book, cssClass) {
     var cls = cssClass || "book-cover-img";
     var size = cls === "book-list-cover-img" ? COVER_SMALL : COVER_LARGE;
-    var hasCover = !!book.hasCover;
-    var badge = book.mediaType === "Audiobook" ? AUDIOBOOK_BADGE : "";
+    var hasCover = !!book.file.hasCover;
+    var badge = book.file.mediaType === "Audiobook" ? AUDIOBOOK_BADGE : "";
     return '<div class="cover-frame ' + cls + '">' +
            (hasCover ? '<img loading="lazy" src="' + coverUrl(book.bookUuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' : '') +
            '<div class="book-cover" style="' + (hasCover ? 'display:none;' : '') + 'background:' + fallbackColor(book.bookUuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).map(function(a){return a.name}).join(", ")) + '</small></div>' +

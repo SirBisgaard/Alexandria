@@ -6,7 +6,6 @@ public class BookResponse
 {
     public Guid BookUuid { get; set; }
     public Guid EntitlementUuid { get; set; }
-    public MediaType MediaType { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Subtitle { get; set; }
     public List<AuthorResponse> Authors { get; set; } = [];
@@ -25,13 +24,7 @@ public class BookResponse
     public string? Coverage { get; set; }
     public string? Format { get; set; }
     public SeriesResponse? Series { get; set; }
-    public bool HasCover { get; set; }
-    public string FileName { get; set; } = string.Empty;
-    public long TotalFileSize { get; set; }
-    public int? PageCount { get; set; }
-    public int? WordCount { get; set; }
-    public int? Duration { get; set; }
-    public bool? IsAbridged { get; set; }
+    public BookFileResponse File { get; set; } = new();
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ModifiedAt { get; set; }
     public bool IsArchived { get; set; }

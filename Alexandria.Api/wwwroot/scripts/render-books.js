@@ -3,7 +3,7 @@ function renderBooks(books) {
     var $grid = $("#book-grid").empty();
     var $list = $("#book-list").empty();
     $.each(books, function (i, book) {
-        var status = readingStatusText(book.readingProgress, book.mediaType);
+        var status = readingStatusText(book.readingProgress, book.file.mediaType);
         var rawStatus = readingStatusRaw(book.readingProgress);
         var authors = (book.authors || []).map(function(a){return a.name}).join(", ");
         var contributors = (book.contributors || []).map(function(c){ return c.name + (c.role ? " (" + c.role + ")" : ""); }).join(", ");
@@ -42,7 +42,7 @@ function renderBooks(books) {
                     '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
                     archivedListLabel +
                     (book.readingProgress && book.readingProgress.remainingTimeMinutes ? '<div class="book-list-time-remaining">' + Math.round(book.readingProgress.remainingTimeMinutes / 60) + ' hours to go</div>' : '') +
-                    '<div class="book-list-format">' + (book.mediaType === "Audiobook" ? "AUDIOBOOK" : "KEPUB") + ' - ' + formatFileSize(book.totalFileSize) + '</div>' +
+                    '<div class="book-list-format">' + (book.file.mediaType === "Audiobook" ? "AUDIOBOOK" : "KEPUB") + ' - ' + formatFileSize(book.file.totalFileSize) + '</div>' +
                     '<div class="dropdown book-menu-dropdown">' +
                         '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
                         '<ul class="dropdown-menu dropdown-menu-end">' +

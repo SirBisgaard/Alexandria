@@ -87,8 +87,6 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             CREATE TABLE IF NOT EXISTS Books (
                 BookUuid TEXT PRIMARY KEY,
                 EntitlementUuid TEXT NOT NULL,
-                MediaType TEXT NOT NULL DEFAULT 'Ebook',
-                SourcePath TEXT NOT NULL,
                 Title TEXT NOT NULL,
                 Subtitle TEXT,
                 Language TEXT NOT NULL,
@@ -96,13 +94,6 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 PublicationDate TEXT,
                 Description TEXT,
                 Publisher TEXT,
-                CoverFilePath TEXT,
-                KepubFilePath TEXT,
-                TotalFileSize INTEGER NOT NULL DEFAULT 0,
-                PageCount INTEGER,
-                WordCount INTEGER,
-                Duration INTEGER,
-                IsAbridged INTEGER,
                 CreatedAt TEXT NOT NULL,
                 ModifiedAt TEXT NOT NULL,
                 IsArchived INTEGER NOT NULL DEFAULT 0,
@@ -115,6 +106,26 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             )
             """;
         booksCmd.ExecuteNonQuery();
+
+        using var bookFilesCmd = connection.CreateCommand();
+        bookFilesCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookFiles (
+                BookUuid TEXT PRIMARY KEY,
+                MediaType TEXT NOT NULL DEFAULT 'Ebook',
+                SourcePath TEXT NOT NULL,
+                CoverFilePath TEXT,
+                KepubFilePath TEXT,
+                TotalFileSize INTEGER NOT NULL DEFAULT 0,
+                PageCount INTEGER,
+                WordCount INTEGER,
+                Duration INTEGER,
+                IsAbridged INTEGER,
+                AudioCodec TEXT,
+                AudioBitrate INTEGER,
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid)
+            )
+            """;
+        bookFilesCmd.ExecuteNonQuery();
 
         using var bookIdentifiersCmd = connection.CreateCommand();
         bookIdentifiersCmd.CommandText = """

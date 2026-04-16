@@ -63,7 +63,7 @@ $(function () {
         if (matches.length === 0) { return; }
 
         $.each(matches, function (i, book) {
-            var status = readingStatusText(book.readingProgress, book.mediaType);
+            var status = readingStatusText(book.readingProgress, book.file.mediaType);
             var authors = (book.authors || []).map(function(a){return a.name}).join(", ");
             var seriesName = book.series ? book.series.name : "";
             var series = seriesName ? (seriesName.toUpperCase() + ((book.series ? book.series.index : null) ? " - " + (book.series ? book.series.index : null) : "")) : "";

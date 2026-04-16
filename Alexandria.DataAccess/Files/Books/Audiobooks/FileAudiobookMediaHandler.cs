@@ -10,22 +10,21 @@ public class FileAudiobookMediaHandler(IM4BMetadataHandler m4BMetadataHandler) :
 
     public Task<byte[]?> ReadContent(Book book) => throw new NotSupportedException();
 
-    public async Task<byte[]?> ReadChapter(Book book, int chapterIndex)
+    public async Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken)
     {
         if (chapterIndex < 0 || chapterIndex >= book.Chapters.Count)
-            return null;
+            throw new ArgumentOutOfRangeException(nameof(chapterIndex));
 
         var chapter = book.Chapters[chapterIndex];
-
-        return await m4BMetadataHandler.ExtractChapterAsMp3(book.SourcePath, chapter);
+        await m4BMetadataHandler.StreamChapter(book.File.SourcePath, chapter, book.File.AudioCodec, outputStream, cancellationToken);
     }
 
     public async Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null)
     {
-        if (book.CoverFilePath is null || !File.Exists(book.CoverFilePath))
+        if (book.File.CoverFilePath is null || !File.Exists(book.File.CoverFilePath))
             return null;
 
-        return await File.ReadAllBytesAsync(book.CoverFilePath);
+        return await File.ReadAllBytesAsync(book.File.CoverFilePath);
     }
 
     public Book ExtractMetadata(string filePath) => m4BMetadataHandler.ExtractMetadata(filePath).GetAwaiter().GetResult();

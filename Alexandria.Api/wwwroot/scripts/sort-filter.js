@@ -52,16 +52,16 @@ function restoreFilterDropdown($dropdown, filter) {
 }
 
 function updateMediaTypeFilters($dropdown, books) {
-    var hasEbooks = books.some(function (b) { return b.mediaType === "Ebook"; });
-    var hasAudiobooks = books.some(function (b) { return b.mediaType === "Audiobook"; });
+    var hasEbooks = books.some(function (b) { return b.file.mediaType === "Ebook"; });
+    var hasAudiobooks = books.some(function (b) { return b.file.mediaType === "Audiobook"; });
     var showFilters = hasEbooks && hasAudiobooks;
     $dropdown.find("[data-filter='ebooks'], [data-filter='audiobooks']").closest("li").toggle(showFilters);
 }
 
 function applyMediaTypeFilter(books, filter) {
     if (filter === "ebooks")
-        return books.filter(function (b) { return b.mediaType === "Ebook"; });
+        return books.filter(function (b) { return b.file.mediaType === "Ebook"; });
     if (filter === "audiobooks")
-        return books.filter(function (b) { return b.mediaType === "Audiobook"; });
+        return books.filter(function (b) { return b.file.mediaType === "Audiobook"; });
     return books;
 }

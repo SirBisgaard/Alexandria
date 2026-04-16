@@ -63,7 +63,7 @@ public class BooksController(IBookService bookService, ILogger<BooksController> 
         if (existing is null)
             return NotFound();
 
-        if (existing.MediaType == MediaType.Audiobook && request.Contributors is not null && request.Contributors.Any(c => c.Role is not null && !string.Equals(c.Role, "Narrator", StringComparison.OrdinalIgnoreCase)))
+        if (existing.File.MediaType == MediaType.Audiobook && request.Contributors is not null && request.Contributors.Any(c => c.Role is not null && !string.Equals(c.Role, "Narrator", StringComparison.OrdinalIgnoreCase)))
             return BadRequest("Audiobooks only support the Narrator contributor role.");
 
         var book = ApiMapper.ToBook(request);

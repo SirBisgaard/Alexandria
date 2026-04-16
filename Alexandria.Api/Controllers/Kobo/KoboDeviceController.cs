@@ -1,4 +1,5 @@
 using Alexandria.Api.Authentication;
+using Alexandria.Business.KoboStoreProxy;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -82,16 +83,25 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     }
 
     /// <summary>
-    /// Serves individual MP3 chapter files for local audiobooks.
-    /// Store-purchased audiobook chapters are proxied to Kobo.
+    /// Streams audiobook chapters directly from the source file for local audiobooks.
+    /// Audio is remuxed (not re-encoded) and piped to the response in chunks — no buffering.
     /// </summary>
     [HttpGet("audiobook/{uuid:guid}/chapter/{partId:int}")]
     public async Task AudiobookChapter(string devicekey, Guid uuid, int partId)
     {
         logger.LogInformation("Kobo: requesting chapter {PartId} of {Uuid}", partId, uuid);
-        var request = await KoboProxyRequest.FromHttpRequest(HttpContext.Request, devicekey);
-        var response = await contentDeliveryService.AudiobookChapter(request, uuid, partId);
-        await response.WriteToHttpResponse(HttpContext.Response);
+
+        var book = await contentDeliveryService.ResolveLocalAudiobook(uuid);
+        if (book is null || partId < 0 || partId >= book.Chapters.Count)
+        {
+            HttpContext.Response.StatusCode = 404;
+            return;
+        }
+
+        logger.LogInformation("AudiobookChapter: streaming chapter {PartId} of '{Title}' ({Uuid}) as {Codec}", partId, book.Title, uuid, book.File.AudioCodec ?? "aac");
+        HttpContext.Response.StatusCode = 200;
+        HttpContext.Response.ContentType = KoboStoreEntityMapper.CodecToMimeType(book.File.AudioCodec);
+        await contentDeliveryService.StreamAudiobookChapter(book, partId, HttpContext.Response.Body, HttpContext.RequestAborted);
     }
 
     /// <summary>

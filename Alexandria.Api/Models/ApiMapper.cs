@@ -30,16 +30,21 @@ public static class ApiMapper
         Coverage = book.Coverage,
         Format = book.Format,
         Series = book.Series is not null ? ToSeriesResponse(book.Series) : null,
-        HasCover = book.CoverFilePath is not null,
-        FileName = book.FileName,
-        MediaType = book.MediaType,
+        File = new BookFileResponse
+        {
+            MediaType = book.File.MediaType,
+            FileName = book.File.FileName,
+            HasCover = book.File.CoverFilePath is not null,
+            TotalFileSize = book.File.TotalFileSize,
+            PageCount = book.File.PageCount,
+            WordCount = book.File.WordCount,
+            Duration = book.File.Duration,
+            IsAbridged = book.File.IsAbridged,
+            AudioCodec = book.File.AudioCodec,
+            AudioBitrate = book.File.AudioBitrate
+        },
         Subtitle = book.Subtitle,
         Isbn = book.Isbn,
-        TotalFileSize = book.TotalFileSize,
-        PageCount = book.PageCount,
-        WordCount = book.WordCount,
-        Duration = book.Duration,
-        IsAbridged = book.IsAbridged,
         CreatedAt = book.CreatedAt,
         ModifiedAt = book.ModifiedAt,
         IsArchived = book.IsArchived,
@@ -150,7 +155,7 @@ public static class ApiMapper
         PublicationDate = request.PublicationDate,
         Description = request.Description,
         Publisher = request.Publisher,
-        IsAbridged = request.IsAbridged,
+        File = new BookFile { IsAbridged = request.IsAbridged },
         Contributors = request.Contributors?.Select(c => new Contributor { Name = c.Name.Trim(), Role = c.Role?.Trim() }).ToList() ?? [],
         Series = request.SeriesName is not null ? new Series { Name = request.SeriesName, Index = request.Index } : null
     };

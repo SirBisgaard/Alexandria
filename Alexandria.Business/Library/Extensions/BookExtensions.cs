@@ -23,7 +23,7 @@ public static class BookExtensions
         {
             var title = book.Title.ToLowerInvariant().Trim();
             var authors = string.Join(',', book.Authors.Select(a => a.Name.ToLowerInvariant().Trim()).Order());
-            var mediaType = book.MediaType.ToString().ToLowerInvariant();
+            var mediaType = book.File.MediaType.ToString().ToLowerInvariant();
             return Guid.GenerateUuidV5($"book:{title}:{authors}:{mediaType}");
         }
 
@@ -37,7 +37,7 @@ public static class BookExtensions
                 && Normalize(book.Publisher) == Normalize(other.Publisher)
                 && Normalize(book.Subtitle) == Normalize(other.Subtitle)
                 && Normalize(book.Rights) == Normalize(other.Rights)
-                && book.IsAbridged == other.IsAbridged
+                && book.File.IsAbridged == other.File.IsAbridged
                 && Normalize(book.Series?.Name) == Normalize(other.Series?.Name)
                 && book.Series?.Index == other.Series?.Index
                 && book.Authors.Select(a => a.Name).Order().SequenceEqual(other.Authors.Select(a => a.Name).Order(), StringComparer.Ordinal)

@@ -25,7 +25,7 @@ public static class KoboStoreEntityMapper
         Id = book.EntitlementUuid.ToString(),
         IsRemoved = false,
         LastModified = ToKoboTimestamp(book.ModifiedAt),
-        OriginCategory = book.MediaType == MediaType.Audiobook ? "Purchase" : "Imported",
+        OriginCategory = book.File.MediaType == MediaType.Audiobook ? "Purchase" : "Imported",
         RevisionId = book.EntitlementUuid.ToString()
     };
 
@@ -43,7 +43,7 @@ public static class KoboStoreEntityMapper
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
 
-        var (format, downloadUrl) = book.MediaType switch
+        var (format, downloadUrl) = book.File.MediaType switch
         {
             MediaType.Audiobook => ("MANIFEST", $"{deviceBaseUrl}/download/{entitlementUuid}/manifest"),
             _ => ("KEPUB", $"{deviceBaseUrl}/download/{entitlementUuid}/kepub")
@@ -59,7 +59,7 @@ public static class KoboStoreEntityMapper
                 new KoboStoreDownloadUrl
                 {
                     Format = format,
-                    Size = book.TotalFileSize,
+                    Size = book.File.TotalFileSize,
                     Url = downloadUrl
                 }
             ],
@@ -91,10 +91,10 @@ public static class KoboStoreEntityMapper
         if (relatedGroupId is not null)
             metadata.RelatedGroupId = relatedGroupId.Value.ToString();
 
-        if (book.MediaType == MediaType.Audiobook)
+        if (book.File.MediaType == MediaType.Audiobook)
         {
-            metadata.Duration = book.Duration;
-            metadata.IsAbridged = book.IsAbridged;
+            metadata.Duration = book.File.Duration;
+            metadata.IsAbridged = book.File.IsAbridged;
             metadata.Locale = new KoboStoreLocale { LanguageCode = book.Language ?? "en" };
         }
 
@@ -111,7 +111,7 @@ public static class KoboStoreEntityMapper
         var entitlement = ToEntitlement(book);
         var metadata = ToMetadata(book, deviceBaseUrl, relatedGroupId);
 
-        return book.MediaType switch
+        return book.File.MediaType switch
         {
             MediaType.Audiobook => new KoboStoreEntitlement { AudiobookEntitlement = entitlement, AudiobookMetadata = metadata, ReadingState = readingState },
             _ => new KoboStoreEntitlement { BookEntitlement = entitlement, BookMetadata = metadata, ReadingState = readingState }
@@ -147,15 +147,20 @@ public static class KoboStoreEntityMapper
             }).ToList(),
             Spine = chapters.Select(c => new KoboStoreAudiobookSpineEntry
             {
-                Bitrate = 0.0,
+                Bitrate = book.File.AudioBitrate.HasValue ? book.File.AudioBitrate.Value / 1000.0 : 0.0,
                 Duration = c.Duration,
                 Id = c.ChapterIndex,
-                Url = $"{deviceBaseUrl}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}"
+                Url = $"{deviceBaseUrl}/audiobook/{entitlementUuid}/chapter/{c.ChapterIndex}",
+                MediaType = CodecToMimeType(book.File.AudioCodec),
+                FileExtension = CodecToExtension(book.File.AudioCodec)
             }).ToList()
         };
     }
 
-    public static KoboStoreProductRecommendationItem ToProductRecommendationItem(Book book) => book.MediaType == MediaType.Audiobook
+    public static string CodecToMimeType(string? codec) => codec switch { "mp3" => "audio/mpeg", "opus" => "audio/opus", _ => "audio/aac" };
+    public static string CodecToExtension(string? codec) => codec switch { "mp3" => "mp3", "opus" => "opus", _ => "aac" };
+
+    public static KoboStoreProductRecommendationItem ToProductRecommendationItem(Book book) => book.File.MediaType == MediaType.Audiobook
         ? new KoboStoreProductRecommendationItem { Audiobook = ToAudiobookProduct(book) }
         : new KoboStoreProductRecommendationItem { Book = ToEbookProduct(book) };
 
@@ -167,9 +172,9 @@ public static class KoboStoreEntityMapper
         ContributorRoles = book.Authors.Select(a => new KoboStoreContributorRole { Name = a.Name }).ToList(),
         Description = book.Description,
         Language = book.Language,
-        Duration = book.Duration ?? 0,
-        TotalBytes = book.TotalFileSize,
-        IsAbridged = book.IsAbridged ?? false,
+        Duration = book.File.Duration ?? 0,
+        TotalBytes = book.File.TotalFileSize,
+        IsAbridged = book.File.IsAbridged ?? false,
         ISBN = book.Isbn,
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
@@ -199,7 +204,7 @@ public static class KoboStoreEntityMapper
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),
         SeriesNumberFloat = book.Series?.Index is not null ? (float)book.Series.Index.Value : null,
-        Stats = book.PageCount is not null || book.WordCount is not null ? new KoboStoreEbookStats { Pages = book.PageCount ?? 0, WordCount = book.WordCount ?? 0 } : null
+        Stats = book.File.PageCount is not null || book.File.WordCount is not null ? new KoboStoreEbookStats { Pages = book.File.PageCount ?? 0, WordCount = book.File.WordCount ?? 0 } : null
     };
 
     private static List<KoboStoreContributorRole> BuildContributorRoles(Book book)

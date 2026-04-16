@@ -91,10 +91,10 @@ public sealed class AudiobookIndexerTests
         Assert.HasCount(1, books);
         var book = books[0];
         Assert.AreEqual("Fantastic Beasts and Where to Find Them", book.Title);
-        Assert.AreEqual(MediaType.Audiobook, book.MediaType);
+        Assert.AreEqual(MediaType.Audiobook, book.File.MediaType);
         Assert.IsNotEmpty(book.Authors);
-        Assert.IsGreaterThan(0, book.Duration!.Value);
-        Assert.IsGreaterThan(0, book.TotalFileSize);
+        Assert.IsGreaterThan(0, book.File.Duration!.Value);
+        Assert.IsGreaterThan(0, book.File.TotalFileSize);
         Assert.AreNotEqual(default(DateTimeOffset), book.CreatedAt);
         Assert.AreEqual(book.CreatedAt, book.ModifiedAt);
     }
@@ -111,8 +111,8 @@ public sealed class AudiobookIndexerTests
 
         var books = await bookRepository.GetAll();
         var book = books[0];
-        Assert.IsNotNull(book.CoverFilePath);
-        Assert.IsTrue(File.Exists(book.CoverFilePath), "Cover file should exist after indexing.");
+        Assert.IsNotNull(book.File.CoverFilePath);
+        Assert.IsTrue(File.Exists(book.File.CoverFilePath), "Cover file should exist after indexing.");
     }
 
     [TestMethod]
@@ -136,7 +136,7 @@ public sealed class AudiobookIndexerTests
     }
 
     [TestMethod]
-    public async Task ReadChapter_AfterIndex_ReturnsMp3Bytes()
+    public async Task StreamChapter_AfterIndex_StreamsData()
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
@@ -148,14 +148,14 @@ public sealed class AudiobookIndexerTests
         var books = await bookRepository.GetAll();
         var book = books[0];
 
-        var chapterBytes = await contentManager.GetChapterFile(book, 0);
+        using var memoryStream = new MemoryStream();
+        await contentManager.StreamChapter(book, 0, memoryStream, CancellationToken.None);
 
-        Assert.IsNotNull(chapterBytes);
-        Assert.IsGreaterThan(0, chapterBytes.Length);
+        Assert.IsGreaterThan(0, memoryStream.Length);
     }
 
     [TestMethod]
-    public async Task ReadChapter_InvalidIndex_ReturnsNull()
+    public async Task StreamChapter_InvalidIndex_Throws()
     {
         CopyTestAudiobookToTestDir();
         var settings = CreateSettings();
@@ -167,8 +167,7 @@ public sealed class AudiobookIndexerTests
         var books = await bookRepository.GetAll();
         var book = books[0];
 
-        var result = await contentManager.GetChapterFile(book, 9999);
-        Assert.IsNull(result);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => contentManager.StreamChapter(book, 9999, new MemoryStream(), CancellationToken.None));
     }
 
     [TestMethod]
@@ -205,7 +204,7 @@ public sealed class AudiobookIndexerTests
         await indexer.Index();
         var books = await bookRepository.GetAll();
         Assert.HasCount(1, books);
-        var coverPath = books[0].CoverFilePath;
+        var coverPath = books[0].File.CoverFilePath;
 
         File.Delete(Path.Combine(audiobookDir, FantasticBeastsFileName));
 

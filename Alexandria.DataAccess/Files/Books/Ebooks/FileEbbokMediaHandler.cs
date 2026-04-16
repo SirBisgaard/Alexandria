@@ -10,7 +10,7 @@ public class FileEbbokMediaHandler(IEpubMetadataHandler epubMetadataHandler, IFi
 
     public Task<byte[]?> ReadContent(Book book) => fileRepository.ReadKepub(book);
 
-    public Task<byte[]?> ReadChapter(Book book, int chapterIndex) => throw new NotSupportedException();
+    public Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken) => throw new NotSupportedException();
 
     public Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null) => fileRepository.ReadCover(book, width, height, quality);
 

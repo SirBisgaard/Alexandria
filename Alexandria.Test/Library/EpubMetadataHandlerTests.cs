@@ -801,8 +801,8 @@ public sealed class EpubMetadataHandlerTests
     {
         var book = ExtractBook("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
-        Assert.IsNotNull(book.WordCount);
-        Assert.IsGreaterThan(0, book.WordCount.Value);
+        Assert.IsNotNull(book.File.WordCount);
+        Assert.IsGreaterThan(0, book.File.WordCount.Value);
     }
 
     [TestMethod]
@@ -813,8 +813,8 @@ public sealed class EpubMetadataHandlerTests
 
         var book = handler.ExtractMetadata(inputPath);
 
-        Assert.IsNotNull(book.WordCount);
-        Assert.IsGreaterThan(0, book.WordCount.Value);
+        Assert.IsNotNull(book.File.WordCount);
+        Assert.IsGreaterThan(0, book.File.WordCount.Value);
     }
 
     private static void InjectCollection(string epubPath, string collectionId, string name, string position, string? collectionType = "series")

@@ -99,7 +99,7 @@ function openEditModal(uuid) {
         comboSeries = (seriesRes[0] || []).map(function (s) { return s.name; });
         comboPublishers = publishersRes[0] || [];
         var allRoles = rolesRes[0] || [];
-        currentContributorRoles = book.mediaType === "Audiobook" ? ["Narrator"] : allRoles;
+        currentContributorRoles = book.file.mediaType === "Audiobook" ? ["Narrator"] : allRoles;
 
         currentModalUuid = book.bookUuid;
         if (!originalModalHtml)
@@ -115,12 +115,12 @@ function openEditModal(uuid) {
                 '<div class="bm-edit-cover-col">' +
                     '<div class="cover-frame book-modal-cover" style="cursor:pointer;position:relative;"><img id="bm-edit-cover-img" src="' + coverSrc + '" alt="" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.book-cover\').style.display=\'flex\';">' +
                     '<div class="book-cover" style="display:none;background:' + fallbackColor(book.bookUuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small></div>' +
-                    (book.hasCover ? '<button class="bm-edit-cover-remove" id="bm-edit-cover-remove" title="Remove cover">&times;</button>' : '') + '</div>' +
+                    (book.file.hasCover ? '<button class="bm-edit-cover-remove" id="bm-edit-cover-remove" title="Remove cover">&times;</button>' : '') + '</div>' +
                     '<label class="bm-edit-btn bm-edit-cover-upload">' +
                         '<input type="file" id="bm-edit-cover-file" accept="image/*" style="display:none;">' +
                         '<span>Upload Cover</span>' +
                     '</label>' +
-                    (book.mediaType === "Audiobook" ? '<div class="bm-edit-field" style="margin-top:12px;"><div class="bm-edit-label">Is Abridged</div><label class="bm-edit-checkbox"><input type="checkbox" id="bm-edit-abridged"' + (book.isAbridged ? ' checked' : '') + '><span class="bm-edit-checkmark"></span></label></div>' : '') +
+                    (book.file.mediaType === "Audiobook" ? '<div class="bm-edit-field" style="margin-top:12px;"><div class="bm-edit-label">Is Abridged</div><label class="bm-edit-checkbox"><input type="checkbox" id="bm-edit-abridged"' + (book.file.isAbridged ? ' checked' : '') + '><span class="bm-edit-checkmark"></span></label></div>' : '') +
                 '</div>' +
                 '<div class="bm-edit-fields">' +
                     '<div class="bm-edit-field">' +

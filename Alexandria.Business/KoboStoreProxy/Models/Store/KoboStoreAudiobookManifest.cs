@@ -25,7 +25,7 @@ public class KoboStoreAudiobookSpineEntry
     public double Bitrate { get; set; }
     public double Duration { get; set; }
     public int Id { get; set; }
-    public string MediaType { get; set; } = "audio/mpeg";
+    public string MediaType { get; set; } = "";
     public string Url { get; set; } = "";
-    public string FileExtension { get; set; } = "mp3";
+    public string FileExtension { get; set; } = "";
 }

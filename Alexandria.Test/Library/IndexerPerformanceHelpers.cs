@@ -29,8 +29,7 @@ public class TimingFfmpegHandler(IFfmpegHandler inner, ConcurrentBag<TimingRecor
         return result;
     }
 
-    public Task ExtractChapterAsMp3(string inputPath, double startTime, double endTime, string outputPath) => inner.ExtractChapterAsMp3(inputPath, startTime, endTime, outputPath);
-    public Task<byte[]> ExtractChapterAsMp3ToMemory(string inputPath, double startTime, double endTime) => inner.ExtractChapterAsMp3ToMemory(inputPath, startTime, endTime);
+    public Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken) => inner.StreamChapter(inputPath, startTime, endTime, codec, outputStream, cancellationToken);
     public Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => inner.WriteMetadata(inputPath, outputPath, tags, chapters);
     public Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData) => inner.WriteMetadataWithCover(inputPath, outputPath, tags, chapters, coverData);
     public Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => inner.WriteMetadataRemoveCover(inputPath, outputPath, tags, chapters);
@@ -86,7 +85,7 @@ public class InstrumentedBookRepository(IBookRepository inner, ConcurrentBag<Tim
         var sw = Stopwatch.StartNew();
         await inner.Add(book);
         Interlocked.Increment(ref AddCount);
-        timings.Add(new TimingRecord("db-add-book", book.SourcePath, sw.ElapsedMilliseconds));
+        timings.Add(new TimingRecord("db-add-book", book.File.SourcePath, sw.ElapsedMilliseconds));
     }
 
     public async Task Update(Book book)
@@ -94,7 +93,7 @@ public class InstrumentedBookRepository(IBookRepository inner, ConcurrentBag<Tim
         var sw = Stopwatch.StartNew();
         await inner.Update(book);
         Interlocked.Increment(ref UpdateCount);
-        timings.Add(new TimingRecord("db-update-book", book.SourcePath, sw.ElapsedMilliseconds));
+        timings.Add(new TimingRecord("db-update-book", book.File.SourcePath, sw.ElapsedMilliseconds));
     }
 
     public Task<Book?> FindByUuid(Guid uuid) => inner.FindByUuid(uuid);
