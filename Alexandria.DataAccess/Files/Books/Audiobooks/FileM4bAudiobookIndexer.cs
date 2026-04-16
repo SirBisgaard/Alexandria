@@ -54,14 +54,17 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobo
         var bookFolder = Path.Combine(settings.ChaptersFolder, book.BookUuid.ToString());
         Directory.CreateDirectory(bookFolder);
 
-        for (var i = 0; i < book.Chapters.Count; i++)
+        var total = book.Chapters.Count;
+        var completed = 0;
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        await Parallel.ForEachAsync(Enumerable.Range(0, total), options, async (i, ct) =>
         {
             var outputPath = Path.Combine(bookFolder, $"{i}.mp3");
-            if (File.Exists(outputPath))
-                continue;
-            logger.LogInformation("Pre-transcoding chapter {ChapterIndex}/{ChapterCount} for {BookTitle}", i + 1, book.Chapters.Count, book.Title);
-            await m4BFileHandler.TranscodeChapterToFile(book, i, outputPath, CancellationToken.None);
-        }
+            if (!File.Exists(outputPath))
+                await m4BFileHandler.TranscodeChapterToFile(book, i, outputPath, ct);
+            var done = Interlocked.Increment(ref completed);
+            logger.LogInformation("Pre-transcoded {Completed} out of {Total} chapters for {BookTitle}", done, total, book.Title);
+        });
     }
 
     public void DeleteDerivedFiles(Book book)
