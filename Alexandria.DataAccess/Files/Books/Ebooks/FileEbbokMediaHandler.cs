@@ -1,10 +1,11 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Ebooks;
 
-public class FileEbbokMediaHandler(IEpubMetadataHandler epubMetadataHandler, IFileRepository fileRepository) : IFileContentMediaHandler
+public class FileEbbokMediaHandler(IEpubFileHandler epubFileHandler, IFileRepository fileRepository) : IFileContentMediaHandler
 {
     public string[] SupportedExtensions => [".epub"];
 
@@ -14,17 +15,17 @@ public class FileEbbokMediaHandler(IEpubMetadataHandler epubMetadataHandler, IFi
 
     public Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null) => fileRepository.ReadCover(book, width, height, quality);
 
-    public Book ExtractMetadata(string filePath) => epubMetadataHandler.ExtractMetadata(filePath);
+    public Book ExtractMetadata(string filePath) => epubFileHandler.ExtractMetadata(filePath);
 
     public bool MetadataEquals(Book desired, string filePath)
     {
-        var current = epubMetadataHandler.ExtractMetadata(filePath);
+        var current = epubFileHandler.ExtractMetadata(filePath);
         return desired.MetadataEquals(current);
     }
 
-    public void EmbedMetadata(string filePath, Book book) => epubMetadataHandler.EmbedMetadata(filePath, book);
+    public void EmbedMetadata(string filePath, Book book) => epubFileHandler.EmbedMetadata(filePath, book);
 
-    public void EmbedCover(string filePath, byte[] coverData, string mediaType) => epubMetadataHandler.EmbedCover(filePath, coverData, mediaType);
+    public void EmbedCover(string filePath, byte[] coverData, string mediaType) => epubFileHandler.EmbedCover(filePath, coverData, mediaType);
 
-    public void RemoveCover(string filePath) => epubMetadataHandler.RemoveCover(filePath);
+    public void RemoveCover(string filePath) => epubFileHandler.RemoveCover(filePath);
 }

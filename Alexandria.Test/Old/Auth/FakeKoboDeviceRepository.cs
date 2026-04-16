@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Models;
-using Alexandria.DataAccess.Database.Interfaces;
 
-namespace Alexandria.Tests.Auth;
+namespace Alexandria.Tests.Old.Auth;
 
 /// <summary>
 /// In-memory stand-in for <see cref="IKoboDeviceRepository"/>. Supports the subset of behavior

@@ -7,11 +7,11 @@ using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Externals.Models;
 using Alexandria.DataAccess.Files.Interfaces;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 public record TimingRecord(string Phase, string FilePath, long ElapsedMs, long? FileSizeBytes = null);
 
-public class TimingFfmpegHandler(IFfmpegHandler inner, ConcurrentBag<TimingRecord> timings) : IFfmpegHandler
+public class TimingFfmpegWrapper(IFfmpegWrapper inner, ConcurrentBag<TimingRecord> timings) : IFfmpegWrapper
 {
     public async Task<string> GetMetadataJson(string inputPath)
     {
@@ -29,7 +29,7 @@ public class TimingFfmpegHandler(IFfmpegHandler inner, ConcurrentBag<TimingRecor
         return result;
     }
 
-    public Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken) => inner.StreamChapter(inputPath, startTime, endTime, codec, outputStream, cancellationToken);
+    public Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken) => inner.StreamChapter(inputPath, startTime, endTime, codec, bitrate, outputStream, cancellationToken);
     public Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => inner.WriteMetadata(inputPath, outputPath, tags, chapters);
     public Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData) => inner.WriteMetadataWithCover(inputPath, outputPath, tags, chapters, coverData);
     public Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => inner.WriteMetadataRemoveCover(inputPath, outputPath, tags, chapters);

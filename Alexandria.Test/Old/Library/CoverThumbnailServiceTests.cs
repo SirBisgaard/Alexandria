@@ -1,8 +1,9 @@
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
 public sealed class CoverThumbnailServiceTests
@@ -35,7 +36,7 @@ public sealed class CoverThumbnailServiceTests
 
     private string ExtractTestCover()
     {
-        var extractor = new EpubMetadataHandler();
+        var extractor = new EpubFileHandler();
         var epub = Directory.GetFiles(ContentBooksDir, "*.epub").First();
         var (_, coverFilePath) = extractor.ExtractAll(epub, coversDir, Guid.NewGuid());
         Assert.IsNotNull(coverFilePath, "Test EPUB should have a cover.");

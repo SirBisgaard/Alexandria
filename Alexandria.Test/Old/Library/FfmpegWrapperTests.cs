@@ -1,11 +1,10 @@
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Externals.Models;
-using Alexandria.DataAccess.Files.Services;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
-public sealed class FfmpegHandlerTests
+public sealed class FfmpegWrapperTests
 {
     private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
 
@@ -45,11 +44,11 @@ public sealed class FfmpegHandlerTests
     [TestMethod]
     public async Task StreamChapter_ValidM4b_StreamsAacData()
     {
-        var handler = new FfmpegHandler();
+        var handler = new FfmpegWrapper();
         var m4BPath = GetFirstM4B();
 
         using var memoryStream = new MemoryStream();
-        await handler.StreamChapter(m4BPath, 0, 10, "aac", memoryStream, CancellationToken.None);
+        await handler.StreamChapter(m4BPath, 0, 10, "aac", null, memoryStream, CancellationToken.None);
 
         Assert.IsGreaterThan(0, memoryStream.Length, "Streamed data should not be empty.");
     }
@@ -57,7 +56,7 @@ public sealed class FfmpegHandlerTests
     [TestMethod]
     public async Task StreamChapter_MultipleChapters_AllStreamSuccessfully()
     {
-        var handler = new FfmpegHandler();
+        var handler = new FfmpegWrapper();
         var m4BPath = GetFirstM4B();
 
         double[][] chapters = [[0, 10], [10, 20], [20, 30]];
@@ -65,7 +64,7 @@ public sealed class FfmpegHandlerTests
         for (var i = 0; i < chapters.Length; i++)
         {
             using var memoryStream = new MemoryStream();
-            await handler.StreamChapter(m4BPath, chapters[i][0], chapters[i][1], null, memoryStream, CancellationToken.None);
+            await handler.StreamChapter(m4BPath, chapters[i][0], chapters[i][1], null, null, memoryStream, CancellationToken.None);
 
             Assert.IsGreaterThan(0, memoryStream.Length, $"Streamed data should not be empty for chapter {i}.");
         }
@@ -74,7 +73,7 @@ public sealed class FfmpegHandlerTests
     [TestMethod]
     public async Task WriteMetadata_ValidM4b_CreatesOutputFile()
     {
-        var handler = new FfmpegHandler();
+        var handler = new FfmpegWrapper();
         var m4BCopy = CopyM4BToOutputDir();
         var outputPath = Path.Combine(outputDir, "output.m4b");
 
@@ -90,11 +89,11 @@ public sealed class FfmpegHandlerTests
     [TestMethod]
     public async Task WriteMetadataWithCover_ValidM4b_EmbedsCover()
     {
-        var ffmpegHandler = new FfmpegHandler();
+        var ffmpegHandler = new FfmpegWrapper();
         var m4BCopy = CopyM4BToOutputDir();
         var outputPath = Path.Combine(outputDir, "output-cover.m4b");
 
-        var metadataHandler = new M4BMetadataHandler(ffmpegHandler);
+        var metadataHandler = new M4BFileHandler(ffmpegHandler);
         var book = await metadataHandler.ExtractMetadata(m4BCopy);
         var chapters = book.Chapters.Select(c => new FfmpegChapter((long)(c.StartTime * 1000), (long)(c.EndTime * 1000), c.Title)).ToList();
         var tags = new Dictionary<string, string> { ["title"] = book.Title };
@@ -113,7 +112,7 @@ public sealed class FfmpegHandlerTests
     [TestMethod]
     public async Task WriteMetadataRemoveCover_ValidM4b_RemovesCover()
     {
-        var handler = new FfmpegHandler();
+        var handler = new FfmpegWrapper();
         var m4BCopy = CopyM4BToOutputDir();
         var outputPath = Path.Combine(outputDir, "output-nocover.m4b");
 

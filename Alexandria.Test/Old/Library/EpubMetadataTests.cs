@@ -1,7 +1,7 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
 public sealed class EpubMetadataTests

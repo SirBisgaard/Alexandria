@@ -1,5 +1,4 @@
 using Alexandria.Api.Authentication;
-using Alexandria.Business.KoboStoreProxy;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -84,7 +83,8 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
 
     /// <summary>
     /// Streams audiobook chapters directly from the source file for local audiobooks.
-    /// Audio is remuxed (not re-encoded) and piped to the response in chunks — no buffering.
+    /// The only supported format it MP3.
+    /// The Kobo device has a ~60 second timeout on chapter downloads.
     /// </summary>
     [HttpGet("audiobook/{uuid:guid}/chapter/{partId:int}")]
     public async Task AudiobookChapter(string devicekey, Guid uuid, int partId)

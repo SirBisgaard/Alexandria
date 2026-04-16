@@ -5,7 +5,7 @@ using Alexandria.DataAccess.Externals.Models;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class FfmpegHandler : IFfmpegHandler
+public class FfmpegWrapper : IFfmpegWrapper
 {
     /// <summary>
     /// Streams an audiobook chapter to the output stream as MP3. Non-MP3 sources are transcoded
@@ -14,9 +14,10 @@ public class FfmpegHandler : IFfmpegHandler
     /// </summary>
     // Kobo devices do not support AAC/ADTS streams — chapters must be served as MP3.
     // AAC remux (-c:a copy -f adts) was tried but playback fails on the device (verified 2026-04-16).
-    public async Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken)
+    public async Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken)
     {
-        var codecArgs = codec == "mp3" ? "-c:a copy" : "-acodec libmp3lame -q:a 2";
+        var quality = codec == "mp3" ? (int?)null : SelectLameQuality(bitrate);
+        var codecArgs = quality is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {quality}";
         var duration = endTime - startTime;
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
@@ -196,6 +197,19 @@ public class FfmpegHandler : IFfmpegHandler
             .Replace("#", "\\#")
             .Replace("\n", "\\\n");
     }
+
+    /// <summary>
+    /// Picks a libmp3lame -q:a level that roughly matches the source AAC bitrate.
+    /// Lower values = higher quality/slower/larger. Spoken word is forgiving so we
+    /// avoid over-encoding low-bitrate sources.
+    /// </summary>
+    private static int SelectLameQuality(int? bitrate) => bitrate switch
+    {
+        <= 48000 => 8,   // ~85 kbps — source is very low quality
+        <= 80000 => 6,   // ~130 kbps — standard audiobook (64 kbps AAC)
+        <= 130000 => 4,  // ~165 kbps — high quality (128 kbps AAC)
+        _ => 2           // ~190 kbps — very high bitrate source
+    };
 
     private static async Task RunFfmpeg(string arguments)
     {

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alexandria.Api.Controllers;
+namespace Alexandria.Api.Controllers.Alexandria;
 
 /// <summary>
 /// Shared base for controllers that live under <c>/api/alexandria</c> and authenticate

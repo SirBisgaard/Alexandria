@@ -55,12 +55,12 @@ builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
 builder.Services.AddSingleton<IAuthorRepository, AuthorRepository>();
 builder.Services.AddSingleton<ISeriesRepository, SeriesRepository>();
 
-builder.Services.AddTransient<IEpubMetadataHandler, EpubMetadataHandler>();
-builder.Services.AddTransient<IKepubifyConverter, KepubifyConverter>();
+builder.Services.AddTransient<IEpubFileHandler, EpubFileHandler>();
+builder.Services.AddTransient<IKepubifyWrapper, KepubifyWrapper>();
 builder.Services.AddTransient<ICoverThumbnailService, CoverThumbnailService>();
 builder.Services.AddTransient<IFileContentIndexer, FileEbookIndexer>();
-builder.Services.AddTransient<IFfmpegHandler, FfmpegHandler>();
-builder.Services.AddTransient<IM4BMetadataHandler, M4BMetadataHandler>();
+builder.Services.AddTransient<IFfmpegWrapper, FfmpegWrapper>();
+builder.Services.AddTransient<IM4BFileHandler, M4BFileHandler>();
 builder.Services.AddTransient<FileAudiobookMediaHandler>();
 builder.Services.AddTransient<IFileContentIndexer, FileAudiobookIndexer>();
 builder.Services.AddTransient<IFileContentMediaHandler, FileEbbokMediaHandler>();

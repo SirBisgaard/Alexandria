@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Alexandria.Business.Authentication;
 using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
 using Alexandria.DataAccess.Database;
@@ -12,10 +13,9 @@ using Alexandria.DataAccess.Files.Books.Audiobooks;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
-using Alexandria.Business.Library.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
 [Ignore]
@@ -73,17 +73,17 @@ public sealed class IndexerPerformanceTests
         var instrumentedSeriesRepo = new InstrumentedSeriesRepository(seriesRepository, timings);
 
         // Timing ffmpeg wrapper
-        var timingFfmpeg = new TimingFfmpegHandler(new FfmpegHandler(), timings);
-        var m4bHandler = new M4BMetadataHandler(timingFfmpeg);
+        var timingFfmpeg = new TimingFfmpegWrapper(new FfmpegWrapper(), timings);
+        var m4bHandler = new M4BFileHandler(timingFfmpeg);
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4bHandler);
 
         // File indexers with timing wrappers
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
-        var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubMetadataHandler(), new KepubifyConverter(), coverThumbnailService), timings);
+        var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubFileHandler(), new KepubifyWrapper(), coverThumbnailService), timings);
         var audiobookIndexer = new TimingFileContentIndexer(new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService), timings);
 
-        var epubMediaHandler = new FileEbbokMediaHandler(new EpubMetadataHandler(), fileRepository);
+        var epubMediaHandler = new FileEbbokMediaHandler(new EpubFileHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
         var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
         var indexer = new IndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, NullLogger<IndexerService>.Instance);
@@ -125,7 +125,7 @@ public sealed class IndexerPerformanceTests
         if (m4bFiles.Length == 0)
             Assert.Inconclusive("No M4B files found — skipping.");
 
-        var ffmpegHandler = new FfmpegHandler();
+        var ffmpegHandler = new FfmpegWrapper();
 
         // Sample: 10 largest + 5 smallest
         var sorted = m4bFiles.Select(f => new FileInfo(f)).OrderByDescending(f => f.Length).ToList();

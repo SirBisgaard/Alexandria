@@ -1,20 +1,20 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Externals.Models;
-using Alexandria.DataAccess.Files.Services;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
-public sealed class M4BMetadataHandlerTests
+public sealed class IM4BFileHandlerTests
 {
     private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
     private static readonly string FantasticBeastsFileName = "J.K. Rowling - Wizarding World #0 - Fantastic Beasts and Where to Find Them.m4b";
     private static readonly string HuttGambitFileName = "A.C. Crispin - The Han Solo Trilogy #2 - The Hutt Gambit.m4b";
 
     private string outputDir = null!;
-    private M4BMetadataHandler handler = null!;
+    private IM4BFileHandler handler = null!;
 
     [TestInitialize]
     public void Setup()
@@ -22,7 +22,7 @@ public sealed class M4BMetadataHandlerTests
         outputDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
         GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
-        handler = new M4BMetadataHandler(new FfmpegHandler());
+        handler = new M4BFileHandler(new FfmpegWrapper());
         RequireAudiobooks();
     }
 
@@ -241,7 +241,7 @@ public sealed class M4BMetadataHandlerTests
         var sourcePath = Path.Combine(ContentAudiobooksDir, FantasticBeastsFileName);
 
         using var memoryStream = new MemoryStream();
-        await handler.StreamChapter(sourcePath, chapter, book.File.AudioCodec, memoryStream, CancellationToken.None);
+        await handler.StreamChapter(sourcePath, chapter, book.File.AudioCodec, book.File.AudioBitrate, memoryStream, CancellationToken.None);
         Assert.IsGreaterThan(0, memoryStream.Length);
     }
 
@@ -468,7 +468,7 @@ public sealed class M4BMetadataHandlerTests
         };
         var chapters = existing.Chapters.Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title)).ToList();
 
-        var ffmpeg = new FfmpegHandler();
+        var ffmpeg = new FfmpegWrapper();
         var tempPath = m4BCopy + ".tmp";
         await ffmpeg.WriteMetadata(m4BCopy, tempPath, tags, chapters);
         File.Move(tempPath, m4BCopy, overwrite: true);

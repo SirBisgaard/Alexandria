@@ -2,9 +2,9 @@ using Alexandria.DataAccess.Externals.Models;
 
 namespace Alexandria.DataAccess.Externals.Interfaces;
 
-public interface IFfmpegHandler
+public interface IFfmpegWrapper
 {
-    Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, Stream outputStream, CancellationToken cancellationToken);
+    Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken);
     Task<string> GetMetadataJson(string inputPath);
     Task<byte[]?> ExtractCoverImage(string inputPath);
     Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters);

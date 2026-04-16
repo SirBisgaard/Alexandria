@@ -5,17 +5,17 @@ using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Ebooks;
 
-public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileRepository, IEpubMetadataHandler epubMetadataHandler, IKepubifyConverter kepubifyConverter, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
+public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileRepository, IEpubFileHandler epubFileHandler, IKepubifyWrapper kepubifyWrapper, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
 {
     public string[] SupportedExtensions => [".epub"];
 
     public string[] GetContentFiles() => fileRepository.GetEpubFiles();
 
-    public Book ExtractMetadata(string filePath) => epubMetadataHandler.ExtractMetadata(filePath);
+    public Book ExtractMetadata(string filePath) => epubFileHandler.ExtractMetadata(filePath);
 
     public byte[]? ExtractCoverBytes(string filePath)
     {
-        var raw = epubMetadataHandler.ExtractCoverBytes(filePath);
+        var raw = epubFileHandler.ExtractCoverBytes(filePath);
         if (raw is null)
             return null;
         return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
@@ -42,7 +42,7 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
     {
         var kepubPath = Path.Combine(settings.KepubsFolder, $"{book.BookUuid}.kepub.epub");
         if (!File.Exists(kepubPath))
-            await kepubifyConverter.Convert(sourcePath, kepubPath);
+            await kepubifyWrapper.Convert(sourcePath, kepubPath);
         book.File.KepubFilePath = kepubPath;
         book.File.TotalFileSize = fileRepository.GetFileSize(kepubPath);
     }

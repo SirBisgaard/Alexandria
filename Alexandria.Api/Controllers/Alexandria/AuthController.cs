@@ -6,7 +6,7 @@ using Alexandria.DataAccess.Database.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alexandria.Api.Controllers;
+namespace Alexandria.Api.Controllers.Alexandria;
 
 [ApiController]
 [Route("/api/alexandria/auth")]

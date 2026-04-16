@@ -1,5 +1,3 @@
-using Alexandria.Business.Library.Models;
-
 namespace Alexandria.Api.Models.Responses;
 
 public class BookResponse

@@ -1,6 +1,6 @@
 using Alexandria.Business.Library.Models;
 
-namespace Alexandria.DataAccess.Database.Interfaces;
+namespace Alexandria.Business.Interfaces;
 
 public interface IKoboDeviceRepository
 {

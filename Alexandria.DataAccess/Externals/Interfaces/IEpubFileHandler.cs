@@ -1,8 +1,8 @@
 using Alexandria.Business.Library.Models;
 
-namespace Alexandria.DataAccess.Files.Interfaces;
+namespace Alexandria.DataAccess.Externals.Interfaces;
 
-public interface IEpubMetadataHandler
+public interface IEpubFileHandler
 {
     Book ExtractMetadata(string epubPath);
     byte[]? ExtractCoverBytes(string epubPath);

@@ -15,7 +15,7 @@ using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
 public sealed class BookServiceTests
@@ -26,7 +26,6 @@ public sealed class BookServiceTests
     private string booksDir = null!;
     private string coversDir = null!;
     private string kepubsDir = null!;
-    private string dbPath = null!;
 
     [TestInitialize]
     public void Setup()
@@ -35,7 +34,7 @@ public sealed class BookServiceTests
         booksDir = Path.Combine(testDir, "books");
         coversDir = Path.Combine(testDir, "covers");
         kepubsDir = Path.Combine(testDir, "kepubs");
-        dbPath = Path.Combine(testDir, "alexandria.db");
+        Path.Combine(testDir, "alexandria.db");
         Directory.CreateDirectory(booksDir);
         Directory.CreateDirectory(coversDir);
         Directory.CreateDirectory(kepubsDir);
@@ -66,11 +65,11 @@ public sealed class BookServiceTests
         var bookRepository = new BookRepository(connectionProvider, authorRepository, seriesRepository);
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
-        var epubMetadataHandler = new EpubMetadataHandler();
-        var kepubifyConverter = new KepubifyConverter();
+        var epubMetadataHandler = new EpubFileHandler();
+        var kepubifyConverter = new KepubifyWrapper();
         var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, kepubifyConverter, coverThumbnailService);
         var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
-        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
+        var m4BMetadataHandler = new M4BFileHandler(new FfmpegWrapper());
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
@@ -143,7 +142,7 @@ public sealed class BookServiceTests
         await service.UpdateBookMetadata(updateBook);
 
         // Verify the EPUB file itself was modified by re-extracting metadata directly.
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var (freshMetadata, _) = handler.ExtractAll(original.File.SourcePath, coversDir, Guid.NewGuid());
         Assert.AreEqual("Roundtrip Title", freshMetadata.Title);
         Assert.HasCount(1, freshMetadata.Authors);

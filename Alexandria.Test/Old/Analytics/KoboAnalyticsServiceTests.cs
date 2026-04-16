@@ -1,16 +1,16 @@
 using System.Text;
 using System.Text.Json;
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
-using Alexandria.Business.Library.Models;
 using Alexandria.Business.KoboStoreProxy.Services;
+using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.Analytics;
+namespace Alexandria.Tests.Old.Analytics;
 
 [TestClass]
 public sealed class KoboAnalyticsServiceTests

@@ -2,13 +2,13 @@ using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
 using Alexandria.Business.Library.Extensions;
-using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Models;
 
-namespace Alexandria.DataAccess.Files.Services;
+namespace Alexandria.DataAccess.Externals;
 
-public class EpubMetadataHandler : IEpubMetadataHandler
+public class EpubFileHandler : IEpubFileHandler
 {
     private static readonly XNamespace Dc = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Library.Models;
 
-namespace Alexandria.Tests.Api;
+namespace Alexandria.Tests.Old.Api;
 
 [TestClass]
 public sealed class RequestValidationTests

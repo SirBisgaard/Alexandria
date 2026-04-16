@@ -1,10 +1,11 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileAudiobookMediaHandler(IM4BMetadataHandler m4BMetadataHandler) : IFileContentMediaHandler
+public class FileAudiobookMediaHandler(IM4BFileHandler im4BFileHandler) : IFileContentMediaHandler
 {
     public string[] SupportedExtensions => [".m4b"];
 
@@ -16,7 +17,7 @@ public class FileAudiobookMediaHandler(IM4BMetadataHandler m4BMetadataHandler) :
             throw new ArgumentOutOfRangeException(nameof(chapterIndex));
 
         var chapter = book.Chapters[chapterIndex];
-        await m4BMetadataHandler.StreamChapter(book.File.SourcePath, chapter, book.File.AudioCodec, outputStream, cancellationToken);
+        await im4BFileHandler.StreamChapter(book.File.SourcePath, chapter, book.File.AudioCodec, book.File.AudioBitrate, outputStream, cancellationToken);
     }
 
     public async Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null)
@@ -27,9 +28,9 @@ public class FileAudiobookMediaHandler(IM4BMetadataHandler m4BMetadataHandler) :
         return await File.ReadAllBytesAsync(book.File.CoverFilePath);
     }
 
-    public Book ExtractMetadata(string filePath) => m4BMetadataHandler.ExtractMetadata(filePath).GetAwaiter().GetResult();
+    public Book ExtractMetadata(string filePath) => im4BFileHandler.ExtractMetadata(filePath).GetAwaiter().GetResult();
 
-    public byte[]? ExtractCoverBytes(string filePath) => m4BMetadataHandler.ExtractCoverBytes(filePath).GetAwaiter().GetResult();
+    public byte[]? ExtractCoverBytes(string filePath) => im4BFileHandler.ExtractCoverBytes(filePath).GetAwaiter().GetResult();
 
     public bool MetadataEquals(Book desired, string filePath)
     {
@@ -37,11 +38,11 @@ public class FileAudiobookMediaHandler(IM4BMetadataHandler m4BMetadataHandler) :
         return desired.MetadataEquals(current);
     }
 
-    public void EmbedMetadata(string filePath, Book book) => m4BMetadataHandler.EmbedMetadata(filePath, book).GetAwaiter().GetResult();
+    public void EmbedMetadata(string filePath, Book book) => im4BFileHandler.EmbedMetadata(filePath, book).GetAwaiter().GetResult();
 
-    public void EmbedCover(string filePath, byte[] coverData, string mediaType) => m4BMetadataHandler.EmbedCover(filePath, coverData, mediaType).GetAwaiter().GetResult();
+    public void EmbedCover(string filePath, byte[] coverData, string mediaType) => im4BFileHandler.EmbedCover(filePath, coverData, mediaType).GetAwaiter().GetResult();
 
-    public void RemoveCover(string filePath) => m4BMetadataHandler.RemoveCover(filePath).GetAwaiter().GetResult();
+    public void RemoveCover(string filePath) => im4BFileHandler.RemoveCover(filePath).GetAwaiter().GetResult();
 
-    public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => m4BMetadataHandler.ExtractCover(filePath, coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
+    public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => im4BFileHandler.ExtractCover(filePath, coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
 }

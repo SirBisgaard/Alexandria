@@ -1,5 +1,5 @@
 using Alexandria.Business.Library.Interfaces;
-using Alexandria.DataAccess.Files.Services;
+using Alexandria.DataAccess.Externals;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers.Alexandria;
@@ -20,6 +20,6 @@ public class MetadataController(IBookService bookService) : AlexandriaController
         if (string.Equals(mediaType, "Audiobook", StringComparison.OrdinalIgnoreCase))
             return Ok(new[] { "Narrator" });
 
-        return Ok(EpubMetadataHandler.ContributorRoleNames);
+        return Ok(EpubFileHandler.ContributorRoleNames);
     }
 }

@@ -1,9 +1,9 @@
 using Alexandria.DataAccess.Externals;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
-public sealed class KepubifyConverterTests
+public sealed class KepubifyWrapperTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Books");
 
@@ -26,7 +26,7 @@ public sealed class KepubifyConverterTests
     [TestMethod]
     public async Task ConvertAsync_ValidEpub_CreatesKepubFile()
     {
-        var converter = new KepubifyConverter();
+        var converter = new KepubifyWrapper();
         var inputPath = Directory.GetFiles(ContentBooksDir, "*.epub").First();
         var outputPath = Path.Combine(outputDir, "output.kepub.epub");
 
@@ -39,7 +39,7 @@ public sealed class KepubifyConverterTests
     [TestMethod]
     public async Task ConvertAsync_OutputDiffersFromInput()
     {
-        var converter = new KepubifyConverter();
+        var converter = new KepubifyWrapper();
         var inputPath = Directory.GetFiles(ContentBooksDir, "*.epub").First();
         var outputPath = Path.Combine(outputDir, "output.kepub.epub");
 
@@ -54,7 +54,7 @@ public sealed class KepubifyConverterTests
     [TestMethod]
     public async Task ConvertAsync_NonExistentInput_ThrowsFileNotFoundException()
     {
-        var converter = new KepubifyConverter();
+        var converter = new KepubifyWrapper();
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
         var outputPath = Path.Combine(outputDir, "output.kepub.epub");
 
@@ -64,7 +64,7 @@ public sealed class KepubifyConverterTests
     [TestMethod]
     public async Task ConvertAsync_MultipleBooks_AllConvertSuccessfully()
     {
-        var converter = new KepubifyConverter();
+        var converter = new KepubifyWrapper();
         var epubs = Directory.GetFiles(ContentBooksDir, "*.epub").Take(3).ToArray();
 
         foreach (var epub in epubs)

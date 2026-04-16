@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Alexandria.Business.Authentication;
 
-namespace Alexandria.Tests.Auth;
+namespace Alexandria.Tests.Old.Auth;
 
 [TestClass]
 public sealed class TokenHelpersTests

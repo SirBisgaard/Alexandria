@@ -4,11 +4,10 @@ using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Externals.Models;
-using Alexandria.DataAccess.Files.Interfaces;
 
-namespace Alexandria.DataAccess.Files.Services;
+namespace Alexandria.DataAccess.Externals;
 
-public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHandler
+public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper) : IM4BFileHandler
 {
     public async Task<Book> ExtractMetadata(string filePath)
     {
@@ -30,7 +29,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
     /// </summary>
     private async Task<Book> ExtractMetadataViaFfprobe(string filePath)
     {
-        var json = await ffmpegHandler.GetMetadataJson(filePath);
+        var json = await ffmpegWrapper.GetMetadataJson(filePath);
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
@@ -118,11 +117,11 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return book;
     }
 
-    public Task<byte[]?> ExtractCoverBytes(string filePath) => ffmpegHandler.ExtractCoverImage(filePath);
+    public Task<byte[]?> ExtractCoverBytes(string filePath) => ffmpegWrapper.ExtractCoverImage(filePath);
 
     public async Task<string?> ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid)
     {
-        var coverData = await ffmpegHandler.ExtractCoverImage(filePath);
+        var coverData = await ffmpegWrapper.ExtractCoverImage(filePath);
         if (coverData is null)
             return null;
 
@@ -131,9 +130,9 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         return coverPath;
     }
 
-    public async Task StreamChapter(string sourcePath, AudiobookChapter chapter, string? codec, Stream outputStream, CancellationToken cancellationToken)
+    public async Task StreamChapter(string sourcePath, AudiobookChapter chapter, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken)
     {
-        await ffmpegHandler.StreamChapter(sourcePath, chapter.StartTime, chapter.EndTime, codec, outputStream, cancellationToken);
+        await ffmpegWrapper.StreamChapter(sourcePath, chapter.StartTime, chapter.EndTime, codec, bitrate, outputStream, cancellationToken);
     }
 
     /// <summary>
@@ -150,7 +149,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
 
         var tags = BuildStandardTagDictionary(book);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadata(input, output, tags, chapters));
+        await WriteViaFfmpeg(filePath, (input, output) => ffmpegWrapper.WriteMetadata(input, output, tags, chapters));
     }
 
     public async Task EmbedCover(string filePath, byte[] coverData, string mediaType)
@@ -158,7 +157,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         var existing = await ExtractMetadata(filePath);
         var tags = BuildStandardTagDictionary(existing);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadataWithCover(input, output, tags, chapters, coverData));
+        await WriteViaFfmpeg(filePath, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, tags, chapters, coverData));
     }
 
     public async Task RemoveCover(string filePath)
@@ -166,7 +165,7 @@ public class M4BMetadataHandler(IFfmpegHandler ffmpegHandler) : IM4BMetadataHand
         var existing = await ExtractMetadata(filePath);
         var tags = BuildStandardTagDictionary(existing);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(filePath, (input, output) => ffmpegHandler.WriteMetadataRemoveCover(input, output, tags, chapters));
+        await WriteViaFfmpeg(filePath, (input, output) => ffmpegWrapper.WriteMetadataRemoveCover(input, output, tags, chapters));
     }
 
     private static async Task WriteViaFfmpeg(string filePath, Func<string, string, Task> action)

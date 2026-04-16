@@ -1,6 +1,6 @@
 namespace Alexandria.DataAccess.Externals.Interfaces;
 
-public interface IKepubifyConverter
+public interface IKepubifyWrapper
 {
     Task Convert(string inputPath, string outputPath);
 }

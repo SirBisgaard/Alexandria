@@ -1,11 +1,11 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
-using Alexandria.DataAccess.Files.Services;
+using Alexandria.DataAccess.Externals;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
-public sealed class EpubMetadataHandlerTests
+public sealed class EpubFileHandlerTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Books");
 
@@ -62,7 +62,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void ExtractAll_AllBooks_ExtractsCover()
     {
-        var extractor = new EpubMetadataHandler();
+        var extractor = new EpubFileHandler();
         var epubs = Directory.GetFiles(ContentBooksDir, "*.epub");
 
         foreach (var epub in epubs)
@@ -79,7 +79,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void Extract_NonExistentFile_ThrowsFileNotFoundException()
     {
-        var extractor = new EpubMetadataHandler();
+        var extractor = new EpubFileHandler();
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
@@ -89,7 +89,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void Extract_ReturnsEmptyBookUuid()
     {
-        var extractor = new EpubMetadataHandler();
+        var extractor = new EpubFileHandler();
         var inputPath = Path.Combine(ContentBooksDir, "Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var (book, _) = extractor.ExtractAll(inputPath, outputDir, Guid.NewGuid());
@@ -100,7 +100,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_UpdatesTitle_ExtractsCorrectly()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
         var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
@@ -127,7 +127,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_UpdatesAuthors_ExtractsCorrectly()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
         var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
@@ -150,7 +150,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_UpdatesAllFields_ExtractsCorrectly()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var modified = new Book
@@ -181,7 +181,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_UpdatesSeries_ExtractsCorrectly()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
         var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
 
@@ -203,7 +203,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_ClearsSeries_RemovesEpub3ButCalibreFallbackRemains()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
@@ -229,7 +229,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_NonExistentFile_ThrowsFileNotFoundException()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
@@ -239,7 +239,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedCover_ReplacesExistingCover_ExtractsCorrectly()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var originalCoverDir = Path.Combine(outputDir, "original-cover");
@@ -264,7 +264,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedCover_CreatesCoverXhtmlAsFirstSpineItem()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Vasily Grossman - Life and Fate.epub");
 
         handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
@@ -305,7 +305,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedCover_PreservesOriginalCoverFilePath()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
@@ -330,7 +330,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedCover_DoesNotAddDuplicateCoverPage()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         // Count XHTML entries before.
@@ -360,7 +360,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedCover_ExistingCoverPageReferencesRemainValid()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         handler.EmbedCover(epubPath, CreateMinimalJpeg(), "image/jpeg");
@@ -393,7 +393,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedCover_NonExistentFile_ThrowsFileNotFoundException()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
@@ -403,7 +403,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void RemoveCover_RemovesCoverFromEpub()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         // Verify cover exists before removal.
@@ -422,7 +422,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void RemoveCover_NonExistentFile_ThrowsFileNotFoundException()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var bogusPath = Path.Combine(outputDir, "does-not-exist.epub");
 
         Assert.ThrowsExactly<FileNotFoundException>(
@@ -477,7 +477,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void Extract_EpubWithAlexandriaIdentifier_IgnoresIt()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         InjectDcIdentifier(epubPath, $"alexandria:{Guid.NewGuid()}");
@@ -490,7 +490,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_RemovesExistingAlexandriaIdentifier()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         InjectDcIdentifier(epubPath, $"alexandria:{Guid.NewGuid()}");
@@ -552,7 +552,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_WritesEpub3SeriesOnly()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var modified = new Book
@@ -575,7 +575,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_PreservesCalibreTags()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
@@ -601,7 +601,7 @@ public sealed class EpubMetadataHandlerTests
         // The test EPUB has both calibre:series="The Last Kingdom" and
         // belongs-to-collection="The Last Kingdom". EPUB3 standard is read first.
         // Verify the EPUB3 value is used (same value here, but the priority path is EPUB3 first).
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         // Embed with a different series name — this writes EPUB3 only.
@@ -630,7 +630,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void Extract_MultipleBelongsToCollection_TakesFirstSeries()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         InjectCollection(epubPath, collectionId: "series02", name: "Secondary Series", position: "7");
@@ -650,7 +650,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void Extract_CollectionTypeSeries_PreferredOverPlainCollection()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         // Wipe the existing EPUB3 series so we fully control the collection order below.
@@ -674,7 +674,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void Extract_UntypedBelongsToCollection_StillParsed()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         RemoveEpub3SeriesFromEpub(epubPath);
@@ -691,7 +691,7 @@ public sealed class EpubMetadataHandlerTests
     {
         // The test EPUBs have both calibre and EPUB3 series. After removing EPUB3 tags,
         // the calibre fallback should kick in.
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         // Remove EPUB3 series tags, leaving only calibre.
@@ -706,7 +706,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void EmbedMetadata_PreservesPassThroughDcElements()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var epubPath = CopyTestEpub("Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var (original, _) = handler.ExtractAll(epubPath, outputDir, Guid.NewGuid());
@@ -731,7 +731,7 @@ public sealed class EpubMetadataHandlerTests
 
     private Book ExtractBook(string fileName)
     {
-        var extractor = new EpubMetadataHandler();
+        var extractor = new EpubFileHandler();
         var inputPath = Path.Combine(ContentBooksDir, fileName);
         return extractor.ExtractAll(inputPath, outputDir, Guid.NewGuid()).Book;
     }
@@ -808,7 +808,7 @@ public sealed class EpubMetadataHandlerTests
     [TestMethod]
     public void ExtractMetadata_PopulatesWordCount()
     {
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var inputPath = Path.Combine(ContentBooksDir, "Bernard Cornwell - The Last Kingdom #1 - Det sidste kongerige.epub");
 
         var book = handler.ExtractMetadata(inputPath);

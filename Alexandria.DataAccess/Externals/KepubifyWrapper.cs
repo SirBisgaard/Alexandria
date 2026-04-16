@@ -3,11 +3,11 @@ using Alexandria.DataAccess.Externals.Interfaces;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class KepubifyConverter : IKepubifyConverter
+public class KepubifyWrapper : IKepubifyWrapper
 {
     private readonly string kepubifyPath;
 
-    public KepubifyConverter()
+    public KepubifyWrapper()
     {
         kepubifyPath = Path.Combine(AppContext.BaseDirectory, "kepubify");
 

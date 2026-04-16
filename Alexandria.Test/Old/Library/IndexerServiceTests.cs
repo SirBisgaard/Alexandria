@@ -12,7 +12,7 @@ using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.Library;
+namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
 public sealed class IndexerServiceTests
@@ -61,13 +61,13 @@ public sealed class IndexerServiceTests
 
     private IndexerService CreateIndexer(AlexandriaSettings settings, BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)
     {
-        var epubMetadataHandler = new EpubMetadataHandler();
-        var converter = new KepubifyConverter();
+        var epubMetadataHandler = new EpubFileHandler();
+        var converter = new KepubifyWrapper();
         var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var epubIndexer = new FileEbookIndexer(settings, fileRepository, epubMetadataHandler, converter, coverThumbnailService);
         var epubMediaHandler = new FileEbbokMediaHandler(epubMetadataHandler, fileRepository);
-        var m4BMetadataHandler = new M4BMetadataHandler(new FfmpegHandler());
+        var m4BMetadataHandler = new M4BFileHandler(new FfmpegWrapper());
         var audiobookMediaHandler = new FileAudiobookMediaHandler(m4BMetadataHandler);
         var audiobookIndexer = new FileAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
@@ -193,7 +193,7 @@ public sealed class IndexerServiceTests
         var originalModifiedAt = books[0].ModifiedAt;
 
         // Simulate a file change by modifying the epub's metadata.
-        var handler = new EpubMetadataHandler();
+        var handler = new EpubFileHandler();
         var metadata = handler.ExtractMetadata(books[0].File.SourcePath);
         metadata.Title = "Modified Title For Change Test";
         handler.EmbedMetadata(books[0].File.SourcePath, metadata);

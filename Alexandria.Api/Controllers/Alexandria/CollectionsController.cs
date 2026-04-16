@@ -1,6 +1,5 @@
 using Alexandria.Api.Models;
 using Alexandria.Business.Library.Interfaces;
-using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Microsoft.AspNetCore.Mvc;
 
