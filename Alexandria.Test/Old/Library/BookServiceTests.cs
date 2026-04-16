@@ -74,7 +74,7 @@ public sealed class BookServiceTests
         var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
         var audiobookIndexer = new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService, settingsService, m4BMetadataHandler, NullLogger<FileM4BAudiobookIndexer>.Instance);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexerService = new IndexerService(contentManager, bookRepository, settingsService, authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
+        var indexerService = new IndexerService(contentManager, bookRepository, settingsService, authorRepository, seriesRepository, connectionProvider, [], NullLogger<IndexerService>.Instance);
         var readingStateRepository = new FakeReadingStateRepository();
         var service = new BookService(bookRepository, readingStateRepository, contentManager, indexerService);
 

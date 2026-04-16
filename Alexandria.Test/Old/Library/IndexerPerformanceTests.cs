@@ -86,7 +86,7 @@ public sealed class IndexerPerformanceTests
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubFileHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new IndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, NullLogger<IndexerService>.Instance);
+        var indexer = new IndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, [], NullLogger<IndexerService>.Instance);
 
         // Run full index with timing
         var totalSw = Stopwatch.StartNew();

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, ILogger<IndexerService> logger) : IIndexerService
+public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, IEnumerable<IFileConverter> converters, ILogger<IndexerService> logger) : IIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
@@ -26,6 +26,9 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             logger.LogInformation("Indexing library");
 
             var existingBooks = await bookRepository.GetAll();
+
+            foreach (var converter in converters)
+                await converter.Convert(existingBooks, CancellationToken.None);
             var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
             foreach (var book in existingBooks)
                 existingByPath[book.File.SourcePath] = book;

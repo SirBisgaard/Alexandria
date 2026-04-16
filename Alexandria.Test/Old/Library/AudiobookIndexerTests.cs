@@ -74,7 +74,7 @@ public sealed class AudiobookIndexerTests
         var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
         var audioIndexer = new FileM4BAudiobookIndexer(settings, mediaHandler, coverThumbnailService, settingsService, m4BHandler, NullLogger<FileM4BAudiobookIndexer>.Instance);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { audioIndexer }, new IFileContentMediaHandler[] { mediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new IndexerService(contentManager, bookRepository, settingsService, authorRepository, seriesRepository, connectionProvider, NullLogger<IndexerService>.Instance);
+        var indexer = new IndexerService(contentManager, bookRepository, settingsService, authorRepository, seriesRepository, connectionProvider, [], NullLogger<IndexerService>.Instance);
         return (indexer, contentManager);
     }
 

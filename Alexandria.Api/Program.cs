@@ -69,6 +69,7 @@ builder.Services.AddTransient<IMp3FileHandler, Mp3FileHandler>();
 builder.Services.AddTransient<FileMp3AudiobookMediaHandler>();
 builder.Services.AddTransient<IFileContentIndexer, FileMp3AudiobookIndexer>();
 builder.Services.AddTransient<IFileContentMediaHandler, FileMp3AudiobookMediaHandler>();
+builder.Services.AddTransient<IFileConverter, FileMp3AudiobookConverter>();
 builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.
