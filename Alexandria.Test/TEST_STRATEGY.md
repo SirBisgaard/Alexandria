@@ -249,6 +249,13 @@ This is the most critical test category. The Kobo device is a black box with und
 | Database read | Time to query books with all relationships loaded | Pre-seeded database with N books |
 | Database write | Time to insert/update books with full metadata | Bulk inserts |
 | API (full stack) | Round-trip time for key endpoints with a seeded library | `WebApplicationFactory` with generated library |
+| Chapter transcode quality | AAC-to-MP3 transcode time and output size per libmp3lame `-q:a` level (0–9) | Synthetic M4B with a chapter of representative length |
+
+#### Chapter Transcode Quality Comparison
+
+The audiobook chapter endpoint transcodes AAC to MP3 via libmp3lame. All `-q:a` levels (0–9) re-encode — they decode AAC to PCM then encode to MP3. `-q:a 0` is highest quality (slowest, largest output), `-q:a 9` is lowest quality (fastest, smallest output). None are lossless; the difference is encode complexity.
+
+This test should transcode the same chapter at each quality level and report wall-clock time, output size, and effective bitrate in a comparison table. The results inform which `-q:a` value gives the best trade-off between transcode speed and audio quality for on-demand chapter streaming.
 
 **How they work:**
 
