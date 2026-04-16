@@ -17,7 +17,7 @@ Tests that need EPUB files should generate them programmatically. A shared test 
 - Contributor roles
 - Multiple chapters with placeholder text
 
-The generated EPUBs must be valid enough for `EpubMetadataHandler` to extract metadata, for `KepubifyConverter` to convert, and for the Kobo device to accept as downloads.
+The generated EPUBs must be valid enough for `EpubFileHandler` to extract metadata, for `KepubifyWrapper` to convert, and for the Kobo device to accept as downloads.
 
 ### Synthetic M4B Generation
 
@@ -28,7 +28,18 @@ Tests that need M4B audiobooks should generate them using ffmpeg (available in C
 - Embedded cover image
 - Minimal audio content (silence or tone, short duration)
 
-The generated M4Bs must be valid enough for `M4BMetadataHandler` / ffprobe to parse metadata, chapters, and cover art.
+The generated M4Bs must be valid enough for `M4BFileHandler` / ffprobe to parse metadata, chapters, and cover art.
+
+### Synthetic MP3 Folder Audiobook Generation
+
+Tests that need MP3 folder audiobooks should generate a directory of numbered MP3 files using ffmpeg. A shared test helper should produce a folder containing:
+
+- Multiple short MP3 files (one per chapter), with ID3 track numbers for sort order
+- Embedded ID3 tags on each file (title, artist, album, album artist, track number)
+- Embedded cover image on at least the first file
+- Minimal audio content (silence or tone, short duration per file)
+
+The generated folder must be valid enough for `Mp3FileHandler` / ffprobe to extract per-file metadata, derive chapter structure from the file list, and extract cover art. The indexer discovers MP3 audiobooks as subdirectories of `AudiobookFolder` that contain `.mp3` files.
 
 ### Synthetic Cover Images
 
@@ -52,9 +63,11 @@ Generated test data should be created in temporary directories during `[TestInit
 
 - Extract metadata from synthetic EPUBs and verify all fields (title, authors, series, cover, subjects, contributors, language, publisher, identifiers)
 - Extract metadata from synthetic M4Bs and verify all fields (title, artist, album artist, narrator, series, chapters, duration, cover)
+- Extract metadata from synthetic MP3 folder audiobooks and verify all fields (title, artist, album artist, series, chapters derived from file list, duration, cover, track ordering)
 - Embed modified metadata into EPUB and re-extract to verify round-trip fidelity
 - Embed modified metadata into M4B and re-extract to verify round-trip fidelity
-- Cover extraction and embedding for both formats
+- Embed modified metadata into MP3 folder audiobook (ID3 tags across files) and re-extract to verify round-trip fidelity
+- Cover extraction and embedding for all three formats (EPUB, M4B, MP3)
 
 #### Database
 
@@ -67,8 +80,8 @@ Generated test data should be created in temporary directories during `[TestInit
 **How they work:**
 
 - Each test creates a temporary SQLite database via `SqliteConnectionProvider` + `DatabaseInitializer`
-- File tests use synthetic EPUBs/M4Bs generated in a temp directory
-- Tests exercise `EpubMetadataHandler`, `M4BMetadataHandler`, `CoverThumbnailService`, and the repository classes directly
+- File tests use synthetic EPUBs, M4Bs, and MP3 folders generated in a temp directory
+- Tests exercise `EpubFileHandler`, `M4BFileHandler`, `Mp3FileHandler`, `CoverThumbnailService`, and the repository classes directly
 - Temp directories and databases are cleaned up in `[TestCleanup]`
 
 **Naming convention:** `{Entity}Repository_{Operation}_{ExpectedResult}` for database tests, `{Format}Metadata_{Operation}_{ExpectedResult}` for file tests.
@@ -190,7 +203,9 @@ This is the most critical test category. The Kobo device is a black box with und
 - `GET /download/{uuid}/manifest` returns JSON matching `KoboStoreAudiobookManifest` structure
 - Manifest `Spine` entries have correct `MediaType`, `Duration`, `Url`, `FileExtension`
 - Manifest `Navigation` entries match chapter metadata from the database
-- `GET /audiobook/{uuid}/chapter/{partId}` returns audio data with correct MIME type
+- `GET /audiobook/{uuid}/chapter/{partId}` returns `audio/mpeg` content type for all audiobooks
+- MP3 folder audiobook chapters are streamed directly from the source MP3 file (no transcode)
+- M4B audiobook chapters are transcoded from AAC to MP3 via libmp3lame (or remuxed if source is already MP3)
 
 #### Cover Endpoint
 
@@ -241,11 +256,11 @@ This is the most critical test category. The Kobo device is a black box with und
 
 | Operation | What to Measure | Synthetic Data |
 |-----------|----------------|----------------|
-| Full index | Wall-clock time for indexing N books from empty database | Generate 50-200 synthetic EPUBs + M4Bs in a temp folder |
+| Full index | Wall-clock time for indexing N books from empty database | Generate 50-200 synthetic EPUBs, M4Bs, and MP3 folders in a temp folder |
 | Reindex (no changes) | Wall-clock time for re-indexing when nothing changed | Same library, second pass |
 | Reindex (with changes) | Time to detect and re-process changed files | Modify metadata on a subset before re-indexing |
-| Load metadata | Time to extract metadata from a single EPUB/M4B | Generated files of varying sizes |
-| Store metadata | Time to embed metadata into a single EPUB/M4B | Generated files |
+| Load metadata | Time to extract metadata from a single EPUB/M4B/MP3 folder | Generated files of varying sizes |
+| Store metadata | Time to embed metadata into a single EPUB/M4B/MP3 folder | Generated files |
 | Database read | Time to query books with all relationships loaded | Pre-seeded database with N books |
 | Database write | Time to insert/update books with full metadata | Bulk inserts |
 | API (full stack) | Round-trip time for key endpoints with a seeded library | `WebApplicationFactory` with generated library |
@@ -253,9 +268,11 @@ This is the most critical test category. The Kobo device is a black box with und
 
 #### Chapter Transcode Quality Comparison
 
-The audiobook chapter endpoint transcodes AAC to MP3 via libmp3lame. All `-q:a` levels (0–9) re-encode — they decode AAC to PCM then encode to MP3. `-q:a 0` is highest quality (slowest, largest output), `-q:a 9` is lowest quality (fastest, smallest output). None are lossless; the difference is encode complexity.
+The audiobook chapter endpoint serves MP3 audio to Kobo devices. For M4B audiobooks with AAC audio, this requires transcoding via libmp3lame. For MP3 folder audiobooks or M4B files that already contain MP3 audio, the source is remuxed directly (`-c:a copy`) with no re-encoding.
 
-This test should transcode the same chapter at each quality level and report wall-clock time, output size, and effective bitrate in a comparison table. The results inform which `-q:a` value gives the best trade-off between transcode speed and audio quality for on-demand chapter streaming.
+The transcode quality test applies only to the AAC-to-MP3 path. All `-q:a` levels (0–9) re-encode — they decode AAC to PCM then encode to MP3. `-q:a 0` is highest quality (slowest, largest output), `-q:a 9` is lowest quality (fastest, smallest output). None are lossless; the difference is encode complexity. Production code uses `SelectLameQuality()` to pick a `-q:a` level based on the source AAC bitrate.
+
+This test should transcode the same chapter at each quality level and report wall-clock time, output size, and effective bitrate in a comparison table. The results inform whether the `SelectLameQuality()` mapping gives a good trade-off between transcode speed and audio quality for on-demand chapter streaming.
 
 **How they work:**
 
@@ -332,10 +349,12 @@ Alexandria.Test/
 │   └── Generators/           ← Synthetic test data generation helpers
 │       ├── EpubGenerator.cs
 │       ├── M4BGenerator.cs
+│       ├── Mp3FolderGenerator.cs
 │       └── CoverGenerator.cs
 ├── Data/                     ← Data integration tests
 │   ├── EpubMetadataTests.cs
 │   ├── M4BMetadataTests.cs
+│   ├── Mp3MetadataTests.cs
 │   ├── BookRepositoryTests.cs
 │   ├── AuthorRepositoryTests.cs
 │   ├── SeriesRepositoryTests.cs
