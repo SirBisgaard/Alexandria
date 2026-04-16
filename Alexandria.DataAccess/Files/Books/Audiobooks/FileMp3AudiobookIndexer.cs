@@ -6,7 +6,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class FileMp3AudiobookIndexer(AlexandriaSettings settings, FileMp3AudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
 {
-    public string[] SupportedExtensions => ["__.mp3"];
+    public string[] SupportedExtensions => [".mp3audiobook"];
 
     public string[] GetContentFiles()
     {
@@ -15,7 +15,7 @@ public class FileMp3AudiobookIndexer(AlexandriaSettings settings, FileMp3Audiobo
 
         return Directory.GetDirectories(settings.AudiobookFolder)
             .Where(dir => Directory.GetFiles(dir, "*.mp3").Length > 0)
-            .Select(dir => dir + "__.mp3")
+            .Select(dir => dir + ".mp3audiobook")
             .ToArray();
     }
 

@@ -330,7 +330,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper) : IMp3FileHandler
         return new Series { Name = primary };
     }
 
-    private static string ToFolderPath(string sourcePath) => sourcePath.EndsWith("__.mp3") ? sourcePath[..^"__.mp3".Length] : sourcePath;
+    private static string ToFolderPath(string sourcePath) => sourcePath.EndsWith(".mp3audiobook") ? sourcePath[..^".mp3audiobook".Length] : sourcePath;
 
     private static string GetFolderCoverPath(string folderPath) => Path.Combine(folderPath, "cover.jpg");
 

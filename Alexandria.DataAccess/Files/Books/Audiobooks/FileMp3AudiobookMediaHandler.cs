@@ -7,7 +7,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFileContentMediaHandler
 {
-    public string[] SupportedExtensions => ["__.mp3"];
+    public string[] SupportedExtensions => [".mp3audiobook"];
 
     public Task<byte[]?> ReadContent(Book book) => throw new NotSupportedException();
 
@@ -45,5 +45,5 @@ public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFil
 
     public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => mp3FileHandler.ExtractCover(ToFolderPath(filePath), coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
 
-    private static string ToFolderPath(string virtualPath) => virtualPath[..^"__.mp3".Length];
+    private static string ToFolderPath(string virtualPath) => virtualPath[..^".mp3audiobook".Length];
 }
