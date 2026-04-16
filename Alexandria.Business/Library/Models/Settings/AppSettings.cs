@@ -22,4 +22,7 @@ public class AppSettings
 
     /// <summary>When true, the library is re-indexed on application startup.</summary>
     public bool SyncLibraryAtBoot { get; set; }
+
+    /// <summary>Controls how M4B audiobook files are processed during library indexing.</summary>
+    public M4bFileTreatment M4bFileTreatment { get; set; } = M4bFileTreatment.Nothing;
 }

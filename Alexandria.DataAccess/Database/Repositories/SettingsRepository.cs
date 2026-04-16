@@ -11,7 +11,7 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
         return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot FROM Settings WHERE Id = 1";
+            cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot, M4bFileTreatment FROM Settings WHERE Id = 1";
 
             using var reader = cmd.ExecuteReader();
             reader.Read();
@@ -23,7 +23,8 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
                 SyncBatchSize = reader.GetInt32(reader.GetOrdinal("SyncBatchSize")),
                 ProxyLoggingEnabled = reader.GetInt32(reader.GetOrdinal("ProxyLoggingEnabled")) == 1,
                 WordsPerPage = reader.GetInt32(reader.GetOrdinal("WordsPerPage")),
-                SyncLibraryAtBoot = reader.GetInt32(reader.GetOrdinal("SyncLibraryAtBoot")) == 1
+                SyncLibraryAtBoot = reader.GetInt32(reader.GetOrdinal("SyncLibraryAtBoot")) == 1,
+                M4bFileTreatment = Enum.Parse<M4bFileTreatment>(reader.GetString(reader.GetOrdinal("M4bFileTreatment")))
             };
         });
     }
@@ -44,11 +45,12 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
         await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage, SyncLibraryAtBoot = @syncLibraryAtBoot WHERE Id = 1";
+            cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage, SyncLibraryAtBoot = @syncLibraryAtBoot, M4bFileTreatment = @m4bFileTreatment WHERE Id = 1";
             cmd.Parameters.AddWithValue("@syncBatchSize", settings.SyncBatchSize);
             cmd.Parameters.AddWithValue("@proxyLoggingEnabled", settings.ProxyLoggingEnabled ? 1 : 0);
             cmd.Parameters.AddWithValue("@wordsPerPage", settings.WordsPerPage);
             cmd.Parameters.AddWithValue("@syncLibraryAtBoot", settings.SyncLibraryAtBoot ? 1 : 0);
+            cmd.Parameters.AddWithValue("@m4bFileTreatment", settings.M4bFileTreatment.ToString());
             cmd.ExecuteNonQuery();
         });
     }

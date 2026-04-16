@@ -31,4 +31,7 @@ public record AlexandriaSettings
 
     /// <summary>Directory for KEPUB derivative files.</summary>
     public string KepubsFolder => Path.Combine(DataFolder, "kepubs");
+
+    /// <summary>Optional override for the initial M4bFileTreatment value seeded into the database.</summary>
+    public M4bFileTreatment? M4bFileTreatment { get; init; }
 }

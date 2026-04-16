@@ -882,12 +882,12 @@ a.series-list-item {
     font-family: "Times New Roman", Times, serif;
 }
 
-#settings-modal,
 #user-modal {
     max-width: 350px;
     min-height: auto;
 }
 
+#settings-modal,
 #device-modal {
     max-width: 550px;
     min-height: auto;
@@ -970,8 +970,8 @@ a.series-list-item {
     margin-bottom: 0;
 }
 
-.settings-tile .bm-edit-input[type="number"] {
-    width: 120px;
+.settings-tile .bm-edit-input {
+    width: 100%;
 }
 
 .settings-toggle {

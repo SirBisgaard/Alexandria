@@ -58,7 +58,7 @@ public sealed class BookServiceTests
     {
         var settings = CreateSettings();
         var connectionProvider = new SqliteConnectionProvider(settings);
-        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), NullLogger<DatabaseInitializer>.Instance);
+        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), settings, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
         var authorRepository = new AuthorRepository(connectionProvider);
         var seriesRepository = new SeriesRepository(connectionProvider);

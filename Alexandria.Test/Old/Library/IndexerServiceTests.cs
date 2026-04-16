@@ -51,7 +51,7 @@ public sealed class IndexerServiceTests
     private async Task<(BookRepository bookRepository, AuthorRepository authorRepository, SeriesRepository seriesRepository, SqliteConnectionProvider connectionProvider)> CreateRepositories(AlexandriaSettings settings)
     {
         var connectionProvider = new SqliteConnectionProvider(settings);
-        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), NullLogger<DatabaseInitializer>.Instance);
+        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), settings, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
         var authorRepository = new AuthorRepository(connectionProvider);
         var seriesRepository = new SeriesRepository(connectionProvider);

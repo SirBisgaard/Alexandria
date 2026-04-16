@@ -59,7 +59,7 @@ public sealed class IndexerPerformanceTests
 
         var settings = CreateSettings();
         var connectionProvider = new SqliteConnectionProvider(settings);
-        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), NullLogger<DatabaseInitializer>.Instance);
+        var initializer = new DatabaseInitializer(connectionProvider, new PasswordHasher(), settings, NullLogger<DatabaseInitializer>.Instance);
         await initializer.Initialize();
 
         // Raw repositories (no caching layer)

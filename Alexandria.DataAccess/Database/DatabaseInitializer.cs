@@ -1,4 +1,5 @@
 using Alexandria.Business.Authentication.Interfaces;
+using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Database.Interfaces;
 using Alexandria.Business.Library.Extensions;
 using Microsoft.Data.Sqlite;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Database;
 
-public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, IPasswordHasher passwordHasher, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
+public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, IPasswordHasher passwordHasher, AlexandriaSettings alexandriaSettings, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
     public async Task Initialize()
     {
@@ -20,7 +21,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
 
             var migrations = new (int Version, Action<SqliteConnection> Apply)[]
             {
-                (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher))
+                (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher, alexandriaSettings, logger))
             };
 
             foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -58,7 +59,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         cmd.ExecuteNonQuery();
     }
 
-    private static void MigrateV1_UnifiedSchema(SqliteConnection connection, IPasswordHasher passwordHasher)
+    private static void MigrateV1_UnifiedSchema(SqliteConnection connection, IPasswordHasher passwordHasher, AlexandriaSettings alexandriaSettings, ILogger logger)
     {
         using var seriesCmd = connection.CreateCommand();
         seriesCmd.CommandText = """
@@ -313,21 +314,33 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 SyncBatchSize INTEGER NOT NULL DEFAULT 60,
                 ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1,
                 WordsPerPage INTEGER NOT NULL DEFAULT 250,
-                SyncLibraryAtBoot INTEGER NOT NULL DEFAULT 0
+                SyncLibraryAtBoot INTEGER NOT NULL DEFAULT 0,
+                M4bFileTreatment TEXT NOT NULL DEFAULT 'Nothing'
             )
             """;
         settingsCreateCmd.ExecuteNonQuery();
 
         // Generate a unique per-install UUID seed. Doubles as UUID v5 namespace, JWT HMAC key seed, and password hashing salt.
         var uuidSeed = Guid.NewGuid();
+        var syncBatchSize = 60;
+        var proxyLoggingEnabled = true;
+        var wordsPerPage = 250;
+        var syncLibraryAtBoot = false;
+        var m4bFileTreatment = (alexandriaSettings.M4bFileTreatment ?? M4bFileTreatment.Nothing).ToString();
 
         using var settingsSeedCmd = connection.CreateCommand();
         settingsSeedCmd.CommandText = """
-            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot)
-            VALUES (1, @uuidSeed, NULL, 60, 1, 250, 0)
+            INSERT INTO Settings (Id, UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot, M4bFileTreatment)
+            VALUES (1, @uuidSeed, NULL, @syncBatchSize, @proxyLoggingEnabled, @wordsPerPage, @syncLibraryAtBoot, @m4bFileTreatment)
             """;
         settingsSeedCmd.Parameters.AddWithValue("@uuidSeed", uuidSeed.ToString());
+        settingsSeedCmd.Parameters.AddWithValue("@syncBatchSize", syncBatchSize);
+        settingsSeedCmd.Parameters.AddWithValue("@proxyLoggingEnabled", proxyLoggingEnabled ? 1 : 0);
+        settingsSeedCmd.Parameters.AddWithValue("@wordsPerPage", wordsPerPage);
+        settingsSeedCmd.Parameters.AddWithValue("@syncLibraryAtBoot", syncLibraryAtBoot ? 1 : 0);
+        settingsSeedCmd.Parameters.AddWithValue("@m4bFileTreatment", m4bFileTreatment);
         settingsSeedCmd.ExecuteNonQuery();
+        logger.LogInformation("Database seeded with settings — UuidSeed: {UuidSeed}, SyncBatchSize: {SyncBatchSize}, ProxyLoggingEnabled: {ProxyLoggingEnabled}, WordsPerPage: {WordsPerPage}, SyncLibraryAtBoot: {SyncLibraryAtBoot}, M4bFileTreatment: {M4bFileTreatment}", uuidSeed, syncBatchSize, proxyLoggingEnabled, wordsPerPage, syncLibraryAtBoot, m4bFileTreatment);
 
         using var usersCmd = connection.CreateCommand();
         usersCmd.CommandText = """

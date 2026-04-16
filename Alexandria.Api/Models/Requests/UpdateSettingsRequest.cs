@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Alexandria.Business.Library.Models.Settings;
 
 namespace Alexandria.Api.Models.Requests;
 
@@ -14,4 +15,6 @@ public record UpdateSettingsRequest
     public int WordsPerPage { get; set; }
 
     public bool SyncLibraryAtBoot { get; set; }
+
+    public M4bFileTreatment M4bFileTreatment { get; set; }
 }
