@@ -83,12 +83,13 @@ public sealed class IndexerPerformanceTests
         // File indexers with timing wrappers
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
+        var progressService = new IndexingProgressService();
         var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubFileHandler(), new KepubifyWrapper(), coverThumbnailService), timings);
-        var audiobookIndexer = new TimingFileContentIndexer(new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService, settingsService, m4BHandler, NullLogger<FileM4BAudiobookIndexer>.Instance), timings);
+        var audiobookIndexer = new TimingFileContentIndexer(new FileM4BAudiobookIndexer(settings, audiobookMediaHandler, coverThumbnailService, settingsService, m4BHandler, progressService, NullLogger<FileM4BAudiobookIndexer>.Instance), timings);
 
         var epubMediaHandler = new FileEbbokMediaHandler(new EpubFileHandler(), fileRepository);
         var contentManager = new FileContentManager(new IFileContentIndexer[] { epubIndexer, audiobookIndexer }, new IFileContentMediaHandler[] { epubMediaHandler, audiobookMediaHandler }, NullLogger<FileContentManager>.Instance);
-        var indexer = new IndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, [], NullLogger<IndexerService>.Instance);
+        var indexer = new IndexerService(contentManager, instrumentedBookRepo, settingsService, instrumentedAuthorRepo, instrumentedSeriesRepo, connectionProvider, [], progressService, NullLogger<IndexerService>.Instance);
 
         // Run full index with timing
         var totalSw = Stopwatch.StartNew();

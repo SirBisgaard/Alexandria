@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Alexandria.Api.Models.Events;
 using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.Library.Models.Others;
 using Alexandria.Business.Library.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,7 @@ file class ChannelProgress<T>(Func<T, string> formatter, ChannelWriter<string> w
 }
 
 [Route("/api/alexandria/sync")]
-public class SyncController(IIndexerService indexerService, ISettingsService settingsService, LibrarySyncLock librarySyncLock, ILogger<SyncController> logger) : AlexandriaControllerBase
+public class SyncController(IIndexerService indexerService, ISettingsService settingsService, IIndexingProgressService progressService, LibrarySyncLock librarySyncLock, ILogger<SyncController> logger) : AlexandriaControllerBase
 {
     [HttpPost]
     public async Task Sync()
@@ -35,17 +36,26 @@ public class SyncController(IIndexerService indexerService, ISettingsService set
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var channel = Channel.CreateUnbounded<string>();
 
-        var progress = new ChannelProgress<(int current, int total)>(value =>
+        var progress = new ChannelProgress<IndexingReport>(report =>
         {
-            var json = JsonSerializer.Serialize(new SyncProgressEvent(value.current, value.total), jsonOptions);
+            var evt = new SyncProgressEvent(
+                report.Title,
+                report.Subtitle,
+                report.Progress,
+                report.Total,
+                report.SubTask?.Title,
+                report.SubTask?.Progress,
+                report.SubTask?.Total);
+            var json = JsonSerializer.Serialize(evt, jsonOptions);
             return $"data: {json}\n\n";
         }, channel.Writer);
+        progressService.Subscribe(progress);
 
         var syncTask = Task.Run(async () =>
         {
             try
             {
-                var bookCount = await indexerService.Index(progress);
+                var bookCount = await indexerService.Index();
                 var settings = await settingsService.Get();
                 var lastIndexed = settings.LastIndexedTimestamp?.ToString("O");
                 var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);

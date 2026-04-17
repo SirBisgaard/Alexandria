@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Text.Json;
 using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals.Interfaces;
-using Alexandria.DataAccess.Externals.Models;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService) : IMp3FileHandler
+public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService) : IMp3FileHandler
 {
     /// <summary>
     /// Extracts metadata by probing each MP3 file once. Album-level tags come from the first
@@ -102,6 +102,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
             cumulativeTime += duration;
             totalSize += new FileInfo(files[i]).Length;
+            progressService.ReportSubTask("Reading chapter", i + 1, files.Length);
         }
 
         book.File.Duration = (int)Math.Round(cumulativeTime);

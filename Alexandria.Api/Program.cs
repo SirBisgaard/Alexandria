@@ -81,6 +81,7 @@ builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliverySe
 builder.Services.AddTransient<IKoboReadingStateService, KoboReadingStateService>();
 builder.Services.AddTransient<IKoboAnalyticsService, KoboAnalyticsService>();
 builder.Services.AddTransient<IKoboProductService, KoboProductService>();
+builder.Services.AddScoped<IIndexingProgressService, IndexingProgressService>();
 builder.Services.AddTransient<IIndexerService, IndexerService>();
 builder.Services.AddTransient<IBookService, BookService>();
 builder.Services.AddTransient<IAuthorService, AuthorService>();

@@ -5,6 +5,6 @@ namespace Alexandria.Business.Library.Interfaces;
 
 public interface IIndexerService
 {
-    Task<int> Index(IProgress<(int current, int total)>? progress = null);
+    Task<int> Index();
     Task ReindexBook(Guid uuid, Book? desiredMetadata = null, CoverUpdate? coverUpdate = null);
 }

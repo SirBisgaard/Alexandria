@@ -3,7 +3,6 @@ using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Externals.Interfaces;
-using Alexandria.DataAccess.Files.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
@@ -14,7 +13,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 /// ("{Author} - {Series} #{Index} - {Title}"), then deletes the original M4B. The
 /// resulting folder is indexed by <see cref="FileMp3AudiobookIndexer"/> on the same run.
 /// </summary>
-public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IMp3FileHandler mp3FileHandler, IFfmpegWrapper ffmpegWrapper, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
+public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IMp3FileHandler mp3FileHandler, IFfmpegWrapper ffmpegWrapper, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
     public async Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
     {
@@ -35,15 +34,15 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             .GroupBy(b => b.File.SourcePath, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        foreach (var sourcePath in sourceFiles)
+        for (var i = 0; i < sourceFiles.Length; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var existing = booksByPath.GetValueOrDefault(sourcePath);
-            await ConvertOne(sourcePath, existing, cancellationToken);
+            var existing = booksByPath.GetValueOrDefault(sourceFiles[i]);
+            await ConvertOne(sourceFiles[i], existing, i + 1, sourceFiles.Length, cancellationToken);
         }
     }
 
-    private async Task ConvertOne(string sourcePath, Book? existing, CancellationToken cancellationToken)
+    private async Task ConvertOne(string sourcePath, Book? existing, int bookNumber, int totalBooks, CancellationToken cancellationToken)
     {
         var tempCopy = sourcePath + ".temp";
         string? targetDir = null;
@@ -52,6 +51,8 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         {
             var extracted = await m4BFileHandler.ExtractMetadata(sourcePath);
             var coverBytes = await m4BFileHandler.ExtractCoverBytes(sourcePath);
+
+            progressService.ReportConverting(extracted.Title, bookNumber, totalBooks);
 
             // Identity metadata (title, authors, series, ...) comes from the DB when available
             // so the re-indexed MP3 folder produces the same UUID and carries any UI edits.
@@ -105,6 +106,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             await ffmpegWrapper.TranscodeChapterToFile(inputPath, chapter.StartTime, chapter.EndTime, extracted.File.AudioCodec, extracted.File.AudioBitrate, outPath, ct);
             var done = Interlocked.Increment(ref completed);
             logger.LogInformation("Converted chapter {Completed} out of {Total} for {Title}", done, total, extracted.Title);
+            progressService.ReportSubTask("Transcoding chapter", done, total);
         });
     }
 

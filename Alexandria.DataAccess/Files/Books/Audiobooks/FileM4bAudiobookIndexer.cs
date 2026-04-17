@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, ILogger<FileM4BAudiobookIndexer> logger) : IFileContentIndexer
+public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IIndexingProgressService progressService, ILogger<FileM4BAudiobookIndexer> logger) : IFileContentIndexer
 {
     public string[] SupportedExtensions => [".m4b"];
 
@@ -64,6 +64,7 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, FileM4BAudiobo
                 await m4BFileHandler.TranscodeChapterToFile(book, i, outputPath, ct);
             var done = Interlocked.Increment(ref completed);
             logger.LogInformation("Pre-transcoded {Completed} out of {Total} chapters for {BookTitle}", done, total, book.Title);
+            progressService.ReportSubTask("Transcoding chapter", done, total);
         });
     }
 
