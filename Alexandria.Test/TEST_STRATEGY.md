@@ -428,3 +428,163 @@ Alexandria.Test/
 - Kobo protocol tests should be updated whenever a controller response format changes — the proxy logs are the source of truth for what the device expects.
 - Performance tests should be run before and after changes to indexing, metadata handling, or database queries to detect regressions.
 - Prefer testing behavior over implementation — tests should not break when internal refactoring preserves the same external behavior.
+
+---
+
+## Business Rules Registry
+
+The rules below are the domain/protocol policies the test suite exists to enforce. They were extracted from XML doc comments, inline code comments, and observed behavior across the codebase. Each rule should have at least one direct test; entries are grouped by subsystem and tagged with their current coverage status so gaps are visible at a glance.
+
+Status legend:
+
+- ✅ — at least one test asserts this rule
+- ❌ — no test yet
+- 🔶 — partial coverage (some branches tested, others not)
+
+When you add a test that enforces one of these rules, flip the marker. When you add a new rule to the code, append it here in the same shape.
+
+### Kobo protocol correctness (highest blast radius — device-breaking if wrong)
+
+- ❌ Entitlement IDs `CrossRevisionId = Id = RevisionId = EntitlementUuid` must match exactly for Kobo dedup
+- ❌ `OriginCategory` = "Purchase" for audiobooks, "Imported" for ebooks (wrong category → wrong player)
+- ❌ Download format = `MANIFEST` for audiobooks, `KEPUB` for ebooks
+- ❌ `ChangedReadingState` is a separate sync item — device ignores it if nested inside a `ChangedEntitlement`
+- ❌ Timestamp format is `yyyy-MM-ddTHH:mm:ssZ` — Kobo rejects `+00:00`
+- ❌ Audiobook `Bitrate` is in Mbps (not bps) — source bitrate divided by 1000
+- ❌ `Content-Disposition` filename uses the `.kepub.epub` extension — Kobo devices reject downloads without it
+- ❌ `Content-Disposition` non-ASCII filenames use RFC 5987 encoding
+- ❌ Cover CDN redirect is 307 (not 302) so Kobo device `HEAD` requests stay as `HEAD`
+- ❌ When Kobo is paginating (`x-kobo-sync: continue`), local books are *not* merged in — store results pass through unchanged
+- ❌ Archived books are never sent on a New sync (continue past them in the New phase)
+- ❌ Collections are appended only in the final batch (so empty shelves don't arrive before their books)
+- ❌ Collection `Id` uses `EntitlementUuid`, not `BookUuid` — `entitlementLookup` translates; falls back to `BookUuid` when no mapping exists
+- ❌ Work grouping (ebook + audiobook of same work share `RelatedGroupId`) drives the device's "switch format" navigation
+- ❌ `GET /v1/initialization` rewrites exactly four resource URLs: `library_sync`, `image_host`, `image_url_template`, `image_url_quality_template`
+- ❌ `x-kobo-apitoken` is set to `e30=` (base64 `{}`) on initialization rewrite
+- ❌ Recommendations endpoint returns empty stub to suppress the "Recommended for you" store advertisements
+- ❌ Batch prices for local books return `price = 0`
+- ❌ Local books in mixed batches return only local prices (store books are filtered out before proxy)
+- ❌ `CoverImageId` in sync responses is `{EntitlementUuid}--v{unix_seconds}` (cache-busting); bare `EntitlementUuid` in product endpoints
+- ❌ `Drm` object is present but empty with `DrmType=""` — required shape even with no DRM
+- ❌ Audiobook manifest requires both `Navigation` and `Spine` sections even though they overlap
+
+### Reading-state state machine (`KoboReadingStateService`)
+
+- ❌ `PriorityTimestamp` is always server "now" regardless of client-supplied time (used for cross-device conflict resolution)
+- ❌ Incoming updates with timestamp older than stored are silently dropped and return 200 OK (not 409 — Kobo doesn't retry on conflict)
+- ❌ `TimesStartedReading` increments only on transition *into* Reading, not on every PUT while already Reading
+- ❌ `ReadyToRead` resets `ProgressPercent`, `Location`, and `ContentSourceProgressPercent`
+
+### Analytics (`KoboAnalyticsService`)
+
+- ❌ `MarkAsFinished` is the only locally-handled analytics event; all other local event types (BookOpened, etc.) are dropped as cosmetic
+- ❌ In mixed batches, store-targeted events are forwarded to Kobo with recalculated `Content-Length`
+- ❌ `MarkAsFinished` uses the event's timestamp for `LastModified` when available; `PriorityTimestamp` is always server now
+
+### UUID derivation (`BookExtensions`)
+
+- ❌ `GenerateWorkUuid` uses only title + authors (format-agnostic — links ebook and audiobook editions of the same work)
+- ❌ `GenerateBookUuid` includes title + authors + media type (two books collide only when every field matches exactly)
+- ❌ Author list is `.Order()`-sorted before hashing (so author reordering doesn't change the UUID)
+- ❌ Title and author names are lowercased and trimmed before hashing
+
+### Indexer / service-layer policy
+
+- ❌ Indexer UUID resolution priority: path match → metadata match → new UUID (preserves UUID across file moves, so reading state and device sync stay intact)
+- ❌ Fast path: unchanged books (metadata + cover identical) bypass derivative regeneration
+- ❌ `EntitlementUuid` and `CreatedAt` are immutable across reindex — only `ModifiedAt` updates
+- ❌ `PreserveUserEdits` restores fields from the DB that the file format can't round-trip — M4B/MP3 reindex preserves Language, Identifiers, Source, Type, Relation, Coverage, Format from the DB
+- ❌ After stale-book cleanup, orphaned authors and orphaned series are removed
+- ❌ Author merge: source-author books are reassigned to the target, orphaned source author removed, affected books reindexed
+- ❌ Series merge: same policy as author merge, applied to series
+- ❌ `LibrarySyncLock.TryAcquire` is non-blocking — repeated "Sync now" clicks return 409 Conflict instead of queuing
+- ❌ `IndexingProgressService` is Scoped DI (not Singleton) — controller and consumers within the same request scope share one sink
+- ❌ `ReportSubTask` reuses the cached outer snapshot; each new outer tick clears previous sub-task by emitting a fresh report
+- ❌ Settings cache invalidates on write; disabling `ProxyLoggingEnabled` clears traffic logs as a side effect
+
+### Sync token / session (`KoboDeviceSyncTokenService`)
+
+- ❌ Token parsing is dual-mode: Alexandria-wrapped tokens carry a version marker (V ≥ 1) as base64-wrapped JSON; missing version → treat as raw Kobo store token (first sync / factory reset)
+- ❌ Sessions are in-memory only, 5-minute timeout — server restart forces the device to full re-sync (correct recovery)
+- ❌ Abandoned syncs auto-expire after 5 minutes
+
+### Controller policies (`BooksController`)
+
+- ❌ Audiobook metadata updates reject non-Narrator contributor roles (BadRequest)
+- ❌ Cover uploads rejected above 10 MB
+- ❌ Cover content types limited to `image/jpeg`, `image/png`, `image/gif`
+
+### External binary wrappers (`Alexandria.DataAccess/Externals/`)
+
+These wrappers own the invariants that "the binary was invoked with the right arguments and produced the expected shape of output". They're the foundation layer under every file handler — a regression here silently breaks every downstream rule.
+
+#### `KepubifyWrapper`
+
+- ❌ Given a valid EPUB, produces a file at the target path that's a valid zip and carries KEPUB-specific structure (kepubify's div-wrapping and `.kobo/` artefacts)
+- ❌ Binary is bundled at `runtimes/linux-x64/native/kepubify` and made executable at build time via the `SetKepubifyPermissions` MSBuild target
+- ❌ Output filename convention is `{name}.kepub.epub` (required by the Kobo device's `Content-Disposition` check — see Kobo protocol section)
+
+#### `FfmpegWrapper`
+
+- ❌ `StreamChapter`: output format is MP3. When source codec is `mp3`, uses `-c:a copy` (remux, no re-encode); otherwise transcodes via `libmp3lame` at the quality returned by `SelectLameQuality`
+- ❌ `StreamChapter`: respects cancellation — the ffmpeg process is killed (entire process tree) on `OperationCanceledException`, so client disconnect doesn't leak processes
+- ❌ `TranscodeChapterToFile`: same codec / quality selection as `StreamChapter`
+- ❌ `TranscodeChapterToFile`: when `tags` provided, inherited source metadata is stripped (`-map_metadata -1`) and replaced from the ffmetadata input; when null, no tag-write pass is done
+- ❌ `TranscodeChapterToFile`: when `coverPath` provided, attached as album art (`-disposition:v:0 attached_pic` with `-id3v2_version 3` for MP3 cover compatibility)
+- ❌ `GetMetadataJson`: invokes `ffprobe -print_format json -show_format -show_chapters -show_streams`; non-zero exit surfaces as `InvalidOperationException` with stderr
+- ❌ `ExtractCoverImage`: returns the raw cover bytes, or `null` when the source has no embedded image (empty ffmpeg output)
+- ❌ `SelectLameQuality` bitrate → `-q:a` mapping: `≤48 kbps → 8`, `≤80 kbps → 6`, `≤130 kbps → 4`, otherwise `2`. Null bitrate falls into the `>130 kbps` bucket (highest quality)
+- ❌ `WriteMetadata` / `WriteMetadataWithCover` / `WriteMetadataRemoveCover`: emit the `;FFMETADATA1` header (mandatory — without it ffmpeg treats the file as INI and silently drops chapters) and `TIMEBASE=1/1000` for chapter times (millisecond precision; default nanoseconds overflows on long audiobooks)
+- ❌ FFMETADATA1 escaping: `=`, `;`, `#`, `\`, and newlines are backslash-escaped; unescaped values cause metadata injection or parsing failures
+- ❌ `WriteMetadata` preserves audio stream (`-map 0:a`), preserves optional cover (`-map 0:v?`), no re-encode (`-c copy`)
+- ❌ `WriteMetadataWithCover` marks the new video stream as album art (`-disposition:v:0 attached_pic`) so media players show cover art instead of a video player UI
+- ❌ `WriteMetadataRemoveCover` strips cover by omitting any `-map 0:v` directive
+
+### File-handler extraction / selection rules
+
+#### EPUB (`EpubFileHandler`)
+
+- ✅ `EmbedMetadata` skips rewrite when `MetadataEquals(existing) = true` — avoids timestamp churn → kepub reconversion. Verified via SHA-256 of the EPUB before/after (`EpubMetadata_EmbedMetadata_UnchangedBook_LeavesFileUntouched`, `EpubMetadata_EmbedMetadata_ChangedBook_RewritesFile`)
+- ✅ Series read priority: EPUB3 `belongs-to-collection` before `calibre:series` (`EpubMetadata_Series_FallsBackToCalibreTagsWhenNoEpub3Series`)
+- ✅ Multiple `belongs-to-collection` → prefer the one with `collection-type=series`, fall back to document order (`EpubMetadata_Series_MultipleBelongsToCollection_PrefersCollectionTypeSeries`)
+- ✅ Series **write** is always EPUB3 standard (not calibre custom tags) — for forward compatibility (`EpubMetadata_Series_WriteUsesEpub3StandardNotCalibre`)
+- ✅ ISBN extraction: prefixed identifiers (`ISBN:` or `urn:isbn:`) beat bare digits; all values are normalized — hyphens and spaces stripped, ISBN-10 `X` check digit upper-cased; invalid prefixed candidates fall through to bare candidates. Accepts hyphenated ISBN-13 (`978-1-56619-909-4`), hyphenated ISBN-10 (`1-56619-909-3`), and ISBN-10 with `X` check digit (`0-306-40615-X`) per [isbn-13.info](https://www.isbn-13.info/example) (`EpubMetadata_Isbn_*` — 5 tests)
+- ✅ Contributor without recognized MARC role is discarded on read (`EpubMetadata_Contributors_UnrecognizedRole_IsFilteredOut`)
+- ✅ Cover image stored with `CompressionLevel.NoCompression` — asserted via `ZipArchiveEntry.Length == CompressedLength` post-embed (`EpubMetadata_EmbedCover_StoresCoverImageWithoutCompression`)
+- ✅ `cover.xhtml` inserted as first spine item so kepubify's "first spine filename contains cover/title" check passes (`EpubMetadata_EmbedCover_InsertsCoverPageAsFirstSpineItem`)
+- ✅ Word count skips `<script>`, `<style>`, and `<head>` content — injecting 500 words into each and comparing pre/post counts (`EpubMetadata_WordCount_SkipsScriptStyleAndHeadContent`)
+
+#### M4B (`M4BFileHandler`)
+
+- ✅ Authors split from `artist` or `album_artist` tag on `,` (trimmed) (`M4BMetadata_Authors_ArtistTagSplitByComma`)
+- ✅ Narrators read from `composer` tag with `Role = "Narrator"` — de facto audiobook convention (`M4BMetadata_Narrators_ReadFromComposerTag`)
+- ✅ Series name containing `#` handled via `LastIndexOf('#')` (`M4BMetadata_Series_NameContainingHashSign_ParsesCorrectly`)
+- ✅ Multi-series `grouping` (`A #1; B #2`) collapses to first series (`M4BMetadata_Grouping_MultiSeries_CollapsesToFirst`)
+- ✅ `EmbedCover` normalizes input to JPEG via `CoverThumbnailService.ConvertToJpeg` — PNG input round-trips as JPEG (`M4BMetadata_EmbedCover_PngInput_NormalizedToJpeg`)
+- ✅ Only standard ID3/MP4 tags are written — no `----:*` iTunes custom atoms, no `TXXX` frames in the post-embed ffprobe output (`M4BMetadata_EmbedMetadata_WritesOnlyStandardTags`)
+
+#### MP3 folder (`Mp3FileHandler`)
+
+- ✅ Cover source priority: `cover.jpg` in folder > embedded art from first file (filename-sorted) (`Mp3Metadata_ExtractCoverBytes_PrefersCoverJpgFile`)
+- ✅ Chapter order is ID3 track number first, filename second — not alphabetical filename (`Mp3Metadata_ExtractMetadata_ChaptersInTrackOrderNotFilenameOrder`)
+- ✅ Each chapter's `FileName` is persisted for direct-file streaming — no re-probe on playback (`Mp3Metadata_Chapters_PersistFileNameForStreaming`)
+- ✅ `EmbedMetadata` skips `MetadataEquals` short-circuit when a cover is explicitly provided — `cover.jpg` appears even with otherwise-unchanged metadata (`Mp3Metadata_EmbedMetadata_CoverSupplied_BypassesShortCircuit`)
+- ✅ Series name containing `#` handled via `LastIndexOf('#')` (`Mp3Metadata_Series_NameContainingHashSign_ParsesCorrectly`)
+- ✅ Multi-series `grouping` collapses to first series (`Mp3Metadata_Grouping_MultiSeries_CollapsesToFirst`)
+
+#### Metadata round-trip per format (`EmbedMetadata` ⇄ `ExtractMetadata`)
+
+- ✅ EPUB round-trips Title, Language, PublicationDate, Description, Publisher, Authors, Contributors (MARC roles), Series (`EpubMetadata_EmbedMetadata_RoundTripsAllSupportedFields`)
+- ✅ M4B round-trips Title, Description, PublicationDate, Rights, Subjects (single), Authors, Narrators, Series; does NOT round-trip Language, Subtitle, Publisher (ffmpeg MP4 mux drops it), Isbn/Identifiers, Source/Type/Relation/Coverage/Format (`M4BMetadata_EmbedMetadata_RoundTripsAllSupportedFields`)
+- ✅ MP3 folder round-trips the same set as M4B with the same limitations (`Mp3Metadata_EmbedMetadata_RoundTripsAllSupportedFields`)
+
+### Derivatives, conversion, thumbnails
+
+- ❌ M4B pre-transcoded chapters created at index time only when `M4BFileTreatment == TranscodeAtIndex`
+- ❌ Pre-transcoded chapters cached at `ChaptersFolder/{bookUuid}/{chapterIndex}.mp3`; chapter endpoint serves from cache and skips ffmpeg when cache hit
+- ❌ M4B→MP3 conversion (`FileMp3AudiobookConverter`) preserves DB identity (title/authors/series) but re-extracts chapter timings from the freshly converted files
+- ❌ Converted MP3 folder naming: `{Author} - {Series} #{Index} - {Title}` sanitized for filesystem
+- ❌ Converter writes `cover.jpg` once upfront and references it across chapter transcodes (single on-disk file reused)
+- ✅ `CoverThumbnailService.DeleteThumbnails` removes the uuid's entry from every `{w}x{h}q{q}` subdirectory (`DeleteThumbnails_RemovesOnlyTargetUuid`)
+- ✅ `GetOrCreateThumbnail` returns cached bytes on repeat calls, regenerates after delete, isolates per-uuid (`GetOrCreateThumbnail_SecondCall_ReturnsSameBytes`, etc.)
+- ✅ `ConvertToJpeg` normalizes any source format to JPEG (`ConvertToJpeg_JpegInput_ReturnsValidJpeg`, `ConvertToJpeg_PngInput_ReturnsValidJpeg`)
