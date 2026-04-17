@@ -109,6 +109,9 @@ $(function () {
                         var json = JSON.parse(line.substring(6));
                         if (json.done) {
                             $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(json.lastIndexedTimestamp));
+                            $("#sync-popover-progress-bar").css("width", "100%");
+                            $("#sync-popover-text").text("Sync complete. " + json.bookCount + " books indexed.");
+                            $("#sync-popover-subtask-row").hide();
                             $("#sync-popover-btn").text("Close").prop("disabled", false);
                             syncInProgress = false;
                             syncCompleted = true;
