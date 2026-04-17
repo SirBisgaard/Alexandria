@@ -400,25 +400,41 @@ public class EpubFileHandler : IEpubFileHandler
 
     /// <summary>
     /// Extracts ISBN from dc:identifier elements. Tries prefixed formats first (ISBN:, urn:isbn:
-    /// per Dublin Core conventions), then falls back to bare 10 or 13-digit numeric strings.
+    /// per Dublin Core conventions), then falls back to bare ISBN candidates. All accepted values
+    /// are normalized: hyphens and spaces stripped, ISBN-10 check digit upper-cased. Invalid
+    /// prefixed candidates (e.g. "ISBN:garbage") do not short-circuit — the search continues.
+    ///
+    /// Accepted forms per isbn-13.info (and ISO 2108):
+    ///   ISBN-13: 13 digits, may be hyphenated or spaced (e.g. "978-1-56619-909-4")
+    ///   ISBN-10: 9 digits + check digit (digit or 'X'), may be hyphenated (e.g. "1-56619-909-3", "0-306-40615-X")
     /// </summary>
     private static string? ExtractIsbn(List<string> identifiers)
     {
         foreach (var id in identifiers)
         {
-            if (id.StartsWith("ISBN:", StringComparison.OrdinalIgnoreCase))
-                return id[5..];
+            if (id.StartsWith("ISBN:", StringComparison.OrdinalIgnoreCase) && NormalizeIsbn(id[5..]) is { } fromIsbn)
+                return fromIsbn;
 
-            if (id.StartsWith("urn:isbn:", StringComparison.OrdinalIgnoreCase))
-                return id[9..];
+            if (id.StartsWith("urn:isbn:", StringComparison.OrdinalIgnoreCase) && NormalizeIsbn(id[9..]) is { } fromUrn)
+                return fromUrn;
         }
 
         foreach (var id in identifiers)
         {
-            if (id.Length is 13 or 10 && id.All(char.IsAsciiDigit))
-                return id;
+            if (NormalizeIsbn(id) is { } fromBare)
+                return fromBare;
         }
 
+        return null;
+    }
+
+    private static string? NormalizeIsbn(string raw)
+    {
+        var stripped = new string(raw.Where(c => c != '-' && c != ' ').ToArray());
+        if (stripped.Length == 13 && stripped.All(char.IsAsciiDigit))
+            return stripped;
+        if (stripped.Length == 10 && stripped[..9].All(char.IsAsciiDigit) && (char.IsAsciiDigit(stripped[9]) || stripped[9] is 'X' or 'x'))
+            return stripped[..9] + char.ToUpperInvariant(stripped[9]);
         return null;
     }
 
