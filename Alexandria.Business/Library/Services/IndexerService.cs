@@ -29,8 +29,10 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
             var existingBooks = await bookRepository.GetAll();
 
+            // If any books needs converting before indexing.
             foreach (var converter in converters)
                 await converter.Convert(existingBooks, CancellationToken.None);
+            
             var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
             foreach (var book in existingBooks)
                 existingByPath[book.File.SourcePath] = book;

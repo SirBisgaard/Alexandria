@@ -55,6 +55,33 @@ public class EpubFileHandler : IEpubFileHandler
     }
 
     /// <summary>
+    /// Extracts metadata and cover bytes from an EPUB in a single zip open. Preferred entry point
+    /// for indexing — replaces the old two-method flow that opened the zip twice per sync.
+    /// </summary>
+    public (Book Metadata, byte[]? CoverBytes) Extract(string epubPath)
+    {
+        if (!File.Exists(epubPath))
+            throw new FileNotFoundException("EPUB file not found.", epubPath);
+
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)
+            ?? throw new InvalidOperationException($"OPF file '{opfPath}' not found in archive.");
+
+        using var opfStream = opfEntry.Open();
+        var opfDoc = XDocument.Load(opfStream);
+
+        var (metadata, metadataEl) = ParseMetadata(opfDoc);
+        var book = ToBook(metadata);
+        book.File.WordCount = CountWordsInZip(zip, opfDoc, opfPath);
+        var coverBytes = ReadCoverBytes(zip, opfDoc, opfPath, metadataEl);
+
+        return (book, coverBytes);
+    }
+
+    /// <summary>
     /// Extracts metadata and cover from an EPUB in a single ZIP open. Uses FileShare.ReadWrite
     /// to allow concurrent readers during indexing — never use ZipFile.OpenRead which takes an
     /// exclusive lock. EPUB structure: META-INF/container.xml declares the OPF location, which

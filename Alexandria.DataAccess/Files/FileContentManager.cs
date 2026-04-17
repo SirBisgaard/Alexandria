@@ -21,9 +21,8 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         foreach (var filePath in allFiles)
         {
             var indexer = GetIndexerFor(filePath);
-            var metadata = indexer.ExtractMetadata(filePath);
+            var (metadata, coverBytes) = await indexer.Extract(filePath);
             metadata.File.SourcePath = filePath;
-            var coverBytes = indexer.ExtractCoverBytes(filePath);
             yield return (metadata, coverBytes);
         }
     }
@@ -54,10 +53,10 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     public async Task<Book> GetBook(Book book)
     {
         var indexer = GetIndexerFor(book.File.SourcePath);
-        var freshBook = indexer.ExtractMetadata(book.File.SourcePath);
+        var (freshBook, coverBytes) = await indexer.Extract(book.File.SourcePath);
         freshBook.BookUuid = book.BookUuid;
         freshBook.File.SourcePath = book.File.SourcePath;
-        freshBook.File.CoverFilePath = indexer.SaveCover(indexer.ExtractCoverBytes(book.File.SourcePath), book.BookUuid);
+        freshBook.File.CoverFilePath = indexer.SaveCover(coverBytes, book.BookUuid);
         await indexer.CreateDerivativeFiles(freshBook, book.File.SourcePath);
         return freshBook;
     }

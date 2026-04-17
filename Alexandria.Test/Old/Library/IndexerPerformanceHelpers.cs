@@ -42,19 +42,12 @@ public class TimingFileContentIndexer(IFileContentIndexer inner, ConcurrentBag<T
 
     public string[] GetContentFiles() => inner.GetContentFiles();
 
-    public Book ExtractMetadata(string filePath)
+    public async Task<(Book Metadata, byte[]? CoverBytes)> Extract(string filePath)
     {
+        var fileSize = new FileInfo(filePath).Exists ? new FileInfo(filePath).Length : (long?)null;
         var sw = Stopwatch.StartNew();
-        var result = inner.ExtractMetadata(filePath);
-        timings.Add(new TimingRecord("extract-metadata", filePath, sw.ElapsedMilliseconds, new FileInfo(filePath).Length));
-        return result;
-    }
-
-    public byte[]? ExtractCoverBytes(string filePath)
-    {
-        var sw = Stopwatch.StartNew();
-        var result = inner.ExtractCoverBytes(filePath);
-        timings.Add(new TimingRecord("extract-cover-bytes", filePath, sw.ElapsedMilliseconds, new FileInfo(filePath).Length));
+        var result = await inner.Extract(filePath);
+        timings.Add(new TimingRecord("extract", filePath, sw.ElapsedMilliseconds, fileSize));
         return result;
     }
 

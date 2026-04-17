@@ -1,10 +1,11 @@
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
-public class FileMp3AudiobookIndexer(AlexandriaSettings settings, FileMp3AudiobookMediaHandler mediaHandler, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
+public class FileMp3AudiobookIndexer(AlexandriaSettings settings, ICoverThumbnailService coverThumbnailService, IMp3FileHandler mp3FileHandler) : IFileContentIndexer
 {
     public string[] SupportedExtensions => [".mp3audiobook"];
 
@@ -19,14 +20,12 @@ public class FileMp3AudiobookIndexer(AlexandriaSettings settings, FileMp3Audiobo
             .ToArray();
     }
 
-    public Book ExtractMetadata(string filePath) => mediaHandler.ExtractMetadata(filePath);
-
-    public byte[]? ExtractCoverBytes(string filePath)
+    public async Task<(Book Metadata, byte[]? CoverBytes)> Extract(string filePath)
     {
-        var raw = mediaHandler.ExtractCoverBytes(filePath);
-        if (raw is null)
-            return null;
-        return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
+        var folder = filePath[..^".mp3audiobook".Length];
+        var (metadata, rawCover) = await mp3FileHandler.Extract(folder);
+        var cover = rawCover is null ? null : IsJpeg(rawCover) ? rawCover : coverThumbnailService.ConvertToJpeg(rawCover);
+        return (metadata, cover);
     }
 
     public string? SaveCover(byte[]? coverBytes, Guid bookUuid)

@@ -1,31 +1,62 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using Alexandria.Business.Library.Extensions;
-using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService) : IMp3FileHandler
+public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService) : IMp3FileHandler
 {
     /// <summary>
     /// Extracts metadata by probing each MP3 file once. Album-level tags come from the first
-    /// file; per-file duration and title build the chapter list. This is the only method that
-    /// calls ffprobe — all other methods use filename sort (zero overhead).
+    /// file; per-file duration and title build the chapter list. The sort phase and the
+    /// chapter read phase share a single ffprobe per file via <see cref="ProbeAndSort"/> —
+    /// earlier versions did 2×N probes because sort and read each spawned ffprobe separately.
     /// </summary>
     public async Task<Book> ExtractMetadata(string folderPath)
     {
         if (!Directory.Exists(folderPath))
             throw new DirectoryNotFoundException($"MP3 audiobook folder not found: {folderPath}");
 
-        var files = await GetSortedMp3Files(folderPath);
+        var files = await ProbeAndSort(folderPath);
         if (files.Length == 0)
             throw new FileNotFoundException("No MP3 files found in folder.", folderPath);
 
-        var firstJson = await ffmpegWrapper.GetMetadataJson(files[0]);
-        using var firstDoc = JsonDocument.Parse(firstJson);
+        return BuildBookFromProbed(files, folderPath);
+    }
+
+    /// <summary>
+    /// Single-pass entry point for indexing: probes each MP3 once, builds the <see cref="Book"/>,
+    /// and returns the cover bytes (from <c>cover.jpg</c> when present, otherwise extracted from
+    /// the first file's embedded artwork). Replaces the old flow that invoked
+    /// <see cref="ExtractMetadata"/> and a separate <c>ExtractCoverBytes</c> — each of which did
+    /// its own ProbeAndSort, doubling the work when no <c>cover.jpg</c> existed.
+    /// </summary>
+    public async Task<(Book Metadata, byte[]? CoverBytes)> Extract(string folderPath)
+    {
+        if (!Directory.Exists(folderPath))
+            throw new DirectoryNotFoundException($"MP3 audiobook folder not found: {folderPath}");
+
+        var files = await ProbeAndSort(folderPath);
+        if (files.Length == 0)
+            throw new FileNotFoundException("No MP3 files found in folder.", folderPath);
+
+        var book = BuildBookFromProbed(files, folderPath);
+
+        var coverFile = GetFolderCoverPath(folderPath);
+        byte[]? cover = File.Exists(coverFile)
+            ? await File.ReadAllBytesAsync(coverFile)
+            : await ffmpegWrapper.ExtractCoverImage(files[0].Path);
+
+        return (book, cover);
+    }
+
+    private Book BuildBookFromProbed((string Path, string Json)[] files, string folderPath)
+    {
+        using var firstDoc = JsonDocument.Parse(files[0].Json);
         var firstRoot = firstDoc.RootElement;
         var format = firstRoot.GetProperty("format");
         var tags = format.TryGetProperty("tags", out var t) ? t : default;
@@ -81,14 +112,13 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
         for (var i = 0; i < files.Length; i++)
         {
-            var fileJson = i == 0 ? firstJson : await ffmpegWrapper.GetMetadataJson(files[i]);
-            using var doc = i == 0 ? null : JsonDocument.Parse(fileJson);
+            using var doc = i == 0 ? null : JsonDocument.Parse(files[i].Json);
             var root = i == 0 ? firstRoot : doc!.RootElement;
             var fmt = root.GetProperty("format");
             var fileTags = fmt.TryGetProperty("tags", out var ft) ? ft : default;
 
             var duration = fmt.TryGetProperty("duration", out var dur) && double.TryParse(dur.GetString(), CultureInfo.InvariantCulture, out var d) ? d : 0;
-            var chapterTitle = GetTag(fileTags, "title") ?? Path.GetFileNameWithoutExtension(files[i]);
+            var chapterTitle = GetTag(fileTags, "title") ?? Path.GetFileNameWithoutExtension(files[i].Path);
 
             book.Chapters.Add(new AudiobookChapter
             {
@@ -97,12 +127,11 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
                 Duration = duration,
                 StartTime = cumulativeTime,
                 EndTime = cumulativeTime + duration,
-                FileName = Path.GetFileName(files[i])
+                FileName = Path.GetFileName(files[i].Path)
             });
 
             cumulativeTime += duration;
-            totalSize += new FileInfo(files[i]).Length;
-            progressService.ReportSubTask("Reading chapter", i + 1, files.Length);
+            totalSize += new FileInfo(files[i].Path).Length;
         }
 
         book.File.Duration = (int)Math.Round(cumulativeTime);
@@ -222,22 +251,27 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     }
 
     /// <summary>
-    /// Returns MP3 files sorted by ID3 track number, falling back to filename sort.
+    /// Probes every <c>.mp3</c> once, parses out the ID3 track number for sort, and returns
+    /// the files in play order paired with the raw ffprobe JSON. Callers that need full
+    /// per-file metadata (durations, chapter titles, streams) reuse the cached JSON instead
+    /// of re-probing, collapsing the old 2×N ffprobe pattern to N.
     /// </summary>
-    private async Task<string[]> GetSortedMp3Files(string folderPath)
+    private async Task<(string Path, string Json)[]> ProbeAndSort(string folderPath)
     {
         var mp3Files = Directory.GetFiles(folderPath, "*.mp3");
         if (mp3Files.Length == 0)
             return [];
 
-        var fileTrackPairs = new List<(string Path, int Track, string FileName)>();
+        var fileRecords = new ConcurrentBag<(string Path, string Json, int Track, string FileName)>();
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
-        foreach (var file in mp3Files)
+        await Parallel.ForEachAsync(mp3Files, options, async (file, ct) =>
         {
             var track = int.MaxValue;
+            var json = "";
             try
             {
-                var json = await ffmpegWrapper.GetMetadataJson(file);
+                json = await ffmpegWrapper.GetMetadataJson(file);
                 using var doc = JsonDocument.Parse(json);
                 var fmt = doc.RootElement.GetProperty("format");
                 if (fmt.TryGetProperty("tags", out var tags))
@@ -253,16 +287,26 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             }
             catch
             {
-                // Fall back to filename sort
+                // Fall back to filename sort; json stays empty and the main-loop parse will throw clearly if used.
             }
-            fileTrackPairs.Add((file, track, Path.GetFileName(file)));
-        }
+            fileRecords.Add((file, json, track, Path.GetFileName(file)));
+        });
 
-        return fileTrackPairs
+        return fileRecords
             .OrderBy(f => f.Track)
             .ThenBy(f => f.FileName, StringComparer.OrdinalIgnoreCase)
-            .Select(f => f.Path)
+            .Select(f => (f.Path, f.Json))
             .ToArray();
+    }
+
+    /// <summary>
+    /// Returns MP3 files sorted by ID3 track number (filename fallback). Thin wrapper
+    /// around <see cref="ProbeAndSort"/> for callers that only need paths.
+    /// </summary>
+    private async Task<string[]> GetSortedMp3Files(string folderPath)
+    {
+        var probed = await ProbeAndSort(folderPath);
+        return probed.Select(p => p.Path).ToArray();
     }
 
     /// <summary>Reads existing tags from a single MP3 file via ffprobe, filtered to standard keys.</summary>

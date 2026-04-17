@@ -11,14 +11,11 @@ public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileR
 
     public string[] GetContentFiles() => fileRepository.GetEpubFiles();
 
-    public Book ExtractMetadata(string filePath) => epubFileHandler.ExtractMetadata(filePath);
-
-    public byte[]? ExtractCoverBytes(string filePath)
+    public Task<(Book Metadata, byte[]? CoverBytes)> Extract(string filePath)
     {
-        var raw = epubFileHandler.ExtractCoverBytes(filePath);
-        if (raw is null)
-            return null;
-        return IsJpeg(raw) ? raw : coverThumbnailService.ConvertToJpeg(raw);
+        var (metadata, rawCover) = epubFileHandler.Extract(filePath);
+        var cover = rawCover is null ? null : IsJpeg(rawCover) ? rawCover : coverThumbnailService.ConvertToJpeg(rawCover);
+        return Task.FromResult((metadata, cover));
     }
 
     public string? SaveCover(byte[]? coverBytes, Guid bookUuid)
