@@ -28,6 +28,9 @@
         <Content Include="Old\TestData\Audiobooks\**\*.m4b">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Include="TestData\**\*.*" Exclude="TestData\**\*.cs">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <Target Name="SetKepubifyPermissions" AfterTargets="Build">

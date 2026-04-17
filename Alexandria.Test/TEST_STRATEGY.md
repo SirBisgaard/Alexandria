@@ -4,50 +4,43 @@ This document defines the test types, conventions, and direction for the Alexand
 
 ## Test Data Policy
 
-All test data must be **synthetically generated** — no copyrighted ebooks, audiobooks, or cover images may be committed to the repository.
+All test data must be **copyright-free**. The repository ships a small set of fixture files under `Alexandria.Test/TestData/`. Tests consume these fixtures by copying them into per-test temp directories — never by reading or writing them in place.
 
-### Synthetic EPUB Generation
+### Fixture Files
 
-Tests that need EPUB files should generate them programmatically. A shared test helper should create minimal but structurally valid EPUBs with configurable metadata:
+| Fixture | Format | Purpose |
+|---------|--------|---------|
+| `TestData/J.M. Barrie - Peter Pan.epub` | EPUB 3 (Standard Ebooks, CC0 / US public domain) | Ebook metadata extraction, KEPUB conversion, download endpoint, cover extraction |
+| `TestData/test.m4b` | M4B (AAC, ~8s, embedded tags + cover) | M4B metadata and cover extraction, chapter transcoding under each `M4BFileTreatment` |
+| `TestData/1.mp3` … `TestData/4.mp3` | MP3 with ID3v2.3 tags (track 1/4 … 4/4) | MP3 folder audiobook (place all four into one subdirectory of `AudiobookFolder` to form a single audiobook) |
+| `TestData/cover.jpg` | JPEG, 564×900 | Cover upload/replacement tests, `CoverThumbnailService` resize tests |
 
-- Title, authors, language, publisher, publication date
-- Series name and index
-- Cover image (generated solid-color JPEG/PNG)
-- Subject/category tags
-- Contributor roles
-- Multiple chapters with placeholder text
+Known fixture metadata (use these values in assertions):
 
-The generated EPUBs must be valid enough for `EpubFileHandler` to extract metadata, for `KepubifyWrapper` to convert, and for the Kobo device to accept as downloads.
+- **EPUB:** title "Peter and Wendy" (short title "Peter Pan"), author "J. M. Barrie", publisher "Standard Ebooks", language `en-GB`, publication date `2017-11-22`, subjects include "Fantasy literature", "Pirates -- Fiction", belongs-to-collection "The Telegraph's Greatest Villains in Literature" (group position 40)
+- **M4B:** title "The Alexandria Test Audiobook", artist / album artist "Alexandria Test", series (grouping) "Test Series", genre "Audiobook", year 2026, duration ~8.2s
+- **MP3 folder:** each file tagged title "Chapter N", album "The Alexandria Test Audiobook", artist / album artist "Alexandria Test", series (grouping) "Test Series", track `N/4`, genre "Audiobook", year 2026
 
-### Synthetic M4B Generation
+### Fixture Loader
 
-Tests that need M4B audiobooks should generate them using ffmpeg (available in CI). A shared test helper should produce minimal M4B files with:
+A thin helper under `TestData/Fixtures.cs` should expose:
 
-- Embedded metadata tags (title, artist, album artist, grouping for series)
-- Chapter markers
-- Embedded cover image
-- Minimal audio content (silence or tone, short duration)
+- `Fixtures.CopyEpubTo(string destinationFolder)` → copies the Peter Pan EPUB into the destination and returns the new file path
+- `Fixtures.CopyM4BTo(string destinationFolder)` → copies `test.m4b`
+- `Fixtures.CopyMp3AudiobookTo(string destinationAudiobookFolder, string subfolderName)` → creates the subdirectory and copies `1.mp3` … `4.mp3` into it, returns the subdirectory path
+- `Fixtures.CopyCoverTo(string destinationFolder)` → copies `cover.jpg`
 
-The generated M4Bs must be valid enough for `M4BFileHandler` / ffprobe to parse metadata, chapters, and cover art.
+The helper resolves fixtures relative to the test assembly's output directory. The csproj must mark all files under `TestData/` as `Content` with `CopyToOutputDirectory=PreserveNewest`.
 
-### Synthetic MP3 Folder Audiobook Generation
+### Varying Metadata
 
-Tests that need MP3 folder audiobooks should generate a directory of numbered MP3 files using ffmpeg. A shared test helper should produce a folder containing:
+When a test needs a book with different metadata (e.g. a second ebook to verify sort order, or N books for a batched sync test), copy the fixture into the test's temp folder and then edit the metadata in place using the production `IFileContentMediaHandler` (`EpubFileHandler`, `M4BFileHandler`, `Mp3FileHandler`). This exercises the production embed path as a side effect and keeps tests from depending on external generation logic.
 
-- Multiple short MP3 files (one per chapter), with ID3 track numbers for sort order
-- Embedded ID3 tags on each file (title, artist, album, album artist, track number)
-- Embedded cover image on at least the first file
-- Minimal audio content (silence or tone, short duration per file)
-
-The generated folder must be valid enough for `Mp3FileHandler` / ffprobe to extract per-file metadata, derive chapter structure from the file list, and extract cover art. The indexer discovers MP3 audiobooks as subdirectories of `AudiobookFolder` that contain `.mp3` files.
-
-### Synthetic Cover Images
-
-Cover images should be generated as solid-color JPEGs or PNGs at a known resolution (e.g. 800x1200). This ensures `CoverThumbnailService` can resize them and the Kobo device accepts them in cover responses.
+For performance tests that need many copies (50–200 books), the same approach applies: copy the fixture once per book, mutate title/author/series to make each unique, and let the indexer discover them. Copying a ~1.5 MB EPUB 200 times is acceptable; re-encoding audio is not — vary only tags on audiobook fixtures.
 
 ### File Organization
 
-Generated test data should be created in temporary directories during `[TestInitialize]` and cleaned up in `[TestCleanup]`. Shared generator helpers should live in a `TestData/Generators/` folder within the test project.
+Each test creates a unique temp directory in `[TestInitialize]`, copies the fixtures it needs into that directory, and deletes the entire directory in `[TestCleanup]`. Fixtures in `TestData/` are read-only inputs and must never be modified in place.
 
 ---
 
@@ -61,13 +54,13 @@ Generated test data should be created in temporary directories during `[TestInit
 
 #### File Metadata
 
-- Extract metadata from synthetic EPUBs and verify all fields (title, authors, series, cover, subjects, contributors, language, publisher, identifiers)
-- Extract metadata from synthetic M4Bs and verify all fields (title, artist, album artist, narrator, series, chapters, duration, cover)
-- Extract metadata from synthetic MP3 folder audiobooks and verify all fields (title, artist, album artist, series, chapters derived from file list, duration, cover, track ordering)
-- Embed modified metadata into EPUB and re-extract to verify round-trip fidelity
-- Embed modified metadata into M4B and re-extract to verify round-trip fidelity
-- Embed modified metadata into MP3 folder audiobook (ID3 tags across files) and re-extract to verify round-trip fidelity
-- Cover extraction and embedding for all three formats (EPUB, M4B, MP3)
+- Extract metadata from the Peter Pan EPUB fixture and verify all fields against the known values (title, author, language, publisher, subjects, collection, description)
+- Extract metadata from `test.m4b` and verify title, artist, album artist, series (grouping), duration, and embedded cover
+- Extract metadata from the MP3 folder fixture (`1.mp3`…`4.mp3` in a single subdirectory) and verify per-file tags, derived chapter structure, track ordering, and cover extraction from the tagged files
+- Embed modified metadata into a temp copy of the EPUB and re-extract to verify round-trip fidelity
+- Embed modified metadata into a temp copy of `test.m4b` and re-extract to verify round-trip fidelity
+- Embed modified metadata into a temp copy of the MP3 folder (ID3 tags across files) and re-extract to verify round-trip fidelity
+- Cover extraction and embedding for all three formats, including replacing covers with the `cover.jpg` fixture
 
 #### Database
 
@@ -80,7 +73,7 @@ Generated test data should be created in temporary directories during `[TestInit
 **How they work:**
 
 - Each test creates a temporary SQLite database via `SqliteConnectionProvider` + `DatabaseInitializer`
-- File tests use synthetic EPUBs, M4Bs, and MP3 folders generated in a temp directory
+- File tests copy fixtures from `TestData/` into a per-test temp directory via `Fixtures.Copy*To(...)` and operate on those copies
 - Tests exercise `EpubFileHandler`, `M4BFileHandler`, `Mp3FileHandler`, `CoverThumbnailService`, and the repository classes directly
 - Temp directories and databases are cleaned up in `[TestCleanup]`
 
@@ -178,7 +171,7 @@ Pre-index converters run before file discovery in `IndexerService.Index()`. They
 
 - Use `WebApplicationFactory<Program>` to spin up the full ASP.NET Core host in-process
 - Override configuration to use a temp directory for `DataFolder`, `EbookFolder`, `AudiobookFolder`
-- Pre-seed the database with synthetic books via the indexer or direct repository calls
+- Pre-seed the library by copying fixtures into `EbookFolder` / `AudiobookFolder` and running the indexer, or by writing directly to the repositories
 - Make HTTP requests via `HttpClient` from the factory
 - Assert on HTTP status codes, response headers, and deserialized JSON bodies
 - Each test class gets its own factory instance to avoid cross-test contamination
@@ -278,20 +271,20 @@ This is the most critical test category. The Kobo device is a black box with und
 
 **Scope:**
 
-| Operation | What to Measure | Synthetic Data |
-|-----------|----------------|----------------|
-| Full index | Wall-clock time for indexing N books from empty database | Generate 50-200 synthetic EPUBs, M4Bs, and MP3 folders in a temp folder |
+| Operation | What to Measure | Test Data |
+|-----------|----------------|-----------|
+| Full index | Wall-clock time for indexing N books from empty database | Copy the Peter Pan EPUB, `test.m4b`, and the MP3 folder fixture 50–200 times with mutated tags |
 | Reindex (no changes) | Wall-clock time for re-indexing when nothing changed | Same library, second pass |
-| Reindex (with changes) | Time to detect and re-process changed files | Modify metadata on a subset before re-indexing |
-| Load metadata | Time to extract metadata from a single EPUB/M4B/MP3 folder | Generated files of varying sizes |
-| Store metadata | Time to embed metadata into a single EPUB/M4B/MP3 folder | Generated files |
+| Reindex (with changes) | Time to detect and re-process changed files | Mutate metadata on a subset of the fixture copies before re-indexing |
+| Load metadata | Time to extract metadata from a single EPUB/M4B/MP3 folder | Fixture files |
+| Store metadata | Time to embed metadata into a single EPUB/M4B/MP3 folder | Fixture files (in temp copies) |
 | Database read | Time to query books with all relationships loaded | Pre-seeded database with N books |
 | Database write | Time to insert/update books with full metadata | Bulk inserts |
-| API (full stack) | Round-trip time for key endpoints with a seeded library | `WebApplicationFactory` with generated library |
-| Chapter transcode quality | AAC-to-MP3 transcode time and output size per libmp3lame `-q:a` level (0–9) | Synthetic M4B with a chapter of representative length |
-| TranscodeAtIndex | Wall-clock time to pre-transcode all chapters of an M4B library | Generate N synthetic M4Bs with multiple chapters each |
-| ConvertAtIndex | Wall-clock time to convert an M4B library into MP3 folders | Generate N synthetic M4Bs with multiple chapters each |
-| M4BFileTreatment comparison | Side-by-side timing of first-run indexing under each treatment mode | Same synthetic M4B library indexed three times (one per mode) |
+| API (full stack) | Round-trip time for key endpoints with a seeded library | `WebApplicationFactory` seeded from fixture copies |
+| Chapter transcode quality | AAC-to-MP3 transcode time and output size per libmp3lame `-q:a` level (0–9) | `test.m4b` (note: ~8s duration — report times per-second for comparability) |
+| TranscodeAtIndex | Wall-clock time to pre-transcode all chapters of an M4B library | N copies of `test.m4b` with varied tags |
+| ConvertAtIndex | Wall-clock time to convert an M4B library into MP3 folders | N copies of `test.m4b` with varied tags |
+| M4BFileTreatment comparison | Side-by-side timing of first-run indexing under each treatment mode | Same M4B fixture library indexed three times (one per mode) |
 
 #### Chapter Transcode Quality Comparison
 
@@ -303,7 +296,7 @@ This test should transcode the same chapter at each quality level and report wal
 
 **How they work:**
 
-- All test data is synthetically generated at test setup — no dependency on production libraries
+- All test data is derived from the committed fixtures at test setup — copied into temp folders and mutated in place, with no dependency on production libraries
 - Tests use `Stopwatch` for timing and output results via `Console.WriteLine` for CI capture
 - Each test has a generous `[Timeout]` to prevent hangs but no strict performance thresholds — the goal is regression detection through trend observation, not hard pass/fail gates
 - Performance helper classes (decorator pattern around real implementations) can instrument per-operation timings
@@ -372,12 +365,15 @@ Never use a fixed or shared path for any writable resource. Two tests running in
 ```
 Alexandria.Test/
 ├── MSTestSettings.cs
-├── TestData/
-│   └── Generators/           ← Synthetic test data generation helpers
-│       ├── EpubGenerator.cs
-│       ├── M4BGenerator.cs
-│       ├── Mp3FolderGenerator.cs
-│       └── CoverGenerator.cs
+├── TestData/                 ← Committed copyright-free fixtures (copy-to-output)
+│   ├── Fixtures.cs           ← Helper that copies fixtures into per-test temp folders
+│   ├── J.M. Barrie - Peter Pan.epub
+│   ├── test.m4b
+│   ├── 1.mp3
+│   ├── 2.mp3
+│   ├── 3.mp3
+│   ├── 4.mp3
+│   └── cover.jpg
 ├── Data/                     ← Data integration tests
 │   ├── EpubMetadataTests.cs
 │   ├── M4BMetadataTests.cs
