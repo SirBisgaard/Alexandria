@@ -87,6 +87,10 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         }
         else
         {
+            // SERIES/PART fallback for third-party-produced files (Audiobookshelf, mp3tag, etc.).
+            // Once the user edits metadata through Alexandria, ffmpeg's ID3v2 muxer drops these
+            // non-standard tag names on write, so this branch never fires on files we've re-muxed
+            // — by then the user has explicitly set a Series via the UI anyway.
             var seriesName = GetTag(tags, "SERIES") ?? GetTag(tags, "series");
             if (seriesName is not null)
             {

@@ -26,7 +26,10 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     /// tag in "Series Name #N" format, using LastIndexOf('#') to handle names containing '#'
     /// (e.g., "C# Programming"). Multi-series groupings ("A #1; B #2", written by Audiobookshelf
     /// et al.) are collapsed to the first series — our domain and the Kobo sync protocol only
-    /// carry one series per book. SERIES/PART custom tags are the fallback.
+    /// carry one series per book. SERIES/PART custom tags are the fallback for third-party-
+    /// produced files; once the user edits metadata through Alexandria, ffmpeg's MP4 muxer drops
+    /// those non-standard atom names on write, so the fallback never fires on files we've
+    /// re-muxed — by then the user has explicitly set a Series via the UI anyway.
     /// </summary>
     private async Task<Book> ExtractMetadataViaFfprobe(string filePath)
     {
