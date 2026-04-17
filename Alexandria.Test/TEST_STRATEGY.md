@@ -520,25 +520,24 @@ These wrappers own the invariants that "the binary was invoked with the right ar
 
 #### `KepubifyWrapper`
 
-- ❌ Given a valid EPUB, produces a file at the target path that's a valid zip and carries KEPUB-specific structure (kepubify's div-wrapping and `.kobo/` artefacts)
-- ❌ Binary is bundled at `runtimes/linux-x64/native/kepubify` and made executable at build time via the `SetKepubifyPermissions` MSBuild target
-- ❌ Output filename convention is `{name}.kepub.epub` (required by the Kobo device's `Content-Disposition` check — see Kobo protocol section)
+- ✅ Given a valid EPUB, produces a file at the target path that's a valid zip and carries KEPUB-specific structure (`Kepubify_EpubInput_WritesValidKepubFileAtTargetPath`)
+- ✅ Binary is bundled in the test output and made executable (`Kepubify_BundledBinary_ExistsAndIsExecutable`)
+- ❌ Output filename convention is `{name}.kepub.epub` (required by the Kobo device's `Content-Disposition` check — belongs to the Kobo protocol section, caller controls the name here)
 
 #### `FfmpegWrapper`
 
-- ❌ `StreamChapter`: output format is MP3. When source codec is `mp3`, uses `-c:a copy` (remux, no re-encode); otherwise transcodes via `libmp3lame` at the quality returned by `SelectLameQuality`
-- ❌ `StreamChapter`: respects cancellation — the ffmpeg process is killed (entire process tree) on `OperationCanceledException`, so client disconnect doesn't leak processes
+- ✅ `StreamChapter`: output format is MP3 — streamed output starts with an ID3 tag or MPEG frame sync (`StreamChapter_M4BFixture_ProducesMp3Output`)
+- 🔶 `StreamChapter`: respects cancellation — an already-canceled token surfaces as `TaskCanceledException` (`StreamChapter_AlreadyCanceledToken_ThrowsOperationCanceled`). Mid-stream cancellation and process-kill behavior remain untested because we have no seam to observe the child process
+- ❌ `StreamChapter`: source codec `mp3` uses `-c:a copy` remux (vs `libmp3lame` transcode) — not directly asserted; all current fixtures are AAC-sourced
 - ❌ `TranscodeChapterToFile`: same codec / quality selection as `StreamChapter`
-- ❌ `TranscodeChapterToFile`: when `tags` provided, inherited source metadata is stripped (`-map_metadata -1`) and replaced from the ffmetadata input; when null, no tag-write pass is done
-- ❌ `TranscodeChapterToFile`: when `coverPath` provided, attached as album art (`-disposition:v:0 attached_pic` with `-id3v2_version 3` for MP3 cover compatibility)
-- ❌ `GetMetadataJson`: invokes `ffprobe -print_format json -show_format -show_chapters -show_streams`; non-zero exit surfaces as `InvalidOperationException` with stderr
-- ❌ `ExtractCoverImage`: returns the raw cover bytes, or `null` when the source has no embedded image (empty ffmpeg output)
-- ❌ `SelectLameQuality` bitrate → `-q:a` mapping: `≤48 kbps → 8`, `≤80 kbps → 6`, `≤130 kbps → 4`, otherwise `2`. Null bitrate falls into the `>130 kbps` bucket (highest quality)
-- ❌ `WriteMetadata` / `WriteMetadataWithCover` / `WriteMetadataRemoveCover`: emit the `;FFMETADATA1` header (mandatory — without it ffmpeg treats the file as INI and silently drops chapters) and `TIMEBASE=1/1000` for chapter times (millisecond precision; default nanoseconds overflows on long audiobooks)
-- ❌ FFMETADATA1 escaping: `=`, `;`, `#`, `\`, and newlines are backslash-escaped; unescaped values cause metadata injection or parsing failures
-- ❌ `WriteMetadata` preserves audio stream (`-map 0:a`), preserves optional cover (`-map 0:v?`), no re-encode (`-c copy`)
-- ❌ `WriteMetadataWithCover` marks the new video stream as album art (`-disposition:v:0 attached_pic`) so media players show cover art instead of a video player UI
-- ❌ `WriteMetadataRemoveCover` strips cover by omitting any `-map 0:v` directive
+- ✅ `TranscodeChapterToFile`: tags + cover produce an MP3 carrying the tags and an `attached_pic` video stream (`TranscodeChapterToFile_WithTagsAndCover_ProducesMp3WithMetadata`)
+- ✅ `GetMetadataJson`: returns JSON with `format`, `streams`, and `chapters` keys (`GetMetadataJson_M4BFixture_ReturnsFormatStreamsAndChapters`)
+- ✅ `ExtractCoverImage`: returns raw cover bytes for a file with embedded cover; returns `null` after `WriteMetadataRemoveCover` strips it (`ExtractCoverImage_M4BWithEmbeddedCover_ReturnsImageBytes`, `ExtractCoverImage_AfterRemoveCover_ReturnsNull`)
+- ❌ `SelectLameQuality` bitrate → `-q:a` mapping (private; not directly testable)
+- ✅ `WriteMetadata`: tags and chapters round-trip through the FFMETADATA1 serializer (the `;FFMETADATA1` header and `TIMEBASE=1/1000` contract — chapters are preserved, which wouldn't happen without both) (`WriteMetadata_TagsAndChapters_RoundTripThroughFfmetadata`)
+- ✅ FFMETADATA1 escaping: values containing `=`, `;`, `#`, and backslash survive round-trip (`WriteMetadata_ValueContainingFfMetadataSpecials_Escapes`)
+- ✅ `WriteMetadataWithCover` marks the new video stream as `attached_pic` — verified by ffprobe disposition readback (`WriteMetadataWithCover_SetsAttachedPicDispositionOnVideoStream`)
+- ✅ `WriteMetadataRemoveCover` strips the embedded cover — subsequent `ExtractCoverImage` returns null (`ExtractCoverImage_AfterRemoveCover_ReturnsNull`)
 
 ### File-handler extraction / selection rules
 
