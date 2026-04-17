@@ -10,6 +10,7 @@ public static class Fixtures
 
     public const string EpubFileName = "J.M. Barrie - Peter Pan.epub";
     public const string M4BFileName = "test.m4b";
+    public const string Mp3FileName = "test.mp3";
     public const string CoverFileName = "cover.jpg";
 
     public static string CopyEpubTo(string destinationFolder)
@@ -20,6 +21,11 @@ public static class Fixtures
     public static string CopyM4BTo(string destinationFolder)
     {
         return CopyFile(M4BFileName, destinationFolder);
+    }
+
+    public static string CopyMp3To(string destinationFolder)
+    {
+        return CopyFile(Mp3FileName, destinationFolder);
     }
 
     public static string CopyMp3AudiobookTo(string destinationAudiobookFolder, string subfolderName)

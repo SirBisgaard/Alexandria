@@ -528,8 +528,8 @@ These wrappers own the invariants that "the binary was invoked with the right ar
 
 - ✅ `StreamChapter`: output format is MP3 — streamed output starts with an ID3 tag or MPEG frame sync (`StreamChapter_M4BFixture_ProducesMp3Output`)
 - 🔶 `StreamChapter`: respects cancellation — an already-canceled token surfaces as `TaskCanceledException` (`StreamChapter_AlreadyCanceledToken_ThrowsOperationCanceled`). Mid-stream cancellation and process-kill behavior remain untested because we have no seam to observe the child process
-- ❌ `StreamChapter`: source codec `mp3` uses `-c:a copy` remux (vs `libmp3lame` transcode) — not directly asserted; all current fixtures are AAC-sourced
-- ❌ `TranscodeChapterToFile`: same codec / quality selection as `StreamChapter`
+- ✅ `StreamChapter`: source codec `mp3` produces valid MP3 output via the remux path (`StreamChapter_Mp3SourceCodec_ProducesMp3Output`)
+- ✅ `TranscodeChapterToFile`: source codec `mp3` produces an MP3 output file with `codec_name == "mp3"` (`TranscodeChapterToFile_Mp3SourceCodec_ProducesMp3File`)
 - ✅ `TranscodeChapterToFile`: tags + cover produce an MP3 carrying the tags and an `attached_pic` video stream (`TranscodeChapterToFile_WithTagsAndCover_ProducesMp3WithMetadata`)
 - ✅ `GetMetadataJson`: returns JSON with `format`, `streams`, and `chapters` keys (`GetMetadataJson_M4BFixture_ReturnsFormatStreamsAndChapters`)
 - ✅ `ExtractCoverImage`: returns raw cover bytes for a file with embedded cover; returns `null` after `WriteMetadataRemoveCover` strips it (`ExtractCoverImage_M4BWithEmbeddedCover_ReturnsImageBytes`, `ExtractCoverImage_AfterRemoveCover_ReturnsNull`)

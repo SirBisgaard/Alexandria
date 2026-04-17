@@ -150,6 +150,41 @@ public sealed class FfmpegWrapperTests
     }
 
     [TestMethod]
+    public async Task StreamChapter_Mp3SourceCodec_ProducesMp3Output()
+    {
+        var mp3Path = Fixtures.CopyMp3To(tempDir);
+        using var output = new MemoryStream();
+
+        await ffmpeg.StreamChapter(mp3Path, startTime: 0, endTime: 2, codec: "mp3", bitrate: 128000, output, CancellationToken.None);
+
+        var bytes = output.ToArray();
+        Assert.IsGreaterThan(0, bytes.Length);
+        var hasId3 = bytes.Length >= 3 && bytes[0] == 0x49 && bytes[1] == 0x44 && bytes[2] == 0x33;
+        var hasMpegFrame = bytes.Length >= 2 && bytes[0] == 0xFF && (bytes[1] & 0xE0) == 0xE0;
+        Assert.IsTrue(hasId3 || hasMpegFrame, "Remuxed output must still be a valid MP3 stream.");
+    }
+
+    [TestMethod]
+    public async Task TranscodeChapterToFile_Mp3SourceCodec_ProducesMp3File()
+    {
+        var mp3Path = Fixtures.CopyMp3To(tempDir);
+        var outputPath = Path.Combine(tempDir, "chapter0.mp3");
+
+        await ffmpeg.TranscodeChapterToFile(mp3Path, startTime: 0, endTime: 2, codec: "mp3", bitrate: 128000, outputPath, tags: null, coverPath: null, CancellationToken.None);
+
+        Assert.IsTrue(File.Exists(outputPath));
+        var bytes = await File.ReadAllBytesAsync(outputPath);
+        Assert.IsGreaterThan(0, bytes.Length);
+
+        var json = await ffmpeg.GetMetadataJson(outputPath);
+        using var doc = JsonDocument.Parse(json);
+        var audioStream = doc.RootElement.GetProperty("streams").EnumerateArray()
+            .FirstOrDefault(s => s.TryGetProperty("codec_type", out var ct) && ct.GetString() == "audio");
+        Assert.AreNotEqual(JsonValueKind.Undefined, audioStream.ValueKind);
+        Assert.AreEqual("mp3", audioStream.GetProperty("codec_name").GetString());
+    }
+
+    [TestMethod]
     public async Task TranscodeChapterToFile_WithTagsAndCover_ProducesMp3WithMetadata()
     {
         var coverPath = Fixtures.CopyCoverTo(tempDir);
