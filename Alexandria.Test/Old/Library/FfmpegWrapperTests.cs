@@ -49,7 +49,7 @@ public sealed class FfmpegWrapperTests
         var m4BPath = GetFirstM4B();
 
         using var memoryStream = new MemoryStream();
-        await handler.StreamChapter(m4BPath, 0, 10, "aac", null, memoryStream, CancellationToken.None);
+        await handler.StreamChapter(m4BPath, 0, 10, qaLevel: 2, memoryStream, CancellationToken.None);
 
         Assert.IsGreaterThan(0, memoryStream.Length, "Streamed data should not be empty.");
     }
@@ -65,7 +65,7 @@ public sealed class FfmpegWrapperTests
         for (var i = 0; i < chapters.Length; i++)
         {
             using var memoryStream = new MemoryStream();
-            await handler.StreamChapter(m4BPath, chapters[i][0], chapters[i][1], null, null, memoryStream, CancellationToken.None);
+            await handler.StreamChapter(m4BPath, chapters[i][0], chapters[i][1], qaLevel: null, memoryStream, CancellationToken.None);
 
             Assert.IsGreaterThan(0, memoryStream.Length, $"Streamed data should not be empty for chapter {i}.");
         }

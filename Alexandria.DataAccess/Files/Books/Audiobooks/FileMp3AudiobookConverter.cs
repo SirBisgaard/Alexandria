@@ -120,7 +120,8 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
                 ["title"] = chapter.Title,
                 ["track"] = $"{i + 1}/{total}"
             };
-            await ffmpegWrapper.TranscodeChapterToFile(inputPath, chapter.StartTime, chapter.EndTime, extracted.File.AudioCodec, extracted.File.AudioBitrate, outPath, perFileTags, coverJpgPath, ct);
+            var qaLevel = extracted.File.AudioCodec == "mp3" ? (int?)null : FfmpegWrapper.SelectLameQualityForConversion(extracted.File.AudioBitrate);
+            await ffmpegWrapper.TranscodeChapterToFile(inputPath, chapter.StartTime, chapter.EndTime, qaLevel, outPath, perFileTags, coverJpgPath, ct);
             var done = Interlocked.Increment(ref completed);
             logger.LogInformation("Converted chapter {Completed} out of {Total} for {Title}", done, total, extracted.Title);
             progressService.ReportSubTask("Transcoding chapters", done, total);

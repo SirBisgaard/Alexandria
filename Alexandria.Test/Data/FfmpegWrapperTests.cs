@@ -65,7 +65,7 @@ public sealed class FfmpegWrapperTests
     {
         using var output = new MemoryStream();
 
-        await ffmpeg.StreamChapter(m4bPath, startTime: 0, endTime: 1, codec: "aac", bitrate: 64000, output, CancellationToken.None);
+        await ffmpeg.StreamChapter(m4bPath, startTime: 0, endTime: 1, qaLevel: 4, output, CancellationToken.None);
 
         Assert.IsGreaterThan(0, output.Length);
         var bytes = output.ToArray();
@@ -82,7 +82,7 @@ public sealed class FfmpegWrapperTests
         using var output = new MemoryStream();
 
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(
-            async () => await ffmpeg.StreamChapter(m4bPath, 0, 1, "aac", 64000, output, cts.Token));
+            async () => await ffmpeg.StreamChapter(m4bPath, 0, 1, 4, output, cts.Token));
     }
 
     [TestMethod]
@@ -149,13 +149,64 @@ public sealed class FfmpegWrapperTests
         Assert.AreEqual(1, videoStream.GetProperty("disposition").GetProperty("attached_pic").GetInt32());
     }
 
+    [DataTestMethod]
+    [DataRow(null, 2)]
+    [DataRow(320000, 2)]
+    [DataRow(200000, 2)]
+    [DataRow(160001, 2)]
+    [DataRow(160000, 3)]
+    [DataRow(128001, 3)]
+    [DataRow(128000, 4)]
+    [DataRow(96001, 4)]
+    [DataRow(96000, 5)]
+    [DataRow(80001, 5)]
+    [DataRow(80000, 6)]
+    [DataRow(64001, 6)]
+    [DataRow(64000, 7)]
+    [DataRow(48001, 7)]
+    [DataRow(48000, 8)]
+    [DataRow(32001, 8)]
+    [DataRow(32000, 9)]
+    [DataRow(0, 9)]
+    public void SelectLameQualityForStreaming_Bitrate_MapsToCapAt2(int? bitrate, int expectedQuality)
+    {
+        Assert.AreEqual(expectedQuality, FfmpegWrapper.SelectLameQualityForStreaming(bitrate));
+    }
+
+    [DataTestMethod]
+    [DataRow(null, 0)]
+    [DataRow(320000, 0)]
+    [DataRow(256001, 0)]
+    [DataRow(256000, 1)]
+    [DataRow(200001, 1)]
+    [DataRow(200000, 2)]
+    [DataRow(160001, 2)]
+    [DataRow(160000, 3)]
+    [DataRow(128001, 3)]
+    [DataRow(128000, 4)]
+    [DataRow(96001, 4)]
+    [DataRow(96000, 5)]
+    [DataRow(80001, 5)]
+    [DataRow(80000, 6)]
+    [DataRow(64001, 6)]
+    [DataRow(64000, 7)]
+    [DataRow(48001, 7)]
+    [DataRow(48000, 8)]
+    [DataRow(32001, 8)]
+    [DataRow(32000, 9)]
+    [DataRow(0, 9)]
+    public void SelectLameQualityForConversion_Bitrate_MapsToFullRange(int? bitrate, int expectedQuality)
+    {
+        Assert.AreEqual(expectedQuality, FfmpegWrapper.SelectLameQualityForConversion(bitrate));
+    }
+
     [TestMethod]
-    public async Task StreamChapter_Mp3SourceCodec_ProducesMp3Output()
+    public async Task StreamChapter_NullQaLevel_ProducesMp3OutputViaRemux()
     {
         var mp3Path = Fixtures.CopyMp3To(tempDir);
         using var output = new MemoryStream();
 
-        await ffmpeg.StreamChapter(mp3Path, startTime: 0, endTime: 2, codec: "mp3", bitrate: 128000, output, CancellationToken.None);
+        await ffmpeg.StreamChapter(mp3Path, startTime: 0, endTime: 2, qaLevel: null, output, CancellationToken.None);
 
         var bytes = output.ToArray();
         Assert.IsGreaterThan(0, bytes.Length);
@@ -165,12 +216,12 @@ public sealed class FfmpegWrapperTests
     }
 
     [TestMethod]
-    public async Task TranscodeChapterToFile_Mp3SourceCodec_ProducesMp3File()
+    public async Task TranscodeChapterToFile_NullQaLevel_ProducesMp3FileViaRemux()
     {
         var mp3Path = Fixtures.CopyMp3To(tempDir);
         var outputPath = Path.Combine(tempDir, "chapter0.mp3");
 
-        await ffmpeg.TranscodeChapterToFile(mp3Path, startTime: 0, endTime: 2, codec: "mp3", bitrate: 128000, outputPath, tags: null, coverPath: null, CancellationToken.None);
+        await ffmpeg.TranscodeChapterToFile(mp3Path, startTime: 0, endTime: 2, qaLevel: null, outputPath, tags: null, coverPath: null, CancellationToken.None);
 
         Assert.IsTrue(File.Exists(outputPath));
         var bytes = await File.ReadAllBytesAsync(outputPath);
@@ -195,7 +246,7 @@ public sealed class FfmpegWrapperTests
             ["artist"] = "Transcoded Artist"
         };
 
-        await ffmpeg.TranscodeChapterToFile(m4bPath, 0, 1, "aac", 64000, outputPath, tags, coverPath, CancellationToken.None);
+        await ffmpeg.TranscodeChapterToFile(m4bPath, 0, 1, qaLevel: 4, outputPath, tags, coverPath, CancellationToken.None);
 
         Assert.IsTrue(File.Exists(outputPath));
         var bytes = await File.ReadAllBytesAsync(outputPath);

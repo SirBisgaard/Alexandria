@@ -137,13 +137,15 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     public async Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken)
     {
         var chapter = book.Chapters[chapterIndex];
-        await ffmpegWrapper.StreamChapter(book.File.SourcePath, chapter.StartTime, chapter.EndTime, book.File.AudioCodec, book.File.AudioBitrate, outputStream, cancellationToken);
+        var qaLevel = book.File.AudioCodec == "mp3" ? (int?)null : FfmpegWrapper.SelectLameQualityForStreaming(book.File.AudioBitrate);
+        await ffmpegWrapper.StreamChapter(book.File.SourcePath, chapter.StartTime, chapter.EndTime, qaLevel, outputStream, cancellationToken);
     }
 
     public async Task TranscodeChapterToFile(Book book, int chapterIndex, string outputPath, CancellationToken cancellationToken)
     {
         var chapter = book.Chapters[chapterIndex];
-        await ffmpegWrapper.TranscodeChapterToFile(book.File.SourcePath, chapter.StartTime, chapter.EndTime, book.File.AudioCodec, book.File.AudioBitrate, outputPath, null, null, cancellationToken);
+        var qaLevel = book.File.AudioCodec == "mp3" ? (int?)null : FfmpegWrapper.SelectLameQualityForStreaming(book.File.AudioBitrate);
+        await ffmpegWrapper.TranscodeChapterToFile(book.File.SourcePath, chapter.StartTime, chapter.EndTime, qaLevel, outputPath, null, null, cancellationToken);
     }
 
     /// <summary>

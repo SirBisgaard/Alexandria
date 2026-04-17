@@ -8,16 +8,16 @@ namespace Alexandria.DataAccess.Externals;
 public class FfmpegWrapper : IFfmpegWrapper
 {
     /// <summary>
-    /// Streams an audiobook chapter to the output stream as MP3. Non-MP3 sources are transcoded
-    /// via libmp3lame; MP3 sources are remuxed without re-encoding.
+    /// Streams an audiobook chapter to the output stream as MP3. Caller picks the libmp3lame
+    /// quality via <paramref name="qaLevel"/>: pass <c>null</c> to remux without re-encoding
+    /// (only valid for MP3 sources), or an integer 0–9 to transcode at that <c>-q:a</c> level.
     /// The cancellation token kills the ffmpeg process if the client disconnects.
     /// </summary>
     // Kobo devices do not support AAC/ADTS streams — chapters must be served as MP3.
     // AAC remux (-c:a copy -f adts) was tried but playback fails on the device (verified 2026-04-16).
-    public async Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken)
+    public async Task StreamChapter(string inputPath, double startTime, double endTime, int? qaLevel, Stream outputStream, CancellationToken cancellationToken)
     {
-        var quality = codec == "mp3" ? (int?)null : SelectLameQuality(bitrate);
-        var codecArgs = quality is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {quality}";
+        var codecArgs = qaLevel is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {qaLevel}";
         var duration = endTime - startTime;
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
@@ -50,18 +50,18 @@ public class FfmpegWrapper : IFfmpegWrapper
     }
 
     /// <summary>
-    /// Transcodes a single chapter to an MP3 file at <paramref name="outputPath"/>. Codec/quality
-    /// selection matches <see cref="StreamChapter"/>. When <paramref name="tags"/> is provided,
-    /// the inherited source metadata is stripped (<c>-map_metadata -1</c>) and replaced via an
-    /// FFMETADATA file — no follow-up tag-write pass is needed. When <paramref name="coverPath"/>
-    /// is provided, it's attached as album art in the same ffmpeg invocation (ID3v2.3 for MP3
-    /// cover compatibility). Passing nulls for both produces a metadata-free cache chunk suitable
-    /// for the M4B TranscodeAtIndex flow.
+    /// Transcodes a single chapter to an MP3 file at <paramref name="outputPath"/>. Caller picks
+    /// the libmp3lame quality via <paramref name="qaLevel"/>: <c>null</c> to remux (MP3 source
+    /// only), or 0–9 to transcode at that <c>-q:a</c> level. When <paramref name="tags"/> is
+    /// provided, the inherited source metadata is stripped (<c>-map_metadata -1</c>) and
+    /// replaced via an FFMETADATA file — no follow-up tag-write pass is needed. When
+    /// <paramref name="coverPath"/> is provided, it's attached as album art in the same ffmpeg
+    /// invocation (ID3v2.3 for MP3 cover compatibility). Passing nulls for both produces a
+    /// metadata-free cache chunk suitable for the M4B TranscodeAtIndex flow.
     /// </summary>
-    public async Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, string? codec, int? bitrate, string outputPath, IReadOnlyDictionary<string, string>? tags, string? coverPath, CancellationToken cancellationToken)
+    public async Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, int? qaLevel, string outputPath, IReadOnlyDictionary<string, string>? tags, string? coverPath, CancellationToken cancellationToken)
     {
-        var quality = codec == "mp3" ? (int?)null : SelectLameQuality(bitrate);
-        var codecArgs = quality is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {quality}";
+        var codecArgs = qaLevel is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {qaLevel}";
         var duration = endTime - startTime;
 
         var hasTags = tags is not null && tags.Count > 0;
@@ -281,16 +281,44 @@ public class FfmpegWrapper : IFfmpegWrapper
     }
 
     /// <summary>
-    /// Picks a libmp3lame -q:a level that roughly matches the source AAC bitrate.
-    /// Lower values = higher quality/slower/larger. Spoken word is forgiving so we
-    /// avoid over-encoding low-bitrate sources.
+    /// Libmp3lame <c>-q:a</c> level for **on-device streaming / pre-transcoded cache** paths.
+    /// Fine-grained mapping that hits every VBR level from 9 (lowest) up to 2 (~190 kbps MP3).
+    /// Spoken word is forgiving and Kobo devices don't benefit from audiophile quality, so the
+    /// mapping caps at <c>-q:a 2</c> regardless of how high the source bitrate goes. Null bitrate
+    /// is treated as the highest tier under the cap.
     /// </summary>
-    private static int SelectLameQuality(int? bitrate) => bitrate switch
+    public static int SelectLameQualityForStreaming(int? bitrate) => bitrate switch
     {
-        <= 48000 => 8,   // ~85 kbps — source is very low quality
-        <= 80000 => 6,   // ~130 kbps — standard audiobook (64 kbps AAC)
-        <= 130000 => 4,  // ~165 kbps — high quality (128 kbps AAC)
-        _ => 2           // ~190 kbps — very high bitrate source
+        <= 32000 => 9,
+        <= 48000 => 8,
+        <= 64000 => 7,
+        <= 80000 => 6,
+        <= 96000 => 5,
+        <= 128000 => 4,
+        <= 160000 => 3,
+        _ => 2           // cap at ~190 kbps regardless of source
+    };
+
+    /// <summary>
+    /// Libmp3lame <c>-q:a</c> level for **permanent M4B→MP3 conversion** (ConvertAtIndex mode).
+    /// Same per-bucket mapping as <see cref="SelectLameQualityForStreaming"/> for sources up to
+    /// 160 kbps, then continues down through <c>-q:a 1</c> (~225 kbps) and <c>-q:a 0</c>
+    /// (~245 kbps, libmp3lame's ceiling) for higher-bitrate inputs — the output replaces the
+    /// original on disk, so we preserve as much quality as the encoder can emit. Null bitrate
+    /// is treated as the highest tier.
+    /// </summary>
+    public static int SelectLameQualityForConversion(int? bitrate) => bitrate switch
+    {
+        <= 32000 => 9,
+        <= 48000 => 8,
+        <= 64000 => 7,
+        <= 80000 => 6,
+        <= 96000 => 5,
+        <= 128000 => 4,
+        <= 160000 => 3,
+        <= 200000 => 2,
+        <= 256000 => 1,
+        _ => 0
     };
 
     private static async Task RunFfmpeg(string arguments)
