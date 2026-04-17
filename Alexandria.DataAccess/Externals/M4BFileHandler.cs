@@ -4,10 +4,11 @@ using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Externals.Models;
+using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper) : IM4BFileHandler
+public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService) : IM4BFileHandler
 {
     public async Task<Book> ExtractMetadata(string filePath)
     {
@@ -159,13 +160,21 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper) : IM4BFileHandler
         await WriteViaFfmpeg(book.File.SourcePath, (input, output) => ffmpegWrapper.WriteMetadata(input, output, tags, chapters));
     }
 
-    public async Task EmbedCover(Book book, byte[] coverData, string mediaType)
+    /// <summary>
+    /// Embeds the cover into the M4B file. The bytes are normalized to JPEG (re-encoded via
+    /// <see cref="ICoverThumbnailService"/> if not already JPEG) so that only JPEG ends up in
+    /// the container, regardless of what the caller uploaded.
+    /// </summary>
+    public async Task EmbedCover(Book book, byte[] coverData)
     {
+        var jpegCover = IsJpeg(coverData) ? coverData : coverThumbnailService.ConvertToJpeg(coverData);
         var existing = await ExtractMetadata(book.File.SourcePath);
         var tags = BuildStandardTagDictionary(existing);
         var chapters = BuildChapterList(existing);
-        await WriteViaFfmpeg(book.File.SourcePath, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, tags, chapters, coverData));
+        await WriteViaFfmpeg(book.File.SourcePath, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, tags, chapters, jpegCover));
     }
+
+    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
 
     public async Task RemoveCover(Book book)
     {

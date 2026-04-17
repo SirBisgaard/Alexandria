@@ -10,6 +10,6 @@ public interface IM4BFileHandler
     Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken);
     Task TranscodeChapterToFile(Book book, int chapterIndex, string outputPath, CancellationToken cancellationToken);
     Task EmbedMetadata(Book book);
-    Task EmbedCover(Book book, byte[] coverData, string mediaType);
+    Task EmbedCover(Book book, byte[] coverData);
     Task RemoveCover(Book book);
 }

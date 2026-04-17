@@ -4,10 +4,11 @@ using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Externals.Models;
+using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper) : IMp3FileHandler
+public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService) : IMp3FileHandler
 {
     /// <summary>
     /// Extracts metadata by probing each MP3 file once. Album-level tags come from the first
@@ -147,12 +148,28 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper) : IMp3FileHandler
         await fileStream.CopyToAsync(outputStream, cancellationToken);
     }
 
-    public async Task EmbedMetadata(Book book)
+    /// <summary>
+    /// Writes album/title/track tags to every MP3 in the book's folder. When <paramref name="coverBytes"/>
+    /// is provided, the bytes are normalized to JPEG (re-encoded via <see cref="ICoverThumbnailService"/>
+    /// if not already JPEG), <c>cover.jpg</c> is written to the folder, and the cover is embedded
+    /// alongside the tags in a single ffmpeg pass per file; the <see cref="BookExtensions.MetadataEquals"/>
+    /// short-circuit is skipped because the caller explicitly asked for a cover write.
+    /// </summary>
+    public async Task EmbedMetadata(Book book, byte[]? coverBytes = null)
     {
         var folderPath = ToFolderPath(book.File.SourcePath);
-        var existing = await ExtractMetadata(folderPath);
-        if (existing.MetadataEquals(book))
-            return;
+        var jpegCover = coverBytes is null ? null : NormalizeToJpeg(coverBytes);
+
+        if (jpegCover is null)
+        {
+            var existing = await ExtractMetadata(folderPath);
+            if (existing.MetadataEquals(book))
+                return;
+        }
+        else
+        {
+            await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), jpegCover);
+        }
 
         var files = await GetSortedMp3Files(folderPath);
         var albumTags = BuildStandardTagDictionary(book);
@@ -165,19 +182,31 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper) : IMp3FileHandler
                 ["title"] = i < book.Chapters.Count ? book.Chapters[i].Title : Path.GetFileNameWithoutExtension(files[i]),
                 ["track"] = $"{i + 1}/{total}"
             };
-            await WriteViaFfmpeg(files[i], (input, output) => ffmpegWrapper.WriteMetadata(input, output, perFileTags, []));
+            if (jpegCover is null)
+                await WriteViaFfmpeg(files[i], (input, output) => ffmpegWrapper.WriteMetadata(input, output, perFileTags, []));
+            else
+                await WriteViaFfmpeg(files[i], (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, perFileTags, [], jpegCover));
         }
     }
 
-    public async Task EmbedCover(Book book, byte[] coverData, string mediaType)
+    /// <summary>
+    /// Embeds the cover (normalized to JPEG) into every MP3 in the book's folder and writes
+    /// <c>cover.jpg</c> alongside them. Existing per-file tags are preserved.
+    /// </summary>
+    public async Task EmbedCover(Book book, byte[] coverData)
     {
+        var jpegCover = NormalizeToJpeg(coverData);
         var folderPath = ToFolderPath(book.File.SourcePath);
-        await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), coverData);
+        await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), jpegCover);
 
         var files = await GetSortedMp3Files(folderPath);
         foreach (var file in files)
-            await WriteViaFfmpeg(file, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, ReadExistingTags(file), [], coverData));
+            await WriteViaFfmpeg(file, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, ReadExistingTags(file), [], jpegCover));
     }
+
+    private byte[] NormalizeToJpeg(byte[] data) => IsJpeg(data) ? data : coverThumbnailService.ConvertToJpeg(data);
+
+    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
 
     public async Task RemoveCover(Book book)
     {

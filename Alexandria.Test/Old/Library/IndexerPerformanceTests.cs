@@ -72,13 +72,15 @@ public sealed class IndexerPerformanceTests
         var instrumentedAuthorRepo = new InstrumentedAuthorRepository(authorRepository, timings);
         var instrumentedSeriesRepo = new InstrumentedSeriesRepository(seriesRepository, timings);
 
+        // Cover thumbnail service (used by handlers for JPEG normalization + by indexers for thumbnails).
+        var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
+
         // Timing ffmpeg wrapper
         var timingFfmpeg = new TimingFfmpegWrapper(new FfmpegWrapper(), timings);
-        var m4BHandler = new M4BFileHandler(timingFfmpeg);
+        var m4BHandler = new M4BFileHandler(timingFfmpeg, coverThumbnailService);
         var audiobookMediaHandler = new FileM4BAudiobookMediaHandler(m4BHandler, settings);
 
         // File indexers with timing wrappers
-        var coverThumbnailService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         var fileRepository = new FileRepository(settings, coverThumbnailService);
         var settingsService = new SettingsService(new SettingsRepository(connectionProvider), new KoboTrafficLogRepository(connectionProvider), NullLogger<SettingsService>.Instance);
         var epubIndexer = new TimingFileContentIndexer(new FileEbookIndexer(settings, fileRepository, new EpubFileHandler(), new KepubifyWrapper(), coverThumbnailService), timings);

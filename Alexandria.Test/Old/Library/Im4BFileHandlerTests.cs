@@ -22,7 +22,8 @@ public sealed class Im4BFileHandlerTests
         outputDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
         GuidExtensions.SetNamespace(Guid.Parse("cd4631e2-04f2-4cc2-b938-b34c1e3c85a0"));
-        handler = new M4BFileHandler(new FfmpegWrapper());
+        // Tests pass already-JPEG covers, so ICoverThumbnailService.ConvertToJpeg is never invoked — null! is safe.
+        handler = new M4BFileHandler(new FfmpegWrapper(), null!);
         RequireAudiobooks();
     }
 
@@ -355,7 +356,7 @@ public sealed class Im4BFileHandlerTests
 
         var book = await handler.ExtractMetadata(m4BCopy);
         book.File.SourcePath = m4BCopy;
-        await handler.EmbedCover(book, coverBytes, "image/jpeg");
+        await handler.EmbedCover(book, coverBytes);
 
         var extractDir = Path.Combine(outputDir, "re-extracted");
         Directory.CreateDirectory(extractDir);
@@ -378,7 +379,7 @@ public sealed class Im4BFileHandlerTests
         Assert.IsNotNull(coverPath);
         var coverBytes = await File.ReadAllBytesAsync(coverPath);
 
-        await handler.EmbedCover(original, coverBytes, "image/jpeg");
+        await handler.EmbedCover(original, coverBytes);
 
         var re = await handler.ExtractMetadata(m4BCopy);
         Assert.AreEqual(original.Title, re.Title);

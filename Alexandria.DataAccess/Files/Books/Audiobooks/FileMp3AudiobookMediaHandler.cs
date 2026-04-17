@@ -39,7 +39,7 @@ public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFil
 
     public void EmbedMetadata(Book book) => mp3FileHandler.EmbedMetadata(book).GetAwaiter().GetResult();
 
-    public void EmbedCover(Book book, byte[] coverData, string mediaType) => mp3FileHandler.EmbedCover(book, coverData, mediaType).GetAwaiter().GetResult();
+    public void EmbedCover(Book book, byte[] coverData, string mediaType) => mp3FileHandler.EmbedCover(book, coverData).GetAwaiter().GetResult();
 
     public void RemoveCover(Book book) => mp3FileHandler.RemoveCover(book).GetAwaiter().GetResult();
 

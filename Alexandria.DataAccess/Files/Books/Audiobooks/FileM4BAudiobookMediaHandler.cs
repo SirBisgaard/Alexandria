@@ -54,7 +54,7 @@ public class FileM4BAudiobookMediaHandler(IM4BFileHandler m4BFileHandler, Alexan
 
     public void EmbedMetadata(Book book) => m4BFileHandler.EmbedMetadata(book).GetAwaiter().GetResult();
 
-    public void EmbedCover(Book book, byte[] coverData, string mediaType) => m4BFileHandler.EmbedCover(book, coverData, mediaType).GetAwaiter().GetResult();
+    public void EmbedCover(Book book, byte[] coverData, string mediaType) => m4BFileHandler.EmbedCover(book, coverData).GetAwaiter().GetResult();
 
     public void RemoveCover(Book book) => m4BFileHandler.RemoveCover(book).GetAwaiter().GetResult();
 

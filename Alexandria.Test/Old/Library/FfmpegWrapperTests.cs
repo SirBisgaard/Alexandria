@@ -93,7 +93,8 @@ public sealed class FfmpegWrapperTests
         var m4BCopy = CopyM4BToOutputDir();
         var outputPath = Path.Combine(outputDir, "output-cover.m4b");
 
-        var metadataHandler = new M4BFileHandler(ffmpegHandler);
+        // ICoverThumbnailService only exercised by EmbedCover; null! is safe here since the test uses ExtractMetadata only.
+        var metadataHandler = new M4BFileHandler(ffmpegHandler, null!);
         var book = await metadataHandler.ExtractMetadata(m4BCopy);
         var chapters = book.Chapters.Select(c => new FfmpegChapter((long)(c.StartTime * 1000), (long)(c.EndTime * 1000), c.Title)).ToList();
         var tags = new Dictionary<string, string> { ["title"] = book.Title };

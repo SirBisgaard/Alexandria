@@ -8,7 +8,7 @@ public interface IMp3FileHandler
     Task<byte[]?> ExtractCoverBytes(string folderPath);
     Task<string?> ExtractCover(string folderPath, string coverOutputDirectory, Guid coverUuid);
     Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken);
-    Task EmbedMetadata(Book book);
-    Task EmbedCover(Book book, byte[] coverData, string mediaType);
+    Task EmbedMetadata(Book book, byte[]? coverBytes = null);
+    Task EmbedCover(Book book, byte[] coverData);
     Task RemoveCover(Book book);
 }
