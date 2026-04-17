@@ -243,17 +243,17 @@ public sealed class EpubMetadataTests
     }
 
     [TestMethod]
-    public void EpubMetadata_Isbn_PrefixedIdentifierBeatsBareDigits()
+    public void EpubMetadata_Isbn_Isbn13PresentAlongsidePrefixedIsbn10_PrefersIsbn13()
     {
         RewriteIdentifiers(epubPath, identifiers:
         [
-            "1111111111111",
-            "urn:isbn:2222222222"
+            "9780000000001",
+            "urn:isbn:0000000002"
         ]);
 
         var book = handler.ExtractMetadata(epubPath);
 
-        Assert.AreEqual("2222222222", book.Isbn);
+        Assert.AreEqual("9780000000001", book.Isbn);
     }
 
     [TestMethod]
@@ -268,6 +268,117 @@ public sealed class EpubMetadataTests
         var book = handler.ExtractMetadata(epubPath);
 
         Assert.AreEqual("9781234567897", book.Isbn);
+    }
+
+    // The identifier-soup fixtures below mirror real EPUBs observed in a live library —
+    // calibre / uuid / goodreads / google / amazon noise mixed with one or more ISBN forms.
+    // Values are anonymized but preserve the structure and casing variety of the originals.
+
+    [TestMethod]
+    public void EpubMetadata_Isbn_CalibreStyleIdentifierSoup_ReturnsIsbn13()
+    {
+        RewriteIdentifiers(epubPath, identifiers:
+        [
+            "9780000000001",
+            "ISBN:9780000000001",
+            "calibre:00000000-0000-0000-0000-000000000001",
+            "uuid:00000000-0000-0000-0000-000000000002"
+        ]);
+
+        var book = handler.ExtractMetadata(epubPath);
+
+        Assert.AreEqual("9780000000001", book.Isbn);
+    }
+
+    [TestMethod]
+    public void EpubMetadata_Isbn_Isbn13AndIsbn10AmongMixedIdentifiers_ReturnsIsbn13()
+    {
+        RewriteIdentifiers(epubPath, identifiers:
+        [
+            "0000000001",
+            "99999999",
+            "9780000000002",
+            "00000000-0000-0000-0000-000000000003",
+            "AAAAAAAAAAAA",
+            "urn:amazon:0000000001",
+            "urn:goodreads:99999999",
+            "urn:google:AAAAAAAAAAAA",
+            "urn:isbn:0000000003",
+            "urn:isbn:9780000000002",
+            "AAAAAAAAAAAB"
+        ]);
+
+        var book = handler.ExtractMetadata(epubPath);
+
+        Assert.AreEqual("9780000000002", book.Isbn);
+    }
+
+    [TestMethod]
+    public void EpubMetadata_Isbn_OnlyIsbn10AvailableAcrossFormats_ReturnsIsbn10()
+    {
+        RewriteIdentifiers(epubPath, identifiers:
+        [
+            "urn:amazon:0000000001",
+            "B000000000",
+            "MOBI-ASIN:B000000001",
+            "0000000001"
+        ]);
+
+        var book = handler.ExtractMetadata(epubPath);
+
+        Assert.AreEqual("0000000001", book.Isbn);
+    }
+
+    [TestMethod]
+    public void EpubMetadata_Isbn_NoIsbnCandidatesInIdentifiers_ReturnsNull()
+    {
+        RewriteIdentifiers(epubPath, identifiers:
+        [
+            "calibre:00000000-0000-0000-0000-000000000001",
+            "uuid:00000000-0000-0000-0000-000000000002",
+            "urn:uuid:00000000-0000-0000-0000-000000000003",
+            "GOOGLE:AAAAAAAAAAAA",
+            "GOODREADS:99999999",
+            "urn:amazon:B000000000",
+            "MOBI-ASIN:B000000001"
+        ]);
+
+        var book = handler.ExtractMetadata(epubPath);
+
+        Assert.IsNull(book.Isbn);
+    }
+
+    [TestMethod]
+    public void EpubMetadata_Isbn_LowercaseIsbnPrefix_Recognized()
+    {
+        RewriteIdentifiers(epubPath, identifiers:
+        [
+            "calibre:00000000-0000-0000-0000-000000000001",
+            "google:AAAAAAAAAAAA",
+            "isbn:9780000000004",
+            "uuid:00000000-0000-0000-0000-000000000004"
+        ]);
+
+        var book = handler.ExtractMetadata(epubPath);
+
+        Assert.AreEqual("9780000000004", book.Isbn);
+    }
+
+    [TestMethod]
+    public void EpubMetadata_Isbn_MalformedCompoundIdentifiers_SkippedInFavorOfValidIsbn13()
+    {
+        RewriteIdentifiers(epubPath, identifiers:
+        [
+            "URNISBN/9780000000005:9780000000005",
+            "{00000000-0000-0000-0000-000000000005}",
+            "MOBI-ASIN:B000000005",
+            "AMAZON:0000000005",
+            "9780000000005"
+        ]);
+
+        var book = handler.ExtractMetadata(epubPath);
+
+        Assert.AreEqual("9780000000005", book.Isbn);
     }
 
     [TestMethod]

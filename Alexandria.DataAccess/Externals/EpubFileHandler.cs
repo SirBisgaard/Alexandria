@@ -399,10 +399,12 @@ public class EpubFileHandler : IEpubFileHandler
     }
 
     /// <summary>
-    /// Extracts ISBN from dc:identifier elements. Tries prefixed formats first (ISBN:, urn:isbn:
-    /// per Dublin Core conventions), then falls back to bare ISBN candidates. All accepted values
-    /// are normalized: hyphens and spaces stripped, ISBN-10 check digit upper-cased. Invalid
-    /// prefixed candidates (e.g. "ISBN:garbage") do not short-circuit — the search continues.
+    /// Returns the book's ISBN parsed out of Dublin Core identifiers, preferring ISBN-13 over
+    /// ISBN-10 whenever both are present. Each identifier is tried both stripped of any
+    /// <c>ISBN:</c> / <c>urn:isbn:</c> prefix and as-is; the first candidate that normalizes to
+    /// a valid 13-digit ISBN wins immediately. If no ISBN-13 is found, the first valid ISBN-10
+    /// encountered in document order is returned. Non-ISBN identifiers (calibre/uuid/goodreads/
+    /// google/amazon/etc.) are silently skipped.
     ///
     /// Accepted forms per isbn-13.info (and ISO 2108):
     ///   ISBN-13: 13 digits, may be hyphenated or spaced (e.g. "978-1-56619-909-4")
@@ -410,22 +412,24 @@ public class EpubFileHandler : IEpubFileHandler
     /// </summary>
     private static string? ExtractIsbn(List<string> identifiers)
     {
-        foreach (var id in identifiers)
-        {
-            if (id.StartsWith("ISBN:", StringComparison.OrdinalIgnoreCase) && NormalizeIsbn(id[5..]) is { } fromIsbn)
-                return fromIsbn;
-
-            if (id.StartsWith("urn:isbn:", StringComparison.OrdinalIgnoreCase) && NormalizeIsbn(id[9..]) is { } fromUrn)
-                return fromUrn;
-        }
+        string? firstIsbn10 = null;
 
         foreach (var id in identifiers)
         {
-            if (NormalizeIsbn(id) is { } fromBare)
-                return fromBare;
+            var candidate = id.StartsWith("ISBN:", StringComparison.OrdinalIgnoreCase) ? id[5..]
+                          : id.StartsWith("urn:isbn:", StringComparison.OrdinalIgnoreCase) ? id[9..]
+                          : id;
+
+            if (NormalizeIsbn(candidate) is not { } normalized)
+                continue;
+
+            if (normalized.Length == 13)
+                return normalized;
+
+            firstIsbn10 ??= normalized;
         }
 
-        return null;
+        return firstIsbn10;
     }
 
     private static string? NormalizeIsbn(string raw)
