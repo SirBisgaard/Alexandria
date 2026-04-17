@@ -140,16 +140,22 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         return book;
     }
 
+    /// <summary>
+    /// Returns <c>cover.jpg</c> if present, otherwise the embedded album art from the first MP3
+    /// (filename-sorted — no ffprobe). Audiobook chapters carry identical embedded covers, so
+    /// the "first by filename" choice is byte-equivalent to any other sort.
+    /// </summary>
     public async Task<byte[]?> ExtractCoverBytes(string folderPath)
     {
         var coverFile = GetFolderCoverPath(folderPath);
         if (File.Exists(coverFile))
             return await File.ReadAllBytesAsync(coverFile);
 
-        var files = await GetSortedMp3Files(folderPath);
-        if (files.Length == 0)
+        var mp3Files = Directory.GetFiles(folderPath, "*.mp3");
+        if (mp3Files.Length == 0)
             return null;
-        return await ffmpegWrapper.ExtractCoverImage(files[0]);
+        Array.Sort(mp3Files, StringComparer.OrdinalIgnoreCase);
+        return await ffmpegWrapper.ExtractCoverImage(mp3Files[0]);
     }
 
     public async Task<string?> ExtractCover(string folderPath, string coverOutputDirectory, Guid coverUuid)
@@ -189,10 +195,11 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     {
         var folderPath = ToFolderPath(book.File.SourcePath);
         var jpegCover = coverBytes is null ? null : NormalizeToJpeg(coverBytes);
+        var files = await ProbeAndSort(folderPath);
 
         if (jpegCover is null)
         {
-            var existing = await ExtractMetadata(folderPath);
+            var existing = BuildBookFromProbed(files, folderPath);
             if (existing.MetadataEquals(book))
                 return;
         }
@@ -201,22 +208,22 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), jpegCover);
         }
 
-        var files = await GetSortedMp3Files(folderPath);
         var albumTags = BuildStandardTagDictionary(book);
         var total = files.Length;
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
-        for (var i = 0; i < files.Length; i++)
+        await Parallel.ForEachAsync(Enumerable.Range(0, total), options, async (i, ct) =>
         {
             var perFileTags = new Dictionary<string, string>(albumTags)
             {
-                ["title"] = i < book.Chapters.Count ? book.Chapters[i].Title : Path.GetFileNameWithoutExtension(files[i]),
+                ["title"] = i < book.Chapters.Count ? book.Chapters[i].Title : Path.GetFileNameWithoutExtension(files[i].Path),
                 ["track"] = $"{i + 1}/{total}"
             };
             if (jpegCover is null)
-                await WriteViaFfmpeg(files[i], (input, output) => ffmpegWrapper.WriteMetadata(input, output, perFileTags, []));
+                await WriteViaFfmpeg(files[i].Path, (input, output) => ffmpegWrapper.WriteMetadata(input, output, perFileTags, []));
             else
-                await WriteViaFfmpeg(files[i], (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, perFileTags, [], jpegCover));
-        }
+                await WriteViaFfmpeg(files[i].Path, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, perFileTags, [], jpegCover));
+        });
     }
 
     /// <summary>
@@ -229,9 +236,13 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         var folderPath = ToFolderPath(book.File.SourcePath);
         await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), jpegCover);
 
-        var files = await GetSortedMp3Files(folderPath);
-        foreach (var file in files)
-            await WriteViaFfmpeg(file, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, ReadExistingTags(file), [], jpegCover));
+        var files = await ProbeAndSort(folderPath);
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        await Parallel.ForEachAsync(files, options, async (file, ct) =>
+        {
+            var existingTags = ParseStandardTagsFromJson(file.Json);
+            await WriteViaFfmpeg(file.Path, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, existingTags, [], jpegCover));
+        });
     }
 
     private byte[] NormalizeToJpeg(byte[] data) => IsJpeg(data) ? data : coverThumbnailService.ConvertToJpeg(data);
@@ -245,9 +256,13 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         if (File.Exists(coverFile))
             File.Delete(coverFile);
 
-        var files = await GetSortedMp3Files(folderPath);
-        foreach (var file in files)
-            await WriteViaFfmpeg(file, (input, output) => ffmpegWrapper.WriteMetadataRemoveCover(input, output, ReadExistingTags(file), []));
+        var files = await ProbeAndSort(folderPath);
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        await Parallel.ForEachAsync(files, options, async (file, ct) =>
+        {
+            var existingTags = ParseStandardTagsFromJson(file.Json);
+            await WriteViaFfmpeg(file.Path, (input, output) => ffmpegWrapper.WriteMetadataRemoveCover(input, output, existingTags, []));
+        });
     }
 
     /// <summary>
@@ -300,19 +315,14 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     }
 
     /// <summary>
-    /// Returns MP3 files sorted by ID3 track number (filename fallback). Thin wrapper
-    /// around <see cref="ProbeAndSort"/> for callers that only need paths.
+    /// Parses standard ID3 tag keys out of an already-fetched ffprobe JSON string. Callers feed
+    /// the cached JSON from <see cref="ProbeAndSort"/>, so no additional ffprobe spawns are
+    /// needed to read "existing tags" during write operations.
     /// </summary>
-    private async Task<string[]> GetSortedMp3Files(string folderPath)
+    private static Dictionary<string, string> ParseStandardTagsFromJson(string json)
     {
-        var probed = await ProbeAndSort(folderPath);
-        return probed.Select(p => p.Path).ToArray();
-    }
-
-    /// <summary>Reads existing tags from a single MP3 file via ffprobe, filtered to standard keys.</summary>
-    private Dictionary<string, string> ReadExistingTags(string filePath)
-    {
-        var json = ffmpegWrapper.GetMetadataJson(filePath).GetAwaiter().GetResult();
+        if (string.IsNullOrEmpty(json))
+            return [];
         using var doc = JsonDocument.Parse(json);
         var format = doc.RootElement.GetProperty("format");
         if (!format.TryGetProperty("tags", out var tags))

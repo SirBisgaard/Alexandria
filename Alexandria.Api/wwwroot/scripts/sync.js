@@ -117,11 +117,11 @@ $(function () {
                             $("#sync-popover-progress-bar").css("width", "100%");
                             $("#sync-popover-subtask-row").hide();
                         } else {
-                            $("#sync-popover-text").text("Syncing, " + json.title);
+                            $("#sync-popover-text").text("Syncing, " + json.title + " (" + json.progress + " / " + json.total + ")");
                             var pct = json.total > 0 ? Math.round((json.progress / json.total) * 100) : 0;
                             $("#sync-popover-progress-bar").css("width", pct + "%");
                             if (json.subTaskTitle) {
-                                $("#sync-popover-subtask-title").text(json.subTaskTitle);
+                                $("#sync-popover-subtask-title").text(json.subTaskTitle + " (" + json.subProgress + " / " + json.subTotal + ")");
                                 var subPct = json.subTotal > 0 ? Math.round((json.subProgress / json.subTotal) * 100) : 0;
                                 $("#sync-popover-subtask-progress-bar").css("width", subPct + "%");
                                 $("#sync-popover-subtask-row").show();

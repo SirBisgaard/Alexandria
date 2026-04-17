@@ -30,7 +30,7 @@ public class IndexingProgressService : IIndexingProgressService
     {
         Emit(new IndexingReport
         {
-            Title = "Converting...",
+            Title = "Converting",
             Subtitle = bookTitle,
             Progress = index,
             Total = total
@@ -41,7 +41,7 @@ public class IndexingProgressService : IIndexingProgressService
     {
         Emit(new IndexingReport
         {
-            Title = "Indexing...",
+            Title = "Indexing",
             Subtitle = bookTitle,
             Progress = index,
             Total = total
