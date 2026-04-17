@@ -315,6 +315,14 @@ This test should transcode the same chapter at each quality level and report wal
 - Temp directories use `Guid.NewGuid()` to prevent parallel test collisions
 - Call `GuidExtensions.SetNamespace(...)` in setup for any test that involves UUID generation
 
+### Interface Coverage
+
+Every public method on an interface under test must have at least one direct test that calls that method. This is a tripwire: when an interface signature or behavior changes, at least one test must visibly change with it, surfacing drift as a test edit or failure rather than shipping silently.
+
+Covering a method only *transitively* (because another tested method happens to call it) is not enough — the caller can mask, reorder, or swallow changes in the callee. If an interface declares `ExtractMetadata` and `ExtractCoverBytes` as separate methods alongside a combined `Extract`, all three need their own tests even when the logic overlaps.
+
+Apply the rule to interfaces the application actually registers or consumes — internal helper interfaces used only as a refactoring aid can be tested via their consumers.
+
 ### Assertions
 
 Use MSTest 4 assertion methods. Prefer specific assertions over generic ones:

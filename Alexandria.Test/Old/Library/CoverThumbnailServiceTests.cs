@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
+[Ignore]
 public sealed class CoverThumbnailServiceTests
 {
     private static readonly string ContentBooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Books");

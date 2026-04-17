@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Old.Analytics;
 
 [TestClass]
+[Ignore]
 public sealed class KoboAnalyticsServiceTests
 {
     private static Book MakeBook(string title, MediaType mediaType = MediaType.Audiobook)

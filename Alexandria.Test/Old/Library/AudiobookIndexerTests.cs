@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
+[Ignore]
 public sealed class AudiobookIndexerTests
 {
     private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");

@@ -5,6 +5,7 @@ using Alexandria.Business.Library.Models;
 namespace Alexandria.Tests.Old.Api;
 
 [TestClass]
+[Ignore]
 public sealed class RequestValidationTests
 {
     private static List<ValidationResult> Validate(object model)

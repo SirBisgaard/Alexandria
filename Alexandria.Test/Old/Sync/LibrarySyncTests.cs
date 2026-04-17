@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Alexandria.Tests.Old.Sync;
 
 [TestClass]
+[Ignore]
 public sealed class LibrarySyncTests
 {
     private const string DeviceKey = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";

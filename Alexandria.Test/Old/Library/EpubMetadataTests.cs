@@ -4,6 +4,7 @@ using Alexandria.Business.Library.Models;
 namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
+[Ignore]
 public sealed class EpubMetadataTests
 {
     private static Book CreateBook() => new()

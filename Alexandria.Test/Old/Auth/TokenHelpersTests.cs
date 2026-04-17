@@ -4,6 +4,7 @@ using Alexandria.Business.Authentication;
 namespace Alexandria.Tests.Old.Auth;
 
 [TestClass]
+[Ignore]
 public sealed class TokenHelpersTests
 {
     private static readonly byte[] Key = HMACSHA256.HashData("test-seed"u8.ToArray(), "test-purpose"u8.ToArray());

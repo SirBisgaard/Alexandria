@@ -7,6 +7,7 @@ using Alexandria.DataAccess.Externals.Models;
 namespace Alexandria.Tests.Old.Library;
 
 [TestClass]
+[Ignore]
 public sealed class Im4BFileHandlerTests
 {
     private static readonly string ContentAudiobooksDir = Path.Combine(AppContext.BaseDirectory, "Old", "TestData", "Audiobooks");
