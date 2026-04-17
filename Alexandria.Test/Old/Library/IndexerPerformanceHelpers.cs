@@ -30,7 +30,7 @@ public class TimingFfmpegWrapper(IFfmpegWrapper inner, ConcurrentBag<TimingRecor
     }
 
     public Task StreamChapter(string inputPath, double startTime, double endTime, string? codec, int? bitrate, Stream outputStream, CancellationToken cancellationToken) => inner.StreamChapter(inputPath, startTime, endTime, codec, bitrate, outputStream, cancellationToken);
-    public Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, string? codec, int? bitrate, string outputPath, CancellationToken cancellationToken) => inner.TranscodeChapterToFile(inputPath, startTime, endTime, codec, bitrate, outputPath, cancellationToken);
+    public Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, string? codec, int? bitrate, string outputPath, IReadOnlyDictionary<string, string>? tags, string? coverPath, CancellationToken cancellationToken) => inner.TranscodeChapterToFile(inputPath, startTime, endTime, codec, bitrate, outputPath, tags, coverPath, cancellationToken);
     public Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => inner.WriteMetadata(inputPath, outputPath, tags, chapters);
     public Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData) => inner.WriteMetadataWithCover(inputPath, outputPath, tags, chapters, coverData);
     public Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => inner.WriteMetadataRemoveCover(inputPath, outputPath, tags, chapters);

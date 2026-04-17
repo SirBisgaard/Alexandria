@@ -2,7 +2,9 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Externals.Interfaces;
+using Alexandria.DataAccess.Files.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Files.Books.Audiobooks;
@@ -13,7 +15,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 /// ("{Author} - {Series} #{Index} - {Title}"), then deletes the original M4B. The
 /// resulting folder is indexed by <see cref="FileMp3AudiobookIndexer"/> on the same run.
 /// </summary>
-public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IMp3FileHandler mp3FileHandler, IFfmpegWrapper ffmpegWrapper, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
+public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
     public async Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
     {
@@ -44,7 +46,6 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
 
     private async Task ConvertOne(string sourcePath, Book? existing, int bookNumber, int totalBooks, CancellationToken cancellationToken)
     {
-        var tempCopy = sourcePath + ".temp";
         string? targetDir = null;
 
         try
@@ -69,17 +70,28 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
                 return;
             }
 
-            File.Copy(sourcePath, tempCopy, overwrite: true);
             Directory.CreateDirectory(candidateDir);
             targetDir = candidateDir;
 
-            await TranscodeChapters(extracted, tempCopy, targetDir, cancellationToken);
+            // Keep the working copy of the source M4B inside the target folder so that a failed
+            // conversion cleans itself up entirely when CleanupTarget deletes the folder recursively.
+            var tempCopy = Path.Combine(targetDir, ".source.m4b");
+            File.Copy(sourcePath, tempCopy, overwrite: true);
 
-            canonical.File.SourcePath = targetDir;
-            await mp3FileHandler.EmbedMetadata(canonical, coverBytes);
+            // Normalize + write cover.jpg upfront so every chapter's ffmpeg invocation can
+            // point at one on-disk file instead of piping bytes in N times.
+            string? coverJpgPath = null;
+            if (coverBytes is not null)
+            {
+                var jpeg = IsJpeg(coverBytes) ? coverBytes : coverThumbnailService.ConvertToJpeg(coverBytes);
+                coverJpgPath = Path.Combine(targetDir, "cover.jpg");
+                await File.WriteAllBytesAsync(coverJpgPath, jpeg, cancellationToken);
+            }
 
-            File.Delete(sourcePath);
+            await TranscodeChapters(canonical, extracted, tempCopy, targetDir, coverJpgPath, cancellationToken);
+
             File.Delete(tempCopy);
+            File.Delete(sourcePath);
             CleanupCachedChapters(existing);
             logger.LogInformation("Converted {Source} → {Target}", sourcePath, targetDir);
         }
@@ -87,15 +99,15 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         {
             logger.LogError(ex, "Failed to convert {Source}; leaving original intact", sourcePath);
             CleanupTarget(targetDir);
-            CleanupTemp(tempCopy);
         }
     }
 
-    private async Task TranscodeChapters(Book extracted, string inputPath, string targetDir, CancellationToken cancellationToken)
+    private async Task TranscodeChapters(Book canonical, Book extracted, string inputPath, string targetDir, string? coverJpgPath, CancellationToken cancellationToken)
     {
         var total = extracted.Chapters.Count;
         var padWidth = total.ToString().Length;
         var completed = 0;
+        var albumTags = Mp3FileHandler.BuildStandardTagDictionary(canonical);
         var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = cancellationToken };
 
         await Parallel.ForEachAsync(Enumerable.Range(0, total), options, async (i, ct) =>
@@ -103,7 +115,12 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             var chapter = extracted.Chapters[i];
             var number = (i + 1).ToString().PadLeft(padWidth, '0');
             var outPath = Path.Combine(targetDir, $"{number} - {SanitizeFsName(chapter.Title)}.mp3");
-            await ffmpegWrapper.TranscodeChapterToFile(inputPath, chapter.StartTime, chapter.EndTime, extracted.File.AudioCodec, extracted.File.AudioBitrate, outPath, ct);
+            var perFileTags = new Dictionary<string, string>(albumTags)
+            {
+                ["title"] = chapter.Title,
+                ["track"] = $"{i + 1}/{total}"
+            };
+            await ffmpegWrapper.TranscodeChapterToFile(inputPath, chapter.StartTime, chapter.EndTime, extracted.File.AudioCodec, extracted.File.AudioBitrate, outPath, perFileTags, coverJpgPath, ct);
             var done = Interlocked.Increment(ref completed);
             logger.LogInformation("Converted chapter {Completed} out of {Total} for {Title}", done, total, extracted.Title);
             progressService.ReportSubTask("Transcoding chapters", done, total);
@@ -142,20 +159,6 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         }
     }
 
-    private void CleanupTemp(string tempCopy)
-    {
-        if (!File.Exists(tempCopy))
-            return;
-        try
-        {
-            File.Delete(tempCopy);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to clean up temp file {Temp}", tempCopy);
-        }
-    }
-
     private static string BuildFolderName(Book book)
     {
         var author = book.Authors.Count > 0 ? string.Join(", ", book.Authors.Select(a => a.Name)) : "Unknown Author";
@@ -175,4 +178,6 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             cleaned = cleaned.Replace("  ", " ");
         return cleaned;
     }
+
+    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
 }

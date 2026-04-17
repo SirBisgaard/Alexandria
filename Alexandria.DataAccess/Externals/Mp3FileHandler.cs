@@ -339,7 +339,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         return result;
     }
 
-    private static Dictionary<string, string> BuildStandardTagDictionary(Book book)
+    public static Dictionary<string, string> BuildStandardTagDictionary(Book book)
     {
         var tags = new Dictionary<string, string>();
 

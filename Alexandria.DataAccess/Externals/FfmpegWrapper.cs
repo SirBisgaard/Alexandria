@@ -51,39 +51,83 @@ public class FfmpegWrapper : IFfmpegWrapper
 
     /// <summary>
     /// Transcodes a single chapter to an MP3 file at <paramref name="outputPath"/>. Codec/quality
-    /// selection matches <see cref="StreamChapter"/> so cached files are byte-identical to what
-    /// on-demand streaming would produce for the same source.
+    /// selection matches <see cref="StreamChapter"/>. When <paramref name="tags"/> is provided,
+    /// the inherited source metadata is stripped (<c>-map_metadata -1</c>) and replaced via an
+    /// FFMETADATA file — no follow-up tag-write pass is needed. When <paramref name="coverPath"/>
+    /// is provided, it's attached as album art in the same ffmpeg invocation (ID3v2.3 for MP3
+    /// cover compatibility). Passing nulls for both produces a metadata-free cache chunk suitable
+    /// for the M4B TranscodeAtIndex flow.
     /// </summary>
-    public async Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, string? codec, int? bitrate, string outputPath, CancellationToken cancellationToken)
+    public async Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, string? codec, int? bitrate, string outputPath, IReadOnlyDictionary<string, string>? tags, string? coverPath, CancellationToken cancellationToken)
     {
         var quality = codec == "mp3" ? (int?)null : SelectLameQuality(bitrate);
         var codecArgs = quality is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {quality}";
         var duration = endTime - startTime;
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = "ffmpeg",
-            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 \"{outputPath}\"",
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
 
-        process.Start();
+        var hasTags = tags is not null && tags.Count > 0;
+        var hasCover = !string.IsNullOrEmpty(coverPath) && File.Exists(coverPath);
+        var metadataPath = outputPath + ".ffmetadata";
 
         try
         {
-            await process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
+            if (hasTags)
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags!, []), Encoding.UTF8, cancellationToken);
 
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"ffmpeg chapter transcode failed with exit code {process.ExitCode}");
+            var sb = new StringBuilder("-v quiet -y ");
+            sb.Append($"-ss {startTime} -i \"{inputPath}\" ");
+            if (hasTags)
+                sb.Append($"-f ffmetadata -i \"{metadataPath}\" ");
+            if (hasCover)
+                sb.Append($"-i \"{coverPath}\" ");
+            sb.Append($"-t {duration} ");
+
+            if (hasCover)
+            {
+                var coverInputIndex = hasTags ? 2 : 1;
+                sb.Append($"-map 0:a -map {coverInputIndex}:v -c:v copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover ");
+            }
+            else
+            {
+                sb.Append("-vn ");
+            }
+
+            sb.Append(hasTags ? "-map_metadata 1 " : "-map_metadata -1 ");
+            sb.Append($"{codecArgs} ");
+            if (hasCover)
+                sb.Append("-id3v2_version 3 ");
+            sb.Append($"-f mp3 \"{outputPath}\"");
+
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = sb.ToString(),
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            process.Start();
+
+            try
+            {
+                await process.StandardError.ReadToEndAsync(cancellationToken);
+                await process.WaitForExitAsync(cancellationToken);
+
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException($"ffmpeg chapter transcode failed with exit code {process.ExitCode}");
+            }
+            catch (OperationCanceledException)
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+                throw;
+            }
         }
-        catch (OperationCanceledException)
+        finally
         {
-            if (!process.HasExited)
-                process.Kill(entireProcessTree: true);
-            throw;
+            if (File.Exists(metadataPath))
+                File.Delete(metadataPath);
         }
     }
 
@@ -201,7 +245,7 @@ public class FfmpegWrapper : IFfmpegWrapper
         }
     }
 
-    private static string GenerateFfMetadata(Dictionary<string, string> tags, List<FfmpegChapter> chapters)
+    private static string GenerateFfMetadata(IReadOnlyDictionary<string, string> tags, IReadOnlyList<FfmpegChapter> chapters)
     {
         var sb = new StringBuilder();
         sb.AppendLine(";FFMETADATA1");
