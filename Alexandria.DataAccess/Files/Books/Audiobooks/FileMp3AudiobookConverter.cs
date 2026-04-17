@@ -106,7 +106,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             await ffmpegWrapper.TranscodeChapterToFile(inputPath, chapter.StartTime, chapter.EndTime, extracted.File.AudioCodec, extracted.File.AudioBitrate, outPath, ct);
             var done = Interlocked.Increment(ref completed);
             logger.LogInformation("Converted chapter {Completed} out of {Total} for {Title}", done, total, extracted.Title);
-            progressService.ReportSubTask("Transcoding chapter", done, total);
+            progressService.ReportSubTask("Transcoding chapters", done, total);
         });
     }
 

@@ -4,10 +4,11 @@ $(function () {
         '<div class="sync-popover-backdrop" id="sync-popover-backdrop">' +
             '<div class="sync-popover-anchor"><div class="sync-popover" id="sync-popover">' +
                 '<div class="sync-popover-text" id="sync-popover-text">Sync library files for changes.</div>' +
-                '<div class="sync-popover-subtitle" id="sync-popover-subtitle">\u00A0</div>' +
                 '<div class="sync-popover-progress"><div class="sync-popover-progress-bar" id="sync-popover-progress-bar"></div></div>' +
-                '<div class="sync-popover-subtask-title" id="sync-popover-subtask-title">\u00A0</div>' +
-                '<div class="sync-popover-progress"><div class="sync-popover-progress-bar" id="sync-popover-subtask-progress-bar"></div></div>' +
+                '<div id="sync-popover-subtask-row" style="display:none;">' +
+                    '<div class="sync-popover-subtask-title" id="sync-popover-subtask-title"></div>' +
+                    '<div class="sync-popover-progress"><div class="sync-popover-progress-bar" id="sync-popover-subtask-progress-bar"></div></div>' +
+                '</div>' +
                 '<button class="sync-popover-btn mt-3" id="sync-popover-btn">Sync now</button>' +
                 '<div class="sync-popover-last-sync" id="sync-popover-last-sync">LAST SYNC: NEVER</div>' +
             '</div></div>' +
@@ -34,10 +35,8 @@ $(function () {
 
     function resetSlots(mainText) {
         $("#sync-popover-text").text(mainText);
-        $("#sync-popover-subtitle").text("\u00A0");
         $("#sync-popover-progress-bar").css("width", "0%");
-        $("#sync-popover-subtask-title").text("\u00A0");
-        $("#sync-popover-subtask-progress-bar").css("width", "0%");
+        $("#sync-popover-subtask-row").hide();
     }
 
     function openSyncPopover() {
@@ -115,22 +114,19 @@ $(function () {
                             syncCompleted = true;
                         } else if (json.title === "Done") {
                             $("#sync-popover-text").text("Synced");
-                            $("#sync-popover-subtitle").text("\u00A0");
                             $("#sync-popover-progress-bar").css("width", "100%");
-                            $("#sync-popover-subtask-title").text("\u00A0");
-                            $("#sync-popover-subtask-progress-bar").css("width", "0%");
+                            $("#sync-popover-subtask-row").hide();
                         } else {
                             $("#sync-popover-text").text("Syncing, " + json.title);
-                            $("#sync-popover-subtitle").text(json.subtitle || "\u00A0");
                             var pct = json.total > 0 ? Math.round((json.progress / json.total) * 100) : 0;
                             $("#sync-popover-progress-bar").css("width", pct + "%");
                             if (json.subTaskTitle) {
-                                $("#sync-popover-subtask-title").text(json.subTaskTitle + " " + json.subProgress + "/" + json.subTotal);
+                                $("#sync-popover-subtask-title").text(json.subTaskTitle);
                                 var subPct = json.subTotal > 0 ? Math.round((json.subProgress / json.subTotal) * 100) : 0;
                                 $("#sync-popover-subtask-progress-bar").css("width", subPct + "%");
+                                $("#sync-popover-subtask-row").show();
                             } else {
-                                $("#sync-popover-subtask-title").text("\u00A0");
-                                $("#sync-popover-subtask-progress-bar").css("width", "0%");
+                                $("#sync-popover-subtask-row").hide();
                             }
                         }
                     });

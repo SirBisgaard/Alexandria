@@ -62,7 +62,7 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
                 await m4BFileHandler.TranscodeChapterToFile(book, i, outputPath, ct);
             var done = Interlocked.Increment(ref completed);
             logger.LogInformation("Pre-transcoded {Completed} out of {Total} chapters for {BookTitle}", done, total, book.Title);
-            progressService.ReportSubTask("Transcoding chapter", done, total);
+            progressService.ReportSubTask("Transcoding chapters", done, total);
         });
     }
 
