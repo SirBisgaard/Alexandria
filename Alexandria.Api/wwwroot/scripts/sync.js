@@ -39,15 +39,105 @@ $(function () {
         $("#sync-popover-subtask-row").hide();
     }
 
-    function openSyncPopover() {
-        if (!syncInProgress) {
-            resetSlots("Sync library files for changes.");
-            $("#sync-popover-btn").text("Sync now").prop("disabled", false);
-            syncCompleted = false;
-            $.get("/api/alexandria/settings", function (data) {
-                $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(data.lastIndexedTimestamp));
-            });
+    function renderProgress(snapshot) {
+        if (snapshot.title === "Done") {
+            $("#sync-popover-text").text("Synced");
+            $("#sync-popover-progress-bar").css("width", "100%");
+            $("#sync-popover-subtask-row").hide();
+            return;
         }
+        $("#sync-popover-text").text("Syncing, " + snapshot.title + " (" + snapshot.progress + " / " + snapshot.total + ")");
+        var pct = snapshot.total > 0 ? Math.round((snapshot.progress / snapshot.total) * 100) : 0;
+        $("#sync-popover-progress-bar").css("width", pct + "%");
+        if (snapshot.subTaskTitle) {
+            $("#sync-popover-subtask-title").text(snapshot.subTaskTitle + " (" + snapshot.subProgress + " / " + snapshot.subTotal + ")");
+            var subPct = snapshot.subTotal > 0 ? Math.round((snapshot.subProgress / snapshot.subTotal) * 100) : 0;
+            $("#sync-popover-subtask-progress-bar").css("width", subPct + "%");
+            $("#sync-popover-subtask-row").show();
+        } else {
+            $("#sync-popover-subtask-row").hide();
+        }
+    }
+
+    // Opens a POST /sync SSE stream and pipes events into the popover. The server attaches the
+    // client to the in-flight run if one is active; otherwise it enqueues a new run. No client-side
+    // branching needed for "already running" — the broker handles attach-or-start symmetrically.
+    function attachToSyncStream() {
+        var token = localStorage.getItem("alexandria-token");
+        var headers = token ? { "Authorization": "Bearer " + token } : {};
+        fetch("/api/alexandria/sync", { method: "POST", headers: headers }).then(function (response) {
+            if (response.status === 401) {
+                localStorage.removeItem("alexandria-token");
+                window.location.href = "/login.html";
+                return;
+            }
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+
+            function read() {
+                reader.read().then(function (result) {
+                    if (result.done) { return; }
+                    var lines = decoder.decode(result.value).split("\n");
+                    lines.forEach(function (line) {
+                        if (!line.startsWith("data: ")) { return; }
+                        var json = JSON.parse(line.substring(6));
+                        if (json.failed) {
+                            $("#sync-popover-text").text(json.error);
+                            $("#sync-popover-progress-bar").css("width", "0%");
+                            $("#sync-popover-subtask-row").hide();
+                            $("#sync-popover-btn").text("Close").prop("disabled", false);
+                            syncInProgress = false;
+                            syncCompleted = true;
+                        } else if (json.done) {
+                            $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(json.lastIndexedTimestamp));
+                            $("#sync-popover-progress-bar").css("width", "100%");
+                            $("#sync-popover-text").text("Sync complete. " + json.bookCount + " books indexed.");
+                            $("#sync-popover-subtask-row").hide();
+                            $("#sync-popover-btn").text("Close").prop("disabled", false);
+                            syncInProgress = false;
+                            syncCompleted = true;
+                        } else {
+                            renderProgress(json);
+                        }
+                    });
+                    read();
+                });
+            }
+            read();
+        }).catch(function () {
+            syncInProgress = false;
+            syncCompleted = false;
+            resetSlots("Sync failed. Please try again.");
+            $("#sync-popover-btn").text("Sync now").prop("disabled", false);
+        });
+    }
+
+    function openSyncPopover() {
+        if (syncInProgress) {
+            $("#sync-popover-backdrop").addClass("open");
+            return;
+        }
+
+        resetSlots("Sync library files for changes.");
+        $("#sync-popover-btn").text("Sync now").prop("disabled", false);
+        syncCompleted = false;
+
+        $.get("/api/alexandria/settings", function (data) {
+            $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(data.lastIndexedTimestamp));
+        });
+
+        $.get("/api/alexandria/sync/status", function (status) {
+            if (!status.running) { return; }
+            syncInProgress = true;
+            $("#sync-popover-btn").text("Syncing...").prop("disabled", true);
+            if (status.snapshot) {
+                renderProgress(status.snapshot);
+            } else {
+                resetSlots("Syncing,");
+            }
+            attachToSyncStream();
+        });
+
         $("#sync-popover-backdrop").addClass("open");
     }
 
@@ -88,67 +178,6 @@ $(function () {
         syncCompleted = false;
         resetSlots("Syncing,");
         $("#sync-popover-btn").text("Syncing...").prop("disabled", true);
-
-        var token = localStorage.getItem("alexandria-token");
-        var headers = token ? { "Authorization": "Bearer " + token } : {};
-        fetch("/api/alexandria/sync", { method: "POST", headers: headers }).then(function (response) {
-            if (response.status === 401) {
-                localStorage.removeItem("alexandria-token");
-                window.location.href = "/login.html";
-                return;
-            }
-            var reader = response.body.getReader();
-            var decoder = new TextDecoder();
-
-            function read() {
-                reader.read().then(function (result) {
-                    if (result.done) { return; }
-                    var lines = decoder.decode(result.value).split("\n");
-                    lines.forEach(function (line) {
-                        if (!line.startsWith("data: ")) { return; }
-                        var json = JSON.parse(line.substring(6));
-                        if (json.failed) {
-                            $("#sync-popover-text").text(json.error);
-                            $("#sync-popover-progress-bar").css("width", "0%");
-                            $("#sync-popover-subtask-row").hide();
-                            $("#sync-popover-btn").text("Close").prop("disabled", false);
-                            syncInProgress = false;
-                            syncCompleted = true;
-                        } else if (json.done) {
-                            $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(json.lastIndexedTimestamp));
-                            $("#sync-popover-progress-bar").css("width", "100%");
-                            $("#sync-popover-text").text("Sync complete. " + json.bookCount + " books indexed.");
-                            $("#sync-popover-subtask-row").hide();
-                            $("#sync-popover-btn").text("Close").prop("disabled", false);
-                            syncInProgress = false;
-                            syncCompleted = true;
-                        } else if (json.title === "Done") {
-                            $("#sync-popover-text").text("Synced");
-                            $("#sync-popover-progress-bar").css("width", "100%");
-                            $("#sync-popover-subtask-row").hide();
-                        } else {
-                            $("#sync-popover-text").text("Syncing, " + json.title + " (" + json.progress + " / " + json.total + ")");
-                            var pct = json.total > 0 ? Math.round((json.progress / json.total) * 100) : 0;
-                            $("#sync-popover-progress-bar").css("width", pct + "%");
-                            if (json.subTaskTitle) {
-                                $("#sync-popover-subtask-title").text(json.subTaskTitle + " (" + json.subProgress + " / " + json.subTotal + ")");
-                                var subPct = json.subTotal > 0 ? Math.round((json.subProgress / json.subTotal) * 100) : 0;
-                                $("#sync-popover-subtask-progress-bar").css("width", subPct + "%");
-                                $("#sync-popover-subtask-row").show();
-                            } else {
-                                $("#sync-popover-subtask-row").hide();
-                            }
-                        }
-                    });
-                    read();
-                });
-            }
-            read();
-        }).catch(function () {
-            syncInProgress = false;
-            syncCompleted = false;
-            resetSlots("Sync failed. Please try again.");
-            $("#sync-popover-btn").text("Sync now").prop("disabled", false);
-        });
+        attachToSyncStream();
     });
 });

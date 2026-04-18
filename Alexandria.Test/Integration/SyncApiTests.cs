@@ -2,10 +2,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Alexandria.Api.Sync;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
-using Alexandria.Business.Library.Services;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,16 +14,16 @@ namespace Alexandria.Tests.Integration;
 
 /// <summary>
 /// <para>
-/// Sync endpoint coverage. The controller streams Server-Sent Events on the 200 path and
-/// returns a static JSON body on the 409 path. Covers: SSE headers, 409 lock-contention,
-/// 401 unauthenticated, and the conversion-failure error-event flow introduced by
-/// IndexerService's abort-on-conversion-error contract.
+/// Sync endpoint coverage. Indexing now runs in a hosted <see cref="IndexingBackgroundService"/>
+/// with an <see cref="IIndexingBroker"/> mediating between the hosted service and any SSE
+/// subscribers. Covers: SSE headers on POST /sync, status shape on GET /sync/status, 401
+/// unauthenticated on both routes, and the conversion-failure error-event flow.
 /// </para>
 /// <para>
-/// <b>Limitation:</b> Reading a streamed response mid-progress (before the controller returns)
-/// hangs under <c>TestServer</c>'s in-memory pipe. The error-event test is reliable because
-/// the fake <see cref="ThrowingIndexerService"/> throws synchronously — the controller writes
-/// one frame and returns immediately, letting the client read the full body.
+/// <b>Limitation:</b> Reading a streamed response mid-progress (before the server-side
+/// subscription completes) hangs under <c>TestServer</c>'s in-memory pipe. The error-event test
+/// is reliable because the fake <see cref="ThrowingIndexerService"/> throws synchronously — the
+/// broker emits one terminal frame and the subscription closes immediately.
 /// </para>
 /// </summary>
 [TestClass]
@@ -46,32 +46,31 @@ public sealed class SyncApiTests : IntegrationTestBase
     }
 
     [TestMethod]
-    public async Task Sync_AlreadyInProgress_Returns409WithJsonErrorBody()
+    public async Task SyncStatus_Idle_ReturnsRunningFalse()
     {
-        var syncLock = GetService<LibrarySyncLock>();
-        Assert.IsTrue(syncLock.TryAcquire(), "Pre-acquire of LibrarySyncLock failed — another test left it held");
+        var token = await LoginAsync();
+        using var authed = AuthenticatedClient(token);
 
-        try
-        {
-            var token = await LoginAsync();
-            using var authed = AuthenticatedClient(token);
+        var response = await authed.GetAsync("/api/alexandria/sync/status");
 
-            var response = await authed.PostAsync("/api/alexandria/sync", content: null);
-
-            Assert.AreEqual(HttpStatusCode.Conflict, response.StatusCode);
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.AreEqual("sync already in progress", body.GetProperty("error").GetString());
-        }
-        finally
-        {
-            syncLock.Release();
-        }
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.IsFalse(body.GetProperty("running").GetBoolean());
+        Assert.AreEqual(JsonValueKind.Null, body.GetProperty("snapshot").ValueKind);
     }
 
     [TestMethod]
     public async Task Sync_WithoutAuth_Returns401()
     {
         var response = await Client.PostAsync("/api/alexandria/sync", content: null);
+
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task SyncStatus_WithoutAuth_Returns401()
+    {
+        var response = await Client.GetAsync("/api/alexandria/sync/status");
 
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -95,18 +94,17 @@ public sealed class SyncApiTests : IntegrationTestBase
     }
 
     [TestMethod]
-    public async Task Sync_ConversionFailure_ReleasesLibrarySyncLock()
+    public async Task Sync_ConversionFailure_BrokerReturnsToIdle()
     {
         using var factory = Factory.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
             s.Replace(ServiceDescriptor.Transient<IIndexerService, ThrowingIndexerService>())));
         using var client = await AuthenticatedClientFor(factory);
 
         var response = await client.PostAsync("/api/alexandria/sync", content: null);
-        await response.Content.ReadAsStringAsync(); // drain so the server-side finally runs
+        await response.Content.ReadAsStringAsync(); // drain so EndRun finishes before we check state
 
-        var syncLock = factory.Services.GetRequiredService<LibrarySyncLock>();
-        Assert.IsTrue(syncLock.TryAcquire(), "LibrarySyncLock was not released after a failed sync");
-        syncLock.Release();
+        var broker = factory.Services.GetRequiredService<IIndexingBroker>();
+        Assert.IsFalse(broker.IsRunning, "broker should be idle after a failed run — EndRun clears the flag");
     }
 
     // ---------- Helpers ----------

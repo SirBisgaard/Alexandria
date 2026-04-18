@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Alexandria.Api.Authentication;
 using Alexandria.Api.Middleware;
+using Alexandria.Api.Sync;
 using Alexandria.Business.Authentication;
 using Alexandria.Business.Authentication.Interfaces;
 using Alexandria.Business.Interfaces;
@@ -79,7 +80,8 @@ builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
-builder.Services.AddSingleton<LibrarySyncLock>();
+builder.Services.AddSingleton<IIndexingBroker, IndexingBroker>();
+builder.Services.AddHostedService<IndexingBackgroundService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<IKoboLibrarySyncService, KoboLibrarySyncService>();
 builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliveryService>();
@@ -138,11 +140,13 @@ var appSettings = await settingsRepo.Get();
 GuidExtensions.SetNamespace(appSettings.UuidSeed);
 authSecrets.Initialize(appSettings.UuidSeed);
 
-// Index library at boot.
+// Enqueue boot-time library index. The hosted IndexingBackgroundService picks it up after
+// app.Run() and streams progress through IIndexingBroker — so a user opening the sync popover
+// during a boot index sees the live run just like a manually triggered one.
 if (appSettings.SyncLibraryAtBoot)
 {
-    var libraryIndexer = app.Services.GetRequiredService<IIndexerService>();
-    await libraryIndexer.Index();
+    var broker = app.Services.GetRequiredService<IIndexingBroker>();
+    broker.TryEnqueueRun();
 }
 
 app.UseAuthentication();

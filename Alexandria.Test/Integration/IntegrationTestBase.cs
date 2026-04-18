@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Reflection;
 using Alexandria.Business.Authentication;
 using Alexandria.Business.Authentication.Interfaces;
+using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
 using Alexandria.DataAccess.Database;
 using Microsoft.AspNetCore.Hosting;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace Alexandria.Tests.Integration;
@@ -46,19 +48,24 @@ public abstract class IntegrationTestBase
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.ConfigureAppConfiguration((_, cfg) =>
-                {
-                    cfg.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        ["AlexandriaSettings:PublicUrl"] = "http://localhost",
-                        ["AlexandriaSettings:DataFolder"] = Path.Combine(TempDir, "data"),
-                        ["AlexandriaSettings:EbookFolder"] = EbookFolder,
-                        ["AlexandriaSettings:AudiobookFolder"] = AudiobookFolder
-                    });
-                });
-
                 builder.ConfigureTestServices(services =>
                 {
+                    // Program.cs binds AlexandriaSettings from builder.Configuration at the top of its
+                    // top-level statements — BEFORE WebApplicationFactory applies ConfigureAppConfiguration.
+                    // As a result, AddInMemoryCollection on the config builder can't redirect paths; the
+                    // singleton has already been registered from appsettings.json (pointing at the real
+                    // library). We replace the singleton here, which runs after Program.cs's AddSingleton
+                    // call but before the container is built, so every path-consuming service resolves
+                    // against the test temp dir instead of /home/.../Documents/Books.
+                    services.RemoveAll<AlexandriaSettings>();
+                    services.AddSingleton(new AlexandriaSettings
+                    {
+                        PublicUrl = "http://localhost",
+                        DataFolder = Path.Combine(TempDir, "data"),
+                        EbookFolder = EbookFolder,
+                        AudiobookFolder = AudiobookFolder
+                    });
+
                     services.AddSingleton<IPasswordHasher, FakePasswordHasher>();
                     // DatabaseFlushService races with test teardown — it fires Flush on StopAsync,
                     // which opens a second SqliteConnection to the same file and calls BackupDatabase
