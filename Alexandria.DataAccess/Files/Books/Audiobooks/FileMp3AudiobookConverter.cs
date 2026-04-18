@@ -61,8 +61,9 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
                 var existing = booksByPath[path];
                 await ConvertOne(path, existing, i + 1, sourceFiles.Length, cancellationToken);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Failed to convert {Source}", path);
                 errorCount += 1;
             }
         }
@@ -169,7 +170,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to remove stale chapter cache {Dir}", cachedDir);
+            logger.LogError(ex, "Failed to remove stale chapter cache {Dir}", cachedDir);
         }
     }
 
@@ -183,7 +184,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to clean up target folder {Target}", targetDir);
+            logger.LogError(ex, "Failed to clean up target folder {Target}", targetDir);
         }
     }
 

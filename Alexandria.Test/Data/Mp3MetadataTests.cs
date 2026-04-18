@@ -35,7 +35,7 @@ public sealed class Mp3MetadataTests
             EbookFolder = Path.Combine(tempDir, "ebooks"),
             AudiobookFolder = audiobookFolder
         };
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var coverService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         handler = new Mp3FileHandler(ffmpeg, coverService);
     }
@@ -104,7 +104,7 @@ public sealed class Mp3MetadataTests
     {
         var firstMp3 = Path.Combine(bookFolder, "1.mp3");
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var tags = new Dictionary<string, string> { ["grouping"] = "First Series #1; Second Series #2" };
         var tempPath = firstMp3 + ".tmp";
         await ffmpeg.WriteMetadata(firstMp3, tempPath, tags, []);
@@ -275,7 +275,7 @@ public sealed class Mp3MetadataTests
 
         File.Delete(Path.Combine(bookFolder, "cover.jpg"));
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         foreach (var mp3 in Directory.GetFiles(bookFolder, "*.mp3"))
         {
             var embedded = await ffmpeg.ExtractCoverImage(mp3);
@@ -298,7 +298,7 @@ public sealed class Mp3MetadataTests
 
         Assert.IsFalse(File.Exists(Path.Combine(bookFolder, "cover.jpg")));
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         foreach (var mp3 in Directory.GetFiles(bookFolder, "*.mp3"))
         {
             var embedded = await ffmpeg.ExtractCoverImage(mp3);

@@ -27,9 +27,9 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
         {
             analyticsRequest = JsonSerializer.Deserialize<KoboStoreAnalyticsRequest>(request.Body);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            logger.LogWarning("AnalyticsEvent: failed to deserialize request body, proxying unchanged");
+            logger.LogError(ex, "AnalyticsEvent: failed to deserialize request body, proxying unchanged");
             return await koboProxyService.Proxy(request);
         }
 

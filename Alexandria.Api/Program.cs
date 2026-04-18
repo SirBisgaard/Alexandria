@@ -10,6 +10,7 @@ using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.Library.Services;
 using Alexandria.Business.KoboStoreProxy.Services;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Logging;
 using Alexandria.DataAccess.Database;
 using Alexandria.DataAccess.Database.Interfaces;
 using Alexandria.DataAccess.Database.Repositories;
@@ -30,6 +31,10 @@ var alexandriaSettings =  builder.Configuration
     .Get<AlexandriaSettings>()!;
 
 builder.Services.AddSingleton(alexandriaSettings);
+
+// Exceptions log: Error-only append file under DataFolder, closed on host shutdown.
+Directory.CreateDirectory(alexandriaSettings.DataFolder);
+builder.Logging.AddProvider(new ExceptionFileLoggerProvider(Path.Combine(alexandriaSettings.DataFolder, "exceptions.log")));
 
 // Http client for KoboStoreApi
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });

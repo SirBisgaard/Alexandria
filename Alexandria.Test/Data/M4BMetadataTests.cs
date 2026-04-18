@@ -34,7 +34,7 @@ public sealed class M4BMetadataTests
             EbookFolder = Path.Combine(tempDir, "ebooks"),
             AudiobookFolder = Path.Combine(tempDir, "audiobooks")
         };
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var coverService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
         handler = new M4BFileHandler(ffmpeg, coverService);
     }
@@ -184,7 +184,7 @@ public sealed class M4BMetadataTests
             .Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title))
             .ToList();
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var tags = new Dictionary<string, string> { ["grouping"] = "First Series #1; Second Series #2" };
         var tempPath = m4bPath + ".tmp";
         await ffmpeg.WriteMetadata(m4bPath, tempPath, tags, chapters);
@@ -202,7 +202,7 @@ public sealed class M4BMetadataTests
         var book = await handler.ExtractMetadata(m4bPath);
         var chapters = BuildChapters(book);
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var tags = new Dictionary<string, string>
         {
             ["artist"] = "First Author, Second Author, Third Author",
@@ -225,7 +225,7 @@ public sealed class M4BMetadataTests
         var book = await handler.ExtractMetadata(m4bPath);
         var chapters = BuildChapters(book);
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var tags = new Dictionary<string, string> { ["composer"] = "Narrator One, Narrator Two" };
         var tempPath = m4bPath + ".tmp";
         await ffmpeg.WriteMetadata(m4bPath, tempPath, tags, chapters);
@@ -269,7 +269,7 @@ public sealed class M4BMetadataTests
 
         await handler.EmbedMetadata(book);
 
-        var ffmpeg = new FfmpegWrapper();
+        var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var json = await ffmpeg.GetMetadataJson(m4bPath);
         using var doc = JsonDocument.Parse(json);
         var tagsEl = doc.RootElement.GetProperty("format").GetProperty("tags");

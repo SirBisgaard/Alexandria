@@ -2,10 +2,11 @@ using System.Diagnostics;
 using System.Text;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Externals.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class FfmpegWrapper : IFfmpegWrapper
+public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
 {
     /// <summary>
     /// Streams an audiobook chapter to the output stream as MP3. Caller picks the libmp3lame
@@ -17,34 +18,42 @@ public class FfmpegWrapper : IFfmpegWrapper
     // AAC remux (-c:a copy -f adts) was tried but playback fails on the device (verified 2026-04-16).
     public async Task StreamChapter(string inputPath, double startTime, double endTime, int? qaLevel, Stream outputStream, CancellationToken cancellationToken)
     {
-        var codecArgs = qaLevel is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {qaLevel}";
-        var duration = endTime - startTime;
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = "ffmpeg",
-            Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 pipe:1",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        process.Start();
-
         try
         {
-            await process.StandardOutput.BaseStream.CopyToAsync(outputStream, cancellationToken);
-            await process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
+            var codecArgs = qaLevel is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {qaLevel}";
+            var duration = endTime - startTime;
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 pipe:1",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"ffmpeg chapter extraction failed with exit code {process.ExitCode}");
+            process.Start();
+
+            try
+            {
+                await process.StandardOutput.BaseStream.CopyToAsync(outputStream, cancellationToken);
+                var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+                await process.WaitForExitAsync(cancellationToken);
+
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException($"ffmpeg chapter extraction failed with exit code {process.ExitCode}: {stderr}");
+            }
+            catch (OperationCanceledException)
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+                throw;
+            }
         }
-        catch (OperationCanceledException)
+        catch (Exception ex)
         {
-            if (!process.HasExited)
-                process.Kill(entireProcessTree: true);
+            logger.LogError(ex, "StreamChapter failed for {Input}", inputPath);
             throw;
         }
     }
@@ -61,47 +70,94 @@ public class FfmpegWrapper : IFfmpegWrapper
     /// </summary>
     public async Task TranscodeChapterToFile(string inputPath, double startTime, double endTime, int? qaLevel, string outputPath, IReadOnlyDictionary<string, string>? tags, string? coverPath, CancellationToken cancellationToken)
     {
-        var codecArgs = qaLevel is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {qaLevel}";
-        var duration = endTime - startTime;
-
-        var hasTags = tags is not null && tags.Count > 0;
-        var hasCover = !string.IsNullOrEmpty(coverPath) && File.Exists(coverPath);
-        var metadataPath = outputPath + ".ffmetadata";
-
         try
         {
-            if (hasTags)
-                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags!, []), Encoding.UTF8, cancellationToken);
+            var codecArgs = qaLevel is null ? "-c:a copy" : $"-acodec libmp3lame -q:a {qaLevel}";
+            var duration = endTime - startTime;
 
-            var sb = new StringBuilder("-v quiet -y ");
-            sb.Append($"-ss {startTime} -i \"{inputPath}\" ");
-            if (hasTags)
-                sb.Append($"-f ffmetadata -i \"{metadataPath}\" ");
-            if (hasCover)
-                sb.Append($"-i \"{coverPath}\" ");
-            sb.Append($"-t {duration} ");
+            var hasTags = tags is not null && tags.Count > 0;
+            var hasCover = !string.IsNullOrEmpty(coverPath) && File.Exists(coverPath);
+            var metadataPath = outputPath + ".ffmetadata";
 
-            if (hasCover)
+            try
             {
-                var coverInputIndex = hasTags ? 2 : 1;
-                sb.Append($"-map 0:a -map {coverInputIndex}:v -c:v copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover ");
+                if (hasTags)
+                    await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags!, []), Encoding.UTF8, cancellationToken);
+
+                var sb = new StringBuilder("-v quiet -y ");
+                sb.Append($"-ss {startTime} -i \"{inputPath}\" ");
+                if (hasTags)
+                    sb.Append($"-f ffmetadata -i \"{metadataPath}\" ");
+                if (hasCover)
+                    sb.Append($"-i \"{coverPath}\" ");
+                sb.Append($"-t {duration} ");
+
+                if (hasCover)
+                {
+                    var coverInputIndex = hasTags ? 2 : 1;
+                    sb.Append($"-map 0:a -map {coverInputIndex}:v -c:v copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover ");
+                }
+                else
+                {
+                    sb.Append("-vn ");
+                }
+
+                sb.Append(hasTags ? "-map_metadata 1 " : "-map_metadata -1 ");
+                sb.Append($"{codecArgs} ");
+                if (hasCover)
+                    sb.Append("-id3v2_version 3 ");
+                sb.Append($"-f mp3 \"{outputPath}\"");
+
+                using var process = new Process();
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = sb.ToString(),
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                process.Start();
+
+                try
+                {
+                    var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+                    await process.WaitForExitAsync(cancellationToken);
+
+                    if (process.ExitCode != 0)
+                        throw new InvalidOperationException($"ffmpeg chapter transcode failed with exit code {process.ExitCode}: {stderr}");
+                }
+                catch (OperationCanceledException)
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                    throw;
+                }
             }
-            else
+            finally
             {
-                sb.Append("-vn ");
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
             }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TranscodeChapterToFile failed for {Input}", inputPath);
+            throw;
+        }
+    }
 
-            sb.Append(hasTags ? "-map_metadata 1 " : "-map_metadata -1 ");
-            sb.Append($"{codecArgs} ");
-            if (hasCover)
-                sb.Append("-id3v2_version 3 ");
-            sb.Append($"-f mp3 \"{outputPath}\"");
-
+    public async Task<string> GetMetadataJson(string inputPath)
+    {
+        try
+        {
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo
             {
-                FileName = "ffmpeg",
-                Arguments = sb.ToString(),
+                FileName = "ffprobe",
+                Arguments = $"-v quiet -print_format json -show_format -show_chapters -show_streams \"{inputPath}\"",
+                RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
@@ -109,75 +165,54 @@ public class FfmpegWrapper : IFfmpegWrapper
 
             process.Start();
 
-            try
-            {
-                await process.StandardError.ReadToEndAsync(cancellationToken);
-                await process.WaitForExitAsync(cancellationToken);
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
 
-                if (process.ExitCode != 0)
-                    throw new InvalidOperationException($"ffmpeg chapter transcode failed with exit code {process.ExitCode}");
-            }
-            catch (OperationCanceledException)
-            {
-                if (!process.HasExited)
-                    process.Kill(entireProcessTree: true);
-                throw;
-            }
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"ffprobe failed with exit code {process.ExitCode}: {error}");
+
+            return output;
         }
-        finally
+        catch (Exception ex)
         {
-            if (File.Exists(metadataPath))
-                File.Delete(metadataPath);
+            logger.LogError(ex, "GetMetadataJson failed for {Input}", inputPath);
+            throw;
         }
-    }
-
-    public async Task<string> GetMetadataJson(string inputPath)
-    {
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = "ffprobe",
-            Arguments = $"-v quiet -print_format json -show_format -show_chapters -show_streams \"{inputPath}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        process.Start();
-
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"ffprobe failed with exit code {process.ExitCode}: {error}");
-
-        return output;
     }
 
     public async Task<byte[]?> ExtractCoverImage(string inputPath)
     {
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
+        try
         {
-            FileName = "ffmpeg",
-            Arguments = $"-v quiet -i \"{inputPath}\" -an -vcodec copy -f image2pipe pipe:1",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = $"-v quiet -i \"{inputPath}\" -an -vcodec copy -f image2pipe pipe:1",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-        process.Start();
+            process.Start();
 
-        using var memoryStream = new MemoryStream();
-        await process.StandardOutput.BaseStream.CopyToAsync(memoryStream);
-        await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+            using var memoryStream = new MemoryStream();
+            await process.StandardOutput.BaseStream.CopyToAsync(memoryStream);
+            await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
 
-        var data = memoryStream.ToArray();
-        return data.Length > 0 ? data : null;
+            // No exit-code check here: ffmpeg exits non-zero when the input has no cover stream
+            // (a valid "no cover" state, not an error). Callers rely on null meaning "no cover".
+            var data = memoryStream.ToArray();
+            return data.Length > 0 ? data : null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ExtractCoverImage failed for {Input}", inputPath);
+            throw;
+        }
     }
 
     /// <summary>
@@ -189,16 +224,24 @@ public class FfmpegWrapper : IFfmpegWrapper
     /// </summary>
     public async Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters)
     {
-        var metadataPath = outputPath + ".ffmetadata";
         try
         {
-            await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
-            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map 0:v? -map_metadata 1 -map_metadata 0 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+            var metadataPath = outputPath + ".ffmetadata";
+            try
+            {
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
+                await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map 0:v? -map_metadata 1 -map_metadata 0 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+            }
+            finally
+            {
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            if (File.Exists(metadataPath))
-                File.Delete(metadataPath);
+            logger.LogError(ex, "WriteMetadata failed for {Input}", inputPath);
+            throw;
         }
     }
 
@@ -209,20 +252,28 @@ public class FfmpegWrapper : IFfmpegWrapper
     /// </summary>
     public async Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData)
     {
-        var metadataPath = outputPath + ".ffmetadata";
-        var coverPath = outputPath + ".cover.jpg";
         try
         {
-            await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
-            await File.WriteAllBytesAsync(coverPath, coverData);
-            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -i \"{coverPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map_chapters 1 -map 2:v -c copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover -f mp4 -y \"{outputPath}\"");
+            var metadataPath = outputPath + ".ffmetadata";
+            var coverPath = outputPath + ".cover.jpg";
+            try
+            {
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
+                await File.WriteAllBytesAsync(coverPath, coverData);
+                await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -i \"{coverPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map_chapters 1 -map 2:v -c copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover -f mp4 -y \"{outputPath}\"");
+            }
+            finally
+            {
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
+                if (File.Exists(coverPath))
+                    File.Delete(coverPath);
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            if (File.Exists(metadataPath))
-                File.Delete(metadataPath);
-            if (File.Exists(coverPath))
-                File.Delete(coverPath);
+            logger.LogError(ex, "WriteMetadataWithCover failed for {Input}", inputPath);
+            throw;
         }
     }
 
@@ -232,16 +283,24 @@ public class FfmpegWrapper : IFfmpegWrapper
     /// </summary>
     public async Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters)
     {
-        var metadataPath = outputPath + ".ffmetadata";
         try
         {
-            await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
-            await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+            var metadataPath = outputPath + ".ffmetadata";
+            try
+            {
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, chapters), Encoding.UTF8);
+                await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map_chapters 1 -c copy -f mp4 -y \"{outputPath}\"");
+            }
+            finally
+            {
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            if (File.Exists(metadataPath))
-                File.Delete(metadataPath);
+            logger.LogError(ex, "WriteMetadataRemoveCover failed for {Input}", inputPath);
+            throw;
         }
     }
 

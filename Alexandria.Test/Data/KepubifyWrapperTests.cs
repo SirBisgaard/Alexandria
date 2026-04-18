@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using Alexandria.DataAccess.Externals;
 using Alexandria.Tests.TestData;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Tests.Data;
 
@@ -8,6 +9,7 @@ namespace Alexandria.Tests.Data;
 public sealed class KepubifyWrapperTests
 {
     private string tempDir = null!;
+    private CapturingLogger<KepubifyWrapper> logger = null!;
     private KepubifyWrapper wrapper = null!;
 
     [TestInitialize]
@@ -15,7 +17,8 @@ public sealed class KepubifyWrapperTests
     {
         tempDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(tempDir);
-        wrapper = new KepubifyWrapper();
+        logger = new CapturingLogger<KepubifyWrapper>();
+        wrapper = new KepubifyWrapper(logger);
     }
 
     [TestCleanup]
@@ -56,5 +59,20 @@ public sealed class KepubifyWrapperTests
             var mode = File.GetUnixFileMode(binaryPath);
             Assert.IsTrue((mode & UnixFileMode.UserExecute) != 0, "Kepubify binary must have owner-execute permission on Unix.");
         }
+    }
+
+    [TestMethod]
+    public async Task Kepubify_NonExistentInputFile_LogsErrorAndThrows()
+    {
+        var missingInput = Path.Combine(tempDir, "does-not-exist.epub");
+        var outputPath = Path.Combine(tempDir, "out.kepub.epub");
+
+        await Assert.ThrowsExactlyAsync<FileNotFoundException>(
+            async () => await wrapper.Convert(missingInput, outputPath));
+
+        var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
+        Assert.HasCount(1, errors);
+        Assert.IsInstanceOfType<FileNotFoundException>(errors[0].Exception);
+        Assert.Contains(missingInput, errors[0].Message);
     }
 }

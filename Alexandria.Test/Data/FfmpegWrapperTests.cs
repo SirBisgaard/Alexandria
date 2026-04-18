@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Alexandria.DataAccess.Externals;
 using Alexandria.Tests.TestData;
+using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Tests.Data;
 
@@ -9,6 +10,7 @@ public sealed class FfmpegWrapperTests
 {
     private string tempDir = null!;
     private string m4bPath = null!;
+    private CapturingLogger<FfmpegWrapper> logger = null!;
     private FfmpegWrapper ffmpeg = null!;
 
     [TestInitialize]
@@ -17,7 +19,8 @@ public sealed class FfmpegWrapperTests
         tempDir = Path.Combine(Path.GetTempPath(), "alexandria-test-" + Guid.NewGuid());
         Directory.CreateDirectory(tempDir);
         m4bPath = Fixtures.CopyM4BTo(tempDir);
-        ffmpeg = new FfmpegWrapper();
+        logger = new CapturingLogger<FfmpegWrapper>();
+        ffmpeg = new FfmpegWrapper(logger);
     }
 
     [TestCleanup]
@@ -233,6 +236,70 @@ public sealed class FfmpegWrapperTests
             .FirstOrDefault(s => s.TryGetProperty("codec_type", out var ct) && ct.GetString() == "audio");
         Assert.AreNotEqual(JsonValueKind.Undefined, audioStream.ValueKind);
         Assert.AreEqual("mp3", audioStream.GetProperty("codec_name").GetString());
+    }
+
+    [TestMethod]
+    public async Task GetMetadataJson_MissingFile_LogsErrorAndThrowsWithStderrInMessage()
+    {
+        var missingPath = Path.Combine(tempDir, "does-not-exist.m4b");
+
+        var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+            async () => await ffmpeg.GetMetadataJson(missingPath));
+
+        Assert.Contains("exit code", ex.Message);
+
+        var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
+        Assert.HasCount(1, errors);
+        Assert.AreSame(ex, errors[0].Exception);
+        Assert.Contains(missingPath, errors[0].Message);
+    }
+
+    [TestMethod]
+    public async Task StreamChapter_NonZeroExit_LogsErrorAndThrowsWithStderrInMessage()
+    {
+        var garbagePath = Path.Combine(tempDir, "garbage.m4b");
+        await File.WriteAllBytesAsync(garbagePath, [0x00, 0x01, 0x02, 0x03, 0x04, 0x05]);
+        using var output = new MemoryStream();
+
+        var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+            async () => await ffmpeg.StreamChapter(garbagePath, 0, 1, qaLevel: 4, output, CancellationToken.None));
+
+        Assert.Contains("exit code", ex.Message);
+        Assert.IsGreaterThan("ffmpeg chapter extraction failed with exit code 0: ".Length, ex.Message.Length);
+
+        var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
+        Assert.HasCount(1, errors);
+        Assert.AreSame(ex, errors[0].Exception);
+    }
+
+    [TestMethod]
+    public async Task StreamChapter_Canceled_LogsErrorAndRethrowsOperationCanceled()
+    {
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        using var output = new MemoryStream();
+
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(
+            async () => await ffmpeg.StreamChapter(m4bPath, 0, 1, 4, output, cts.Token));
+
+        var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
+        Assert.HasCount(1, errors);
+        Assert.IsInstanceOfType<OperationCanceledException>(errors[0].Exception);
+    }
+
+    [TestMethod]
+    public async Task TranscodeChapterToFile_Canceled_LogsErrorAndRethrowsOperationCanceled()
+    {
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        var outputPath = Path.Combine(tempDir, "chapter0.mp3");
+
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(
+            async () => await ffmpeg.TranscodeChapterToFile(m4bPath, 0, 1, qaLevel: 4, outputPath, tags: null, coverPath: null, cts.Token));
+
+        var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
+        Assert.HasCount(1, errors);
+        Assert.IsInstanceOfType<OperationCanceledException>(errors[0].Exception);
     }
 
     [TestMethod]
