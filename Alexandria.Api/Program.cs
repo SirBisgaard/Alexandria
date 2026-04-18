@@ -143,7 +143,9 @@ if (appSettings.SyncLibraryAtBoot)
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseFileServer();   
+app.UseFileServer();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
