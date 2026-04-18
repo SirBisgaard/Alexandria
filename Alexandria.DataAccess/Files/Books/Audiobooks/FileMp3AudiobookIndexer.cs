@@ -16,6 +16,7 @@ public class FileMp3AudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
 
         return Directory.GetDirectories(settings.AudiobookFolder)
             .Where(dir => Directory.GetFiles(dir, "*.mp3").Length > 0)
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .Select(dir => dir + ".mp3audiobook")
             .ToArray();
     }

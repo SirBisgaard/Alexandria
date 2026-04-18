@@ -292,6 +292,31 @@ public sealed class FileMp3AudiobookConverterTests
         Assert.IsEmpty(ffmpegWrapper.TranscodeCalls);
     }
 
+    // ---------- Media-type filtering ----------
+
+    [TestMethod]
+    public async Task Convert_MixedLibrary_OnlyProcessesM4BsAndIgnoresEpubs()
+    {
+        // EPUB book lives in EbookFolder; its presence in existingBooks must not cause the
+        // M4B converter to try extracting metadata from it (ffprobe would fail on an EPUB).
+        Directory.CreateDirectory(alexandriaSettings.EbookFolder);
+        var epubPath = Path.Combine(alexandriaSettings.EbookFolder, "some-book.epub");
+        File.WriteAllBytes(epubPath, [0x50, 0x4B, 0x03, 0x04]); // ZIP/EPUB magic
+        var epubBook = MakeBook("An Ebook", authorName: "Ebook Author", chapters: 0);
+        epubBook.File.MediaType = MediaType.Ebook;
+        epubBook.File.SourcePath = epubPath;
+
+        var m4bBook = SeedPlaceholderBook("audiobook.m4b", "An Audiobook", author: "Audio Author", chapters: 2);
+
+        await converter.Convert([epubBook, m4bBook], CancellationToken.None);
+
+        Assert.AreEqual(1, m4bHandler.ExtractMetadataCallCount, "EPUB must not trigger M4B metadata extraction.");
+        Assert.IsTrue(File.Exists(epubPath), "EPUB source file must be untouched.");
+        Assert.IsFalse(File.Exists(m4bBook.File.SourcePath), "M4B source must be deleted after successful conversion.");
+        Assert.IsTrue(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "Audio Author - An Audiobook")));
+        Assert.HasCount(2, ffmpegWrapper.TranscodeCalls);
+    }
+
     // ---------- Sanitization ----------
 
     [TestMethod]

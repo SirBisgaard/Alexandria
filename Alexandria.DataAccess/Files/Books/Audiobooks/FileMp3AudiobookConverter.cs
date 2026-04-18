@@ -27,8 +27,10 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             return 0;
 
         var booksByPath = existingBooks
+            .Where(b => Path.GetExtension(b.File.SourcePath).Equals(".m4b", StringComparison.OrdinalIgnoreCase))
             .GroupBy(b => b.File.SourcePath, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        
         logger.LogInformation("ConvertAtIndex: found {Count} M4B file(s) to convert", booksByPath.Count);
         if (booksByPath.Count == 0)
             return 0;
@@ -49,7 +51,10 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         foreach (var colliding in collidingSources)
             logger.LogWarning("Skipping {Source}: folder '{Folder}' collides with another source", colliding, foldersBySource[colliding]);
 
-        var sourceFiles = booksByPath.Keys.Where(p => !collidingSources.Contains(p)).ToArray();
+        var sourceFiles = booksByPath.Keys
+            .Where(p => !collidingSources.Contains(p))
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         var errorCount = 0;
         for (var i = 0; i < sourceFiles.Length; i++)

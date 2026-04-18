@@ -16,7 +16,9 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
         if (!Directory.Exists(settings.AudiobookFolder))
             return [];
 
-        return Directory.GetFiles(settings.AudiobookFolder, "*.m4b");
+        return Directory.GetFiles(settings.AudiobookFolder, "*.m4b")
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     public async Task<(Book Metadata, byte[]? CoverBytes)> Extract(string filePath)

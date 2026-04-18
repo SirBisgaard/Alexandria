@@ -56,7 +56,9 @@ public class FileRepository(AlexandriaSettings settings, ICoverThumbnailService 
         {
             return [];
         }
-        return Directory.GetFiles(settings.EbookFolder, "*.epub");
+        return Directory.GetFiles(settings.EbookFolder, "*.epub")
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     public long GetFileSize(string path)
