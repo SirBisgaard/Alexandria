@@ -107,7 +107,14 @@ $(function () {
                     lines.forEach(function (line) {
                         if (!line.startsWith("data: ")) { return; }
                         var json = JSON.parse(line.substring(6));
-                        if (json.done) {
+                        if (json.failed) {
+                            $("#sync-popover-text").text(json.error);
+                            $("#sync-popover-progress-bar").css("width", "0%");
+                            $("#sync-popover-subtask-row").hide();
+                            $("#sync-popover-btn").text("Close").prop("disabled", false);
+                            syncInProgress = false;
+                            syncCompleted = true;
+                        } else if (json.done) {
                             $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(json.lastIndexedTimestamp));
                             $("#sync-popover-progress-bar").css("width", "100%");
                             $("#sync-popover-text").text("Sync complete. " + json.bookCount + " books indexed.");

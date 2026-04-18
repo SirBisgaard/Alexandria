@@ -58,8 +58,15 @@ public class SyncController(IIndexerService indexerService, ISettingsService set
                 var bookCount = await indexerService.Index();
                 var settings = await settingsService.Get();
                 var lastIndexed = settings.LastIndexedTimestamp?.ToString("O");
-                var doneJson = JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);
+                var doneJson =
+                    JsonSerializer.Serialize(new SyncCompleteEvent(true, bookCount, lastIndexed), jsonOptions);
                 channel.Writer.TryWrite($"data: {doneJson}\n\n");
+            }
+            catch (InvalidOperationException ex)
+            {
+                logger.LogError(ex, "Library sync aborted before completion");
+                var errorJson = JsonSerializer.Serialize(new SyncErrorEvent(true, true, ex.Message), jsonOptions);
+                channel.Writer.TryWrite($"data: {errorJson}\n\n");
             }
             finally
             {

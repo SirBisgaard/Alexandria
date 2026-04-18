@@ -29,9 +29,19 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
             var existingBooks = await bookRepository.GetAll();
 
-            // If any books needs converting before indexing.
+            // Converters run before file discovery; if any book fails to convert, abort before
+            // indexing so the library isn't left in a half-converted state. The converter has
+            // already logged per-book errors; this is the aggregate abort signal.
             foreach (var converter in converters)
-                await converter.Convert(existingBooks, CancellationToken.None);
+            {
+                var errorCount = await converter.Convert(existingBooks, CancellationToken.None);
+
+                if (errorCount > 0)
+                {
+                    logger.LogError("Indexing aborted: {Converter} reported {ErrorCount} conversion error(s)", converter.GetType().Name, errorCount);
+                    throw new InvalidOperationException("Sync failed at converting");
+                }
+            }
             
             var existingByPath = new Dictionary<string, Book>(StringComparer.OrdinalIgnoreCase);
             foreach (var book in existingBooks)
