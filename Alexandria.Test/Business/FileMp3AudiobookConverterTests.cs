@@ -101,14 +101,13 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_SingleM4B_CreatesNamedFolderWithChapters()
     {
-        var source = CreatePlaceholderM4B("Alexandria - Some Book.m4b");
-        m4bHandler.SetExtractedMetadata(MakeBook("Some Book", authorName: "Alexandria", chapters: 3));
+        var book = SeedPlaceholderBook("Alexandria - Some Book.m4b", "Some Book", author: "Alexandria", chapters: 3);
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "Alexandria - Some Book");
         Assert.IsTrue(Directory.Exists(targetDir));
-        Assert.IsFalse(File.Exists(source), "source M4B should be deleted on success");
+        Assert.IsFalse(File.Exists(book.File.SourcePath), "source M4B should be deleted on success");
         Assert.AreEqual(3, ffmpegWrapper.TranscodeCalls.Count);
         Assert.IsTrue(ffmpegWrapper.TranscodeCalls.All(c => c.OutPath.StartsWith(targetDir)));
     }
@@ -116,12 +115,10 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_WithSeriesAndIndex_FolderNameIncludesSeriesHashIndex()
     {
-        CreatePlaceholderM4B("whatever.m4b");
-        var meta = MakeBook("The Second Story", authorName: "Jane Doe", chapters: 1);
-        meta.Series = new Series { SeriesUuid = Guid.NewGuid(), Name = "Night Tales", Index = 2 };
-        m4bHandler.SetExtractedMetadata(meta);
+        var book = SeedPlaceholderBook("whatever.m4b", "The Second Story", author: "Jane Doe", chapters: 1);
+        book.Series = new Series { SeriesUuid = Guid.NewGuid(), Name = "Night Tales", Index = 2 };
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         Assert.IsTrue(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "Jane Doe - Night Tales #2 - The Second Story")));
     }
@@ -129,10 +126,9 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_WithoutSeries_FolderNameOmitsSeriesSegment()
     {
-        CreatePlaceholderM4B("whatever.m4b");
-        m4bHandler.SetExtractedMetadata(MakeBook("Standalone", authorName: "Jane Doe", chapters: 1));
+        var book = SeedPlaceholderBook("whatever.m4b", "Standalone", author: "Jane Doe", chapters: 1);
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         Assert.IsTrue(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "Jane Doe - Standalone")));
     }
@@ -140,11 +136,10 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_WithCover_WritesCoverJpgOnceAndPassesPathToEveryChapterInvocation()
     {
-        CreatePlaceholderM4B("b.m4b");
-        m4bHandler.SetExtractedMetadata(MakeBook("CoverBook", authorName: "A", chapters: 2));
-        m4bHandler.SetExtractedCover([0xFF, 0xD8, 0xFF, 0x99, 0x00]); // JPEG magic bytes — no ConvertToJpeg call
+        var book = SeedPlaceholderBook("b.m4b", "CoverBook", author: "A", chapters: 2);
+        m4bHandler.SetExtractedCover([0xFF, 0xD8, 0xFF, 0x99, 0x00]); // JPEG magic — no ConvertToJpeg call
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         var coverPath = Path.Combine(alexandriaSettings.AudiobookFolder, "A - CoverBook", "cover.jpg");
         Assert.IsTrue(File.Exists(coverPath));
@@ -156,11 +151,10 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_NonJpegCover_RunsThroughCoverThumbnailServiceConvertToJpeg()
     {
-        CreatePlaceholderM4B("b.m4b");
-        m4bHandler.SetExtractedMetadata(MakeBook("PngCover", authorName: "A", chapters: 1));
+        var book = SeedPlaceholderBook("b.m4b", "PngCover", author: "A", chapters: 1);
         m4bHandler.SetExtractedCover([0x89, 0x50, 0x4E, 0x47]); // PNG magic
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         Assert.AreEqual(1, coverService.ConvertToJpegCallCount);
     }
@@ -168,11 +162,10 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_NoCoverAvailable_CoverJpgNotCreatedAndPassedAsNull()
     {
-        CreatePlaceholderM4B("b.m4b");
-        m4bHandler.SetExtractedMetadata(MakeBook("NoCover", authorName: "A", chapters: 1));
+        var book = SeedPlaceholderBook("b.m4b", "NoCover", author: "A", chapters: 1);
         m4bHandler.SetExtractedCover(null);
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         var coverPath = Path.Combine(alexandriaSettings.AudiobookFolder, "A - NoCover", "cover.jpg");
         Assert.IsFalse(File.Exists(coverPath));
@@ -182,12 +175,10 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_MultipleM4Bs_ReportsProgressPerBook()
     {
-        CreatePlaceholderM4B("a.m4b");
-        CreatePlaceholderM4B("b.m4b");
-        m4bHandler.MetadataPerCall.Enqueue(MakeBook("First", authorName: "X", chapters: 1));
-        m4bHandler.MetadataPerCall.Enqueue(MakeBook("Second", authorName: "Y", chapters: 1));
+        var first = SeedPlaceholderBook("a.m4b", "First", author: "X", chapters: 1);
+        var second = SeedPlaceholderBook("b.m4b", "Second", author: "Y", chapters: 1);
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([first, second], CancellationToken.None);
 
         Assert.HasCount(2, progressService.ConvertingReports);
         Assert.AreEqual(2, progressService.ConvertingReports[^1].Total);
@@ -272,15 +263,19 @@ public sealed class FileMp3AudiobookConverterTests
     // ---------- Cancellation ----------
 
     [TestMethod]
-    public async Task Convert_CancellationRequested_ThrowsOperationCanceledException()
+    public async Task Convert_CancellationRequested_CountsAsErrorAndSkipsTranscode()
     {
-        CreatePlaceholderM4B("x.m4b");
-        m4bHandler.SetExtractedMetadata(MakeBook("WillCancel", authorName: "A", chapters: 1));
+        // The outer loop catches all exceptions (including OperationCanceledException) and
+        // increments errorCount rather than propagating. Cancellation therefore surfaces to
+        // the caller as errorCount == book count, and no ffmpeg work is done.
+        var book = SeedPlaceholderBook("x.m4b", "WillCancel", author: "A", chapters: 1);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(
-            async () => await converter.Convert([], cts.Token));
+        var errorCount = await converter.Convert([book], cts.Token);
+
+        Assert.AreEqual(1, errorCount);
+        Assert.IsEmpty(ffmpegWrapper.TranscodeCalls);
     }
 
     // ---------- Sanitization ----------
@@ -288,12 +283,11 @@ public sealed class FileMp3AudiobookConverterTests
     [TestMethod]
     public async Task Convert_TitleWithInvalidFileNameChars_FolderNameSanitized()
     {
-        CreatePlaceholderM4B("weird.m4b");
-        // Build a title containing every platform-invalid filename char, so the test holds on Windows + Linux.
+        // Build a title containing every platform-invalid filename char so the test holds on Windows + Linux.
         var invalids = new string(Path.GetInvalidFileNameChars().Where(c => c != '\0' && c != '\n' && c != '\r').ToArray());
-        m4bHandler.SetExtractedMetadata(MakeBook($"Bad{invalids}Title", authorName: "A", chapters: 1));
+        var book = SeedPlaceholderBook("weird.m4b", $"Bad{invalids}Title", author: "A", chapters: 1);
 
-        await converter.Convert([], CancellationToken.None);
+        await converter.Convert([book], CancellationToken.None);
 
         var created = Directory.GetDirectories(alexandriaSettings.AudiobookFolder).Single();
         var leaf = Path.GetFileName(created);
@@ -308,6 +302,22 @@ public sealed class FileMp3AudiobookConverterTests
         var path = Path.Combine(alexandriaSettings.AudiobookFolder, fileName);
         File.WriteAllBytes(path, [0x00, 0x01, 0x02]);
         return path;
+    }
+
+    /// <summary>
+    /// Creates a placeholder M4B file on disk and returns a matching <see cref="Book"/> whose
+    /// <c>SourcePath</c> points at it — ready to be passed in <c>existingBooks</c>. Also
+    /// enqueues the same book on the fake handler so <c>ExtractMetadata(sourcePath)</c> returns
+    /// it unchanged; the converter treats the existing book as canonical and overlays chapters
+    /// from the extraction, which is a no-op when they're the same instance.
+    /// </summary>
+    private Book SeedPlaceholderBook(string fileName, string title, string author, int chapters)
+    {
+        var source = CreatePlaceholderM4B(fileName);
+        var book = MakeBook(title, authorName: author, chapters: chapters);
+        book.File.SourcePath = source;
+        m4bHandler.SetExtractedMetadata(book);
+        return book;
     }
 
     private static Book MakeBook(string title, string authorName = "Any Author", int chapters = 1)
