@@ -54,7 +54,7 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
 
         var total = book.Chapters.Count;
         var completed = 0;
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree };
         await Parallel.ForEachAsync(Enumerable.Range(0, total), options, async (i, ct) =>
         {
             var outputPath = Path.Combine(bookFolder, $"{i}.mp3");

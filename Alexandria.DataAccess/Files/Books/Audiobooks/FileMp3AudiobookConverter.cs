@@ -108,7 +108,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         var padWidth = total.ToString().Length;
         var completed = 0;
         var albumTags = Mp3FileHandler.BuildStandardTagDictionary(canonical);
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = cancellationToken };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree, CancellationToken = cancellationToken };
 
         await Parallel.ForEachAsync(Enumerable.Range(0, total), options, async (i, ct) =>
         {

@@ -214,7 +214,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
         var albumTags = BuildStandardTagDictionary(book);
         var total = files.Length;
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree };
 
         await Parallel.ForEachAsync(Enumerable.Range(0, total), options, async (i, ct) =>
         {
@@ -241,7 +241,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), jpegCover);
 
         var files = await ProbeAndSort(folderPath);
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree };
         await Parallel.ForEachAsync(files, options, async (file, ct) =>
         {
             var existingTags = ParseStandardTagsFromJson(file.Json);
@@ -261,7 +261,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             File.Delete(coverFile);
 
         var files = await ProbeAndSort(folderPath);
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree };
         await Parallel.ForEachAsync(files, options, async (file, ct) =>
         {
             var existingTags = ParseStandardTagsFromJson(file.Json);
@@ -282,7 +282,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             return [];
 
         var fileRecords = new ConcurrentBag<(string Path, string Json, int Track, string FileName)>();
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree };
 
         await Parallel.ForEachAsync(mp3Files, options, async (file, ct) =>
         {
