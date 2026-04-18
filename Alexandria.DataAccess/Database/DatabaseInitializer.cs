@@ -323,9 +323,9 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         // Generate a unique per-install UUID seed. Doubles as UUID v5 namespace, JWT HMAC key seed, and password hashing salt.
         var uuidSeed = Guid.NewGuid();
         const int syncBatchSize = 60;
-        const bool proxyLoggingEnabled = true;
+        const int proxyLoggingEnabled = 1;
         const int wordsPerPage = 250;
-        const bool syncLibraryAtBoot = false;
+        const int syncLibraryAtBoot = 0;
         var m4BFileTreatment = (alexandriaSettings.M4BFileTreatment ?? M4BFileTreatment.Nothing).ToString();
 
         using var settingsSeedCmd = connection.CreateCommand();
@@ -335,9 +335,9 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         settingsSeedCmd.Parameters.AddWithValue("@uuidSeed", uuidSeed.ToString());
         settingsSeedCmd.Parameters.AddWithValue("@syncBatchSize", syncBatchSize);
-        settingsSeedCmd.Parameters.AddWithValue("@proxyLoggingEnabled", proxyLoggingEnabled ? 1 : 0);
+        settingsSeedCmd.Parameters.AddWithValue("@proxyLoggingEnabled", proxyLoggingEnabled);
         settingsSeedCmd.Parameters.AddWithValue("@wordsPerPage", wordsPerPage);
-        settingsSeedCmd.Parameters.AddWithValue("@syncLibraryAtBoot", syncLibraryAtBoot ? 1 : 0);
+        settingsSeedCmd.Parameters.AddWithValue("@syncLibraryAtBoot", syncLibraryAtBoot);
         settingsSeedCmd.Parameters.AddWithValue("@m4bFileTreatment", m4BFileTreatment);
         settingsSeedCmd.ExecuteNonQuery();
         logger.LogInformation("Database seeded with settings — UuidSeed: {UuidSeed}, SyncBatchSize: {SyncBatchSize}, ProxyLoggingEnabled: {ProxyLoggingEnabled}, WordsPerPage: {WordsPerPage}, SyncLibraryAtBoot: {SyncLibraryAtBoot}, M4bFileTreatment: {M4bFileTreatment}", uuidSeed, syncBatchSize, proxyLoggingEnabled, wordsPerPage, syncLibraryAtBoot, m4BFileTreatment);

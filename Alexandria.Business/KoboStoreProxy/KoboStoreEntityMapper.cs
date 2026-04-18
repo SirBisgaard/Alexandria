@@ -95,7 +95,7 @@ public static class KoboStoreEntityMapper
         {
             metadata.Duration = book.File.Duration;
             metadata.IsAbridged = book.File.IsAbridged;
-            metadata.Locale = new KoboStoreLocale { LanguageCode = book.Language ?? "en" };
+            metadata.Locale = new KoboStoreLocale { LanguageCode = string.IsNullOrWhiteSpace(book.Language) ? "en" : book.Language};
         }
 
         return metadata;

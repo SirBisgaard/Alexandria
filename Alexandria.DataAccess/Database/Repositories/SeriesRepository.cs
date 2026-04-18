@@ -38,7 +38,7 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             if (reader.Read())
                 return MapSeries(reader);
 
-            return (Series?)null;
+            return null;
         });
     }
 
@@ -126,7 +126,7 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
                 };
             }
 
-            return (Series?)null;
+            return null;
         });
     }
 
@@ -155,7 +155,7 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
             if (reader.Read())
                 return MapSeries(reader);
 
-            return (Series?)null;
+            return null;
         });
     }
 

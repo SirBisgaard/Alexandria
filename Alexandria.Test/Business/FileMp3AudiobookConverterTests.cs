@@ -96,6 +96,23 @@ public sealed class FileMp3AudiobookConverterTests
         Assert.AreEqual(0, m4bHandler.ExtractMetadataCallCount);
     }
 
+    [TestMethod]
+    public async Task Convert_FirstIndexWithEmptyDb_ConvertsM4BsFromDisk()
+    {
+        // Fresh install: M4B exists on disk but DB has no matching row. The converter must
+        // still discover and process it. Previously the converter keyed off existingBooks and
+        // silently no-op'd on first index.
+        var source = CreatePlaceholderM4B("fresh.m4b");
+        m4bHandler.SetExtractedMetadata(MakeBook("Fresh Book", authorName: "Fresh Author", chapters: 2));
+
+        await converter.Convert([], CancellationToken.None);
+
+        var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "Fresh Author - Fresh Book");
+        Assert.IsTrue(Directory.Exists(targetDir));
+        Assert.IsFalse(File.Exists(source));
+        Assert.HasCount(2, ffmpegWrapper.TranscodeCalls);
+    }
+
     // ---------- Happy path ----------
 
     [TestMethod]
@@ -217,16 +234,98 @@ public sealed class FileMp3AudiobookConverterTests
     // ---------- Skip/rollback paths ----------
 
     [TestMethod]
-    public async Task Convert_TargetFolderExists_SkippedAndSourcePreserved()
+    public async Task Convert_TargetFolderEmpty_RecoveredAndConversionProceeds()
     {
+        // An empty target folder is treated as stale temp (e.g. CreateDirectory succeeded but
+        // sentinel creation never ran): recursively delete, then convert normally.
         var source = CreatePlaceholderM4B("x.m4b");
-        Directory.CreateDirectory(Path.Combine(alexandriaSettings.AudiobookFolder, "Alice - Blocked"));
-        m4bHandler.SetExtractedMetadata(MakeBook("Blocked", authorName: "Alice", chapters: 1));
+        var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "Alice - Empty");
+        Directory.CreateDirectory(targetDir);
+        m4bHandler.SetExtractedMetadata(MakeBook("Empty", authorName: "Alice", chapters: 1));
 
         await converter.Convert([], CancellationToken.None);
 
-        Assert.IsTrue(File.Exists(source));
-        Assert.AreEqual(0, ffmpegWrapper.TranscodeCalls.Count);
+        Assert.IsTrue(Directory.Exists(targetDir));
+        Assert.IsFalse(File.Exists(source));
+        Assert.HasCount(1, ffmpegWrapper.TranscodeCalls);
+        Assert.IsFalse(File.Exists(Path.Combine(targetDir, ".converting")));
+    }
+
+    [TestMethod]
+    public async Task Convert_TargetFolderHasConvertingSentinel_RecoveredAndConversionProceeds()
+    {
+        // Target folder has contents AND a `.converting` sentinel → prior attempt crashed
+        // mid-flight. Recovery: recursive delete including junk, then convert normally.
+        var source = CreatePlaceholderM4B("x.m4b");
+        var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "Bob - Recoverable");
+        Directory.CreateDirectory(targetDir);
+        File.WriteAllBytes(Path.Combine(targetDir, ".converting"), []);
+        var junkFile = Path.Combine(targetDir, "junk-from-prior-crash.txt");
+        File.WriteAllBytes(junkFile, [0x00]);
+        m4bHandler.SetExtractedMetadata(MakeBook("Recoverable", authorName: "Bob", chapters: 1));
+
+        await converter.Convert([], CancellationToken.None);
+
+        Assert.IsTrue(Directory.Exists(targetDir));
+        Assert.IsFalse(File.Exists(junkFile), "prior-run junk should be deleted during recovery");
+        Assert.IsFalse(File.Exists(source));
+        Assert.HasCount(1, ffmpegWrapper.TranscodeCalls);
+        Assert.IsFalse(File.Exists(Path.Combine(targetDir, ".converting")));
+    }
+
+    [TestMethod]
+    public async Task Convert_TargetFolderPopulatedWithoutSentinel_SkippedAndBothLeftIntact()
+    {
+        // Populated target folder with no sentinel is assumed to be a previously-converted
+        // book. Skip conversion and leave both the source M4B and the existing folder
+        // contents untouched so the user can investigate manually.
+        var source = CreatePlaceholderM4B("x.m4b");
+        var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "Alice - Converted");
+        Directory.CreateDirectory(targetDir);
+        var priorFile = Path.Combine(targetDir, "01 - Chapter 1.mp3");
+        File.WriteAllBytes(priorFile, [0x49, 0x44, 0x33]);
+        m4bHandler.SetExtractedMetadata(MakeBook("Converted", authorName: "Alice", chapters: 1));
+
+        await converter.Convert([], CancellationToken.None);
+
+        Assert.IsTrue(File.Exists(source), "source M4B preserved — user decides whether to remove it");
+        Assert.IsTrue(File.Exists(priorFile), "pre-existing converted folder contents untouched");
+        Assert.IsEmpty(ffmpegWrapper.TranscodeCalls);
+    }
+
+    [TestMethod]
+    public async Task Convert_TwoM4BsYieldingSameFolderName_FirstInWinsSecondSkipped()
+    {
+        // Two sources whose derived folder names collide within this run: first (by filename
+        // sort) wins and converts, second is skipped with its M4B preserved so the user can
+        // disambiguate by editing metadata.
+        var first = CreatePlaceholderM4B("a.m4b");
+        var second = CreatePlaceholderM4B("b.m4b");
+        m4bHandler.SetExtractedMetadata(MakeBook("Same", authorName: "Author", chapters: 1));
+        m4bHandler.SetExtractedMetadata(MakeBook("Same", authorName: "Author", chapters: 1));
+
+        await converter.Convert([], CancellationToken.None);
+
+        var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "Author - Same");
+        Assert.IsTrue(Directory.Exists(targetDir));
+        Assert.IsFalse(File.Exists(first), "first source deleted after successful conversion");
+        Assert.IsTrue(File.Exists(second), "colliding second source preserved for user action");
+        Assert.HasCount(1, ffmpegWrapper.TranscodeCalls);
+    }
+
+    [TestMethod]
+    public async Task Convert_Successful_RemovesConvertingSentinelBeforeDeletingSource()
+    {
+        // Invariant: on a successful conversion the target folder never carries a leftover
+        // sentinel (else a next-run pass would mistake it for a stale temp and delete everything).
+        var book = SeedPlaceholderBook("x.m4b", "Sentinel", author: "S", chapters: 1);
+
+        await converter.Convert([book], CancellationToken.None);
+
+        var targetDir = Path.Combine(alexandriaSettings.AudiobookFolder, "S - Sentinel");
+        Assert.IsTrue(Directory.Exists(targetDir));
+        Assert.IsFalse(File.Exists(Path.Combine(targetDir, ".converting")), "sentinel must be removed on successful conversion");
+        Assert.IsFalse(File.Exists(Path.Combine(targetDir, ".source.m4b")), "working copy must be removed on successful conversion");
     }
 
     [TestMethod]

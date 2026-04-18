@@ -38,7 +38,7 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             if (reader.Read())
                 return MapAuthor(reader);
 
-            return (Author?)null;
+            return null;
         });
     }
 
@@ -54,7 +54,7 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
             if (reader.Read())
                 return MapAuthor(reader);
 
-            return (Author?)null;
+            return null;
         });
     }
 

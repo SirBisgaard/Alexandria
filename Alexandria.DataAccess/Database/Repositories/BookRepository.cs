@@ -59,7 +59,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
                 return b;
             }
 
-            return (Book?)null;
+            return null;
         });
 
         if (book is not null)
@@ -87,7 +87,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
                 return b;
             }
 
-            return (Book?)null;
+            return null;
         });
 
         if (book is not null)
@@ -115,7 +115,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
                 return b;
             }
 
-            return (Book?)null;
+            return null;
         });
 
         if (book is not null)

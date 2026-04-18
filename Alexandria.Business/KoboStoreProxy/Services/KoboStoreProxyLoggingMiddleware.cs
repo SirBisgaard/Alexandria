@@ -16,8 +16,6 @@ namespace Alexandria.Business.KoboStoreProxy.Services;
 /// <param name="logger"></param>
 public class KoboStoreProxyLoggingMiddleware(RequestDelegate next, IKoboTrafficLogRepository koboTrafficLogRepository, ISettingsRepository settingsRepository, ILogger<KoboStoreProxyLoggingMiddleware> logger)
 {
-    private static readonly string[] ExcludedPaths = ["/alexandria/api", "/favicon.ico"];
-
     public async Task InvokeAsync(HttpContext context)
     {
         if (!context.Request.Path.StartsWithSegments("/api/kobo"))

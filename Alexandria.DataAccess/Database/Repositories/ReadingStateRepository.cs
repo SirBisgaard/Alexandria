@@ -19,7 +19,7 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
             {
-                return (KoboStoreReadingState?)null;
+                return null;
             }
 
             return MapReadingState(reader);
@@ -37,7 +37,7 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
             {
-                return (ReadingProgress?)null;
+                return null;
             }
 
             return new ReadingProgress

@@ -41,7 +41,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         resources["image_url_quality_template"] = $"{deviceBaseUrl}/{{ImageId}}/{{Width}}/{{Height}}/{{Quality}}/false/image.jpg";
 
         var headers = new Dictionary<string, string[]> { { "x-kobo-apitoken", ["e30="] } };
-        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, json!, headers);
+        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, json, headers);
     }
 
     /// <summary>

@@ -92,20 +92,4 @@ public class FileM4BAudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
     }
 
     private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
-
-    private string? ConvertCoverToJpeg(string? coverFilePath)
-    {
-        if (coverFilePath is null)
-            return null;
-
-        var extension = Path.GetExtension(coverFilePath);
-        if (extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase))
-            return coverFilePath;
-
-        var jpegBytes = coverThumbnailService.ConvertToJpeg(File.ReadAllBytes(coverFilePath));
-        var jpegPath = Path.ChangeExtension(coverFilePath, ".jpg");
-        File.WriteAllBytes(jpegPath, jpegBytes);
-        File.Delete(coverFilePath);
-        return jpegPath;
-    }
 }

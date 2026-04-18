@@ -152,8 +152,3 @@ app.UseFileServer();
 app.MapControllers();
 
 app.Run();
-
-namespace Alexandria.Api
-{
-    public partial class Program { }
-}

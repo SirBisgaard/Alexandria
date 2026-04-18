@@ -17,6 +17,8 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 /// </summary>
 public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
+    private const string SentinelFileName = ".converting";
+
     public async Task<int> Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
     {
         var appSettings = await settingsService.Get();
@@ -26,45 +28,57 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         if (!Directory.Exists(settings.AudiobookFolder))
             return 0;
 
-        var booksByPath = existingBooks
-            .Where(b => Path.GetExtension(b.File.SourcePath).Equals(".m4b", StringComparison.OrdinalIgnoreCase))
-            .GroupBy(b => b.File.SourcePath, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        
-        logger.LogInformation("ConvertAtIndex: found {Count} M4B file(s) to convert", booksByPath.Count);
-        if (booksByPath.Count == 0)
-            return 0;
-        
-        // Drop every source whose derived folder name collides with another — we can't safely
-        // pick a winner, so all participants in each collision are skipped with a warning.
-        // Resolution is a user action: edit title/authors/series so the derived names diverge.
-        var foldersBySource = booksByPath.ToDictionary(
-            kvp => kvp.Key,
-            kvp => BuildFolderName(kvp.Value),
-            StringComparer.OrdinalIgnoreCase);
-        var collidingSources = foldersBySource
-            .GroupBy(kvp => kvp.Value, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() > 1)
-            .SelectMany(g => g.Select(kvp => kvp.Key))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var colliding in collidingSources)
-            logger.LogWarning("Skipping {Source}: folder '{Folder}' collides with another source", colliding, foldersBySource[colliding]);
-
-        var sourceFiles = booksByPath.Keys
-            .Where(p => !collidingSources.Contains(p))
+        var m4BPaths = Directory.GetFiles(settings.AudiobookFolder, "*.m4b")
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        logger.LogInformation("ConvertAtIndex: found {Count} M4B file(s) to convert", m4BPaths.Length);
+        if (m4BPaths.Length == 0)
+            return 0;
+
+        var existingByPath = existingBooks
+            .Where(b => Path.GetExtension(b.File.SourcePath).Equals(".m4b", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(b => b.File.SourcePath, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        var claimedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var errorCount = 0;
-        for (var i = 0; i < sourceFiles.Length; i++)
+
+        for (var i = 0; i < m4BPaths.Length; i++)
         {
-            var path = sourceFiles[i];
+            var path = m4BPaths[i];
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var existing = booksByPath[path];
-                await ConvertOne(path, existing, i + 1, sourceFiles.Length, cancellationToken);
+
+                var extracted = await m4BFileHandler.ExtractMetadata(path);
+                var existing = existingByPath.GetValueOrDefault(path);
+                var canonical = existing ?? extracted;
+                canonical.Chapters = extracted.Chapters;
+
+                var candidateDir = Path.Combine(settings.AudiobookFolder, BuildFolderName(canonical));
+
+                if (!claimedTargets.Add(candidateDir))
+                {
+                    logger.LogWarning("Skipping {Source}: folder '{Dir}' already claimed by another source this run", path, candidateDir);
+                    continue;
+                }
+
+                if (Directory.Exists(candidateDir))
+                {
+                    if (IsStaleTempDir(candidateDir))
+                    {
+                        logger.LogWarning("Recovering stale temp folder {Dir} before converting {Source}", candidateDir, path);
+                        Directory.Delete(candidateDir, recursive: true);
+                    }
+                    else
+                    {
+                        logger.LogWarning("Target folder {Dir} already converted.", candidateDir);
+                        continue;
+                    }
+                }
+
+                await ConvertOne(path, candidateDir, canonical, extracted, existing, i + 1, m4BPaths.Length, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -76,34 +90,21 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         return errorCount;
     }
 
-    private async Task ConvertOne(string sourcePath, Book? existing, int bookNumber, int totalBooks, CancellationToken cancellationToken)
+    private async Task ConvertOne(string sourcePath, string targetDir, Book canonical, Book extracted, Book? existing, int bookNumber, int totalBooks, CancellationToken cancellationToken)
     {
-        string? targetDir = null;
-
         try
         {
-            var extracted = await m4BFileHandler.ExtractMetadata(sourcePath);
-            var coverBytes = await m4BFileHandler.ExtractCoverBytes(sourcePath);
-
             progressService.ReportConverting(extracted.Title, bookNumber, totalBooks);
 
-            // Identity metadata (title, authors, series, ...) comes from the DB when available
-            // so the re-indexed MP3 folder produces the same UUID and carries any UI edits.
-            // Chapter timings and titles only live in the file — overlay those from the extraction.
-            var canonical = existing ?? extracted;
-            canonical.Chapters = extracted.Chapters;
+            var coverBytes = await m4BFileHandler.ExtractCoverBytes(sourcePath);
 
-            var folderName = BuildFolderName(canonical);
-            var candidateDir = Path.Combine(settings.AudiobookFolder, folderName);
+            Directory.CreateDirectory(targetDir);
 
-            if (Directory.Exists(candidateDir))
-            {
-                Directory.Delete(candidateDir);
-                logger.LogWarning("Target folder already exists, skipping {Source} → {Target}", sourcePath, candidateDir);
-            }
-
-            Directory.CreateDirectory(candidateDir);
-            targetDir = candidateDir;
+            // Sentinel is created before anything else touches the folder so that a crash at any
+            // point during conversion leaves a recoverable marker. Removed below just before the
+            // source M4B is deleted, so a completed folder never carries the sentinel.
+            var sentinelPath = Path.Combine(targetDir, SentinelFileName);
+            File.Create(sentinelPath).Dispose();
 
             // Keep the working copy of the source M4B inside the target folder so that a failed
             // conversion cleans itself up entirely when CleanupTarget deletes the folder recursively.
@@ -123,13 +124,13 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             await TranscodeChapters(canonical, extracted, tempCopy, targetDir, coverJpgPath, cancellationToken);
 
             File.Delete(tempCopy);
+            File.Delete(sentinelPath);
             File.Delete(sourcePath);
             CleanupCachedChapters(existing);
             logger.LogInformation("Converted {Source} → {Target}", sourcePath, targetDir);
         }
-        catch (Exception ex)
+        catch
         {
-            logger.LogError(ex, "Failed to convert {Source}; leaving original intact", sourcePath);
             CleanupTarget(targetDir);
             throw;
         }
@@ -191,6 +192,19 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         {
             logger.LogError(ex, "Failed to clean up target folder {Target}", targetDir);
         }
+    }
+
+    /// <summary>
+    /// A target directory is "stale temp" — safe to recursively delete and retry — when it
+    /// either carries the <c>.converting</c> sentinel from an interrupted prior attempt, or
+    /// is completely empty (sentinel creation may itself have failed, leaving an empty dir).
+    /// Anything else is treated as an already-converted folder and left alone.
+    /// </summary>
+    private static bool IsStaleTempDir(string dir)
+    {
+        if (File.Exists(Path.Combine(dir, SentinelFileName)))
+            return true;
+        return Directory.GetFileSystemEntries(dir).Length == 0;
     }
 
     private static string BuildFolderName(Book book)

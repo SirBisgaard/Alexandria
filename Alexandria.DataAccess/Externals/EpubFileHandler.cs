@@ -750,7 +750,7 @@ public class EpubFileHandler : IEpubFileHandler
             }
 
             // EPUB 2 fallback: opf:role attribute
-            role ??= el.Attribute(Opf + "role")?.Value?.Trim();
+            role ??= el.Attribute(Opf + "role")?.Value.Trim();
 
             if (role is null)
                 continue;

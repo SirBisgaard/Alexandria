@@ -17,13 +17,13 @@ namespace Alexandria.Business.Library.Services;
 /// </summary>
 public class IndexingProgressService : IIndexingProgressService
 {
-    private IProgress<IndexingReport>? sink;
+    private IProgress<IndexingReport>? indexingProgress;
     private IndexingReport lastOuter;
     private bool hasOuter;
 
     public void Subscribe(IProgress<IndexingReport> sink)
     {
-        this.sink = sink;
+        indexingProgress = sink;
     }
 
     public void ReportConverting(string bookTitle, int index, int total)
@@ -60,7 +60,7 @@ public class IndexingProgressService : IIndexingProgressService
             Progress = progress,
             Total = total
         };
-        sink?.Report(report);
+        this.indexingProgress?.Report(report);
     }
 
     public void ReportDone()
@@ -82,6 +82,6 @@ public class IndexingProgressService : IIndexingProgressService
     {
         lastOuter = report;
         hasOuter = true;
-        sink?.Report(report);
+        indexingProgress?.Report(report);
     }
 }

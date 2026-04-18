@@ -23,7 +23,7 @@ public class CollectionRepository(ISqliteConnectionProvider connectionProvider) 
         {
             var collections = QueryCollections(connection, "SELECT * FROM Collections WHERE CollectionUuid = @uuid", ("@uuid", uuid.ToString()));
             if (collections.Count == 0)
-                return (BookCollection?)null;
+                return null;
 
             HydrateBookUuids(connection, collections);
             return (BookCollection?)collections[0];
