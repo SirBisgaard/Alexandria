@@ -152,7 +152,7 @@ public sealed class FfmpegWrapperTests
         Assert.AreEqual(1, videoStream.GetProperty("disposition").GetProperty("attached_pic").GetInt32());
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null, 2)]
     [DataRow(320000, 2)]
     [DataRow(200000, 2)]
@@ -176,7 +176,7 @@ public sealed class FfmpegWrapperTests
         Assert.AreEqual(expectedQuality, FfmpegWrapper.SelectLameQualityForStreaming(bitrate));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null, 0)]
     [DataRow(320000, 0)]
     [DataRow(256001, 0)]
