@@ -4,20 +4,20 @@ using Alexandria.Api.Middleware;
 using Alexandria.Business.Authentication;
 using Alexandria.Business.Authentication.Interfaces;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Services;
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
-using Alexandria.Business.KoboStoreProxy.Interfaces;
-using Alexandria.Business.Library.Services;
-using Alexandria.Business.KoboStoreProxy.Services;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Library.Services;
 using Alexandria.Business.Logging;
 using Alexandria.DataAccess.Database;
 using Alexandria.DataAccess.Database.Interfaces;
 using Alexandria.DataAccess.Database.Repositories;
 using Alexandria.DataAccess.Externals;
+using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files;
 using Alexandria.DataAccess.Files.Books.Audiobooks;
-using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
@@ -153,4 +153,7 @@ app.MapControllers();
 
 app.Run();
 
-public partial class Program { }
+namespace Alexandria.Api
+{
+    public partial class Program { }
+}
