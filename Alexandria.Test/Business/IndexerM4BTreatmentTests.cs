@@ -168,7 +168,7 @@ public sealed class IndexerM4BTreatmentTests
         public M4BFileTreatment? LastObservedTreatment { get; private set; }
         public int ConvertedBookCount { get; private set; }
 
-        public Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
+        public Task<int> Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
         {
             log.Add("converter:convert");
             LastObservedTreatment = settings.Settings.M4BFileTreatment;
@@ -179,7 +179,7 @@ public sealed class IndexerM4BTreatmentTests
                 ConvertedBookCount++;
             }
 
-            return Task.CompletedTask;
+            return Task.FromResult(0);
         }
     }
 

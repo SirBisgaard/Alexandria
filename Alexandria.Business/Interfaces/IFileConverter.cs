@@ -11,9 +11,11 @@ public interface IFileConverter
     /// be idempotent — a no-op when nothing needs converting is expected.
     /// </summary>
     /// <param name="existingBooks">
-    /// Snapshot of books currently in the database. Converters that replace a source file
-    /// with a different format should use this to locate and clean up derivative files
-    /// keyed to the previous book record (e.g. cached chapter MP3s under ChaptersFolder).
+    ///     Snapshot of books currently in the database. Converters that replace a source file
+    ///     with a different format should use this to locate and clean up derivative files
+    ///     keyed to the previous book record (e.g. cached chapter MP3s under ChaptersFolder).
     /// </param>
-    Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken);
+    /// <param name="cancellationToken"></param>
+    /// <returns>The count of books that failed conversion.</returns>
+    Task<int> Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken);
 }

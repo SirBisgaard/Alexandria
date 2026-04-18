@@ -738,11 +738,11 @@ public sealed class IndexerServiceTests
     {
         public int ConvertCallCount { get; private set; }
 
-        public Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
+        public Task<int> Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
         {
             log.Add("converter:convert");
             ConvertCallCount++;
-            return Task.CompletedTask;
+            return Task.FromResult(0);
         }
     }
 

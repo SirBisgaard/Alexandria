@@ -17,31 +17,57 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 /// </summary>
 public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
-    public async Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
+    public async Task<int> Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
     {
         var appSettings = await settingsService.Get();
         if (appSettings.M4BFileTreatment != M4BFileTreatment.ConvertAtIndex)
-            return;
+            return 0;
 
         if (!Directory.Exists(settings.AudiobookFolder))
-            return;
-
-        var sourceFiles = Directory.GetFiles(settings.AudiobookFolder, "*.m4b");
-        if (sourceFiles.Length == 0)
-            return;
-
-        logger.LogInformation("ConvertAtIndex: found {Count} M4B file(s) to convert", sourceFiles.Length);
+            return 0;
 
         var booksByPath = existingBooks
             .GroupBy(b => b.File.SourcePath, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        logger.LogInformation("ConvertAtIndex: found {Count} M4B file(s) to convert", booksByPath.Count);
+        if (booksByPath.Count == 0)
+            return 0;
+        
+        // Drop every source whose derived folder name collides with another — we can't safely
+        // pick a winner, so all participants in each collision are skipped with a warning.
+        // Resolution is a user action: edit title/authors/series so the derived names diverge.
+        var foldersBySource = booksByPath.ToDictionary(
+            kvp => kvp.Key,
+            kvp => BuildFolderName(kvp.Value),
+            StringComparer.OrdinalIgnoreCase);
+        var collidingSources = foldersBySource
+            .GroupBy(kvp => kvp.Value, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .SelectMany(g => g.Select(kvp => kvp.Key))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        foreach (var colliding in collidingSources)
+            logger.LogWarning("Skipping {Source}: folder '{Folder}' collides with another source", colliding, foldersBySource[colliding]);
+
+        var sourceFiles = booksByPath.Keys.Where(p => !collidingSources.Contains(p)).ToArray();
+
+        var errorCount = 0;
         for (var i = 0; i < sourceFiles.Length; i++)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var existing = booksByPath.GetValueOrDefault(sourceFiles[i]);
-            await ConvertOne(sourceFiles[i], existing, i + 1, sourceFiles.Length, cancellationToken);
+            var path = sourceFiles[i];
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var existing = booksByPath[path];
+                await ConvertOne(path, existing, i + 1, sourceFiles.Length, cancellationToken);
+            }
+            catch (Exception)
+            {
+                errorCount += 1;
+            }
         }
+
+        return errorCount;
     }
 
     private async Task ConvertOne(string sourcePath, Book? existing, int bookNumber, int totalBooks, CancellationToken cancellationToken)
@@ -66,8 +92,8 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
 
             if (Directory.Exists(candidateDir))
             {
+                Directory.Delete(candidateDir);
                 logger.LogWarning("Target folder already exists, skipping {Source} → {Target}", sourcePath, candidateDir);
-                return;
             }
 
             Directory.CreateDirectory(candidateDir);
@@ -99,6 +125,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         {
             logger.LogError(ex, "Failed to convert {Source}; leaving original intact", sourcePath);
             CleanupTarget(targetDir);
+            throw;
         }
     }
 
@@ -180,5 +207,5 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         return cleaned;
     }
 
-    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
+    private static bool IsJpeg(byte[] data) => data is [0xFF, 0xD8, ..];
 }
