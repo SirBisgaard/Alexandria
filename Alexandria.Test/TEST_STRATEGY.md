@@ -482,29 +482,15 @@ Tested rules are documented by the tests themselves — find them by name under 
 
 ### Indexer / service-layer policy
 
-- Indexer UUID resolution priority: path match → metadata match → new UUID (preserves UUID across file moves, so reading state and device sync stay intact)
 - Fast path: unchanged books (metadata + cover identical) bypass derivative regeneration
-- `EntitlementUuid` and `CreatedAt` are immutable across reindex — only `ModifiedAt` updates
-- `PreserveUserEdits` restores fields from the DB that the file format can't round-trip — M4B/MP3 reindex preserves Language, Identifiers, Source, Type, Relation, Coverage, Format from the DB
-- After stale-book cleanup, orphaned authors and orphaned series are removed
-- Author merge: source-author books are reassigned to the target, orphaned source author removed, affected books reindexed
-- Series merge: same policy as author merge, applied to series
-- `LibrarySyncLock.TryAcquire` is non-blocking — repeated "Sync now" clicks return 409 Conflict instead of queuing
 - `IndexingProgressService` is Scoped DI (not Singleton) — controller and consumers within the same request scope share one sink
 - `ReportSubTask` reuses the cached outer snapshot; each new outer tick clears previous sub-task by emitting a fresh report
-- Settings cache invalidates on write; disabling `ProxyLoggingEnabled` clears traffic logs as a side effect
 
 ### Sync token / session (`KoboDeviceSyncTokenService`)
 
 - Token parsing is dual-mode: Alexandria-wrapped tokens carry a version marker (V ≥ 1) as base64-wrapped JSON; missing version → treat as raw Kobo store token (first sync / factory reset)
 - Sessions are in-memory only, 5-minute timeout — server restart forces the device to full re-sync (correct recovery)
 - Abandoned syncs auto-expire after 5 minutes
-
-### Controller policies (`BooksController`)
-
-- Audiobook metadata updates reject non-Narrator contributor roles (BadRequest)
-- Cover uploads rejected above 10 MB
-- Cover content types limited to `image/jpeg`, `image/png`, `image/gif`
 
 ### External binary wrappers
 
@@ -514,6 +500,3 @@ Tested rules are documented by the tests themselves — find them by name under 
 
 - M4B pre-transcoded chapters created at index time only when `M4BFileTreatment == TranscodeAtIndex`
 - Pre-transcoded chapters cached at `ChaptersFolder/{bookUuid}/{chapterIndex}.mp3`; chapter endpoint serves from cache and skips ffmpeg when cache hit
-- M4B→MP3 conversion (`FileMp3AudiobookConverter`) preserves DB identity (title/authors/series) but re-extracts chapter timings from the freshly converted files
-- Converted MP3 folder naming: `{Author} - {Series} #{Index} - {Title}` sanitized for filesystem
-- Converter writes `cover.jpg` once upfront and references it across chapter transcodes (single on-disk file reused)

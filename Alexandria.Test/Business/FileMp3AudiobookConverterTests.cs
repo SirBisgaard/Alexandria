@@ -187,17 +187,31 @@ public sealed class FileMp3AudiobookConverterTests
     // ---------- Identity preservation ----------
 
     [TestMethod]
-    public async Task Convert_WithExistingBook_FolderNameUsesDbCanonicalMetadataNotExtracted()
+    public async Task Convert_WithExistingBook_UsesDbIdentityButExtractedChapterTimings()
     {
         var sourcePath = CreatePlaceholderM4B("file.m4b");
+
+        // DB record carries the canonical identity (title/author) plus stale chapter timings.
         var existing = MakeBook("DB Title", authorName: "DB Author", chapters: 0);
         existing.File.SourcePath = sourcePath;
-        m4bHandler.SetExtractedMetadata(MakeBook("File Title", authorName: "File Author", chapters: 2));
+        existing.Chapters.Add(new AudiobookChapter { ChapterIndex = 0, Title = "Stale DB chapter", StartTime = 999.0, EndTime = 1000.0, Duration = 1.0 });
+
+        // Fresh extraction from the file has different identity (overridden by DB) and fresh
+        // chapter timings (which win — chapter boundaries only live in the file).
+        var extracted = MakeBook("File Title", authorName: "File Author", chapters: 0);
+        extracted.Chapters.Add(new AudiobookChapter { ChapterIndex = 0, Title = "Fresh", StartTime = 0.0, EndTime = 42.0, Duration = 42.0 });
+        m4bHandler.SetExtractedMetadata(extracted);
 
         await converter.Convert([existing], CancellationToken.None);
 
+        // Folder name derived from DB identity, not from the extracted metadata.
         Assert.IsTrue(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "DB Author - DB Title")));
         Assert.IsFalse(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "File Author - File Title")));
+
+        // ffmpeg invoked with the fresh extracted timings, not the stale DB ones.
+        var call = ffmpegWrapper.TranscodeCalls.Single();
+        Assert.AreEqual(0.0, call.Start);
+        Assert.AreEqual(42.0, call.End);
     }
 
     // ---------- Skip/rollback paths ----------
