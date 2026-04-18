@@ -26,7 +26,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
             process.StartInfo = new ProcessStartInfo
             {
                 FileName = "ffmpeg",
-                Arguments = $"-v quiet -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 pipe:1",
+                Arguments = $"-v error -nostdin -y -ss {startTime} -i \"{inputPath}\" -t {duration} -vn {codecArgs} -f mp3 pipe:1",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -42,7 +42,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
                 await process.WaitForExitAsync(cancellationToken);
 
                 if (process.ExitCode != 0)
-                    throw new InvalidOperationException($"ffmpeg chapter extraction failed with exit code {process.ExitCode}: {stderr}");
+                    throw new InvalidOperationException($"ffmpeg failed. exitCode={process.ExitCode} stderr={stderr}");
             }
             catch (OperationCanceledException)
             {
@@ -84,7 +84,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
                 if (hasTags)
                     await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags!, []), Encoding.UTF8, cancellationToken);
 
-                var sb = new StringBuilder("-v quiet -y ");
+                var sb = new StringBuilder("-v error -y -nostdin ");
                 sb.Append($"-ss {startTime} -i \"{inputPath}\" ");
                 if (hasTags)
                     sb.Append($"-f ffmetadata -i \"{metadataPath}\" ");
@@ -126,7 +126,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
                     await process.WaitForExitAsync(cancellationToken);
 
                     if (process.ExitCode != 0)
-                        throw new InvalidOperationException($"ffmpeg chapter transcode failed with exit code {process.ExitCode}: {stderr}");
+                        throw new InvalidOperationException($"ffmpeg failed. exitCode={process.ExitCode} stderr={stderr}");
                 }
                 catch (OperationCanceledException)
                 {
@@ -156,7 +156,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
             process.StartInfo = new ProcessStartInfo
             {
                 FileName = "ffprobe",
-                Arguments = $"-v quiet -print_format json -show_format -show_chapters -show_streams \"{inputPath}\"",
+                Arguments = $"-v error -print_format json -show_format -show_chapters -show_streams \"{inputPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -170,7 +170,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
             await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
-                throw new InvalidOperationException($"ffprobe failed with exit code {process.ExitCode}: {error}");
+                throw new InvalidOperationException($"ffprobe failed. exitCode={process.ExitCode} stderr={error}");
 
             return output;
         }
@@ -189,7 +189,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
             process.StartInfo = new ProcessStartInfo
             {
                 FileName = "ffmpeg",
-                Arguments = $"-v quiet -i \"{inputPath}\" -an -vcodec copy -f image2pipe pipe:1",
+                Arguments = $"-v error -nostdin -i \"{inputPath}\" -an -vcodec copy -f image2pipe pipe:1",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -386,7 +386,7 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
         process.StartInfo = new ProcessStartInfo
         {
             FileName = "ffmpeg",
-            Arguments = arguments,
+            Arguments = $"-v error -nostdin {arguments}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -399,6 +399,6 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
         await process.WaitForExitAsync();
 
         if (process.ExitCode != 0)
-            throw new InvalidOperationException($"ffmpeg failed with exit code {process.ExitCode}: {error}");
+            throw new InvalidOperationException($"ffmpeg failed. exitCode={process.ExitCode} stderr={error}");
     }
 }

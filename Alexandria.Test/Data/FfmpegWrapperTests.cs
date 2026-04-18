@@ -246,7 +246,8 @@ public sealed class FfmpegWrapperTests
         var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
             async () => await ffmpeg.GetMetadataJson(missingPath));
 
-        Assert.Contains("exit code", ex.Message);
+        Assert.Contains("exitCode=", ex.Message);
+        Assert.Contains("stderr=", ex.Message);
 
         var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
         Assert.HasCount(1, errors);
@@ -264,8 +265,9 @@ public sealed class FfmpegWrapperTests
         var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
             async () => await ffmpeg.StreamChapter(garbagePath, 0, 1, qaLevel: 4, output, CancellationToken.None));
 
-        Assert.Contains("exit code", ex.Message);
-        Assert.IsGreaterThan("ffmpeg chapter extraction failed with exit code 0: ".Length, ex.Message.Length);
+        Assert.Contains("exitCode=", ex.Message);
+        Assert.Contains("stderr=", ex.Message);
+        Assert.IsGreaterThan("ffmpeg failed. exitCode=0 stderr=".Length, ex.Message.Length);
 
         var errors = logger.Entries.Where(e => e.Level == LogLevel.Error).ToList();
         Assert.HasCount(1, errors);
