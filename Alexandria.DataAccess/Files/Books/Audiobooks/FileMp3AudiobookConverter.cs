@@ -241,13 +241,33 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         return SanitizeFsName(raw);
     }
 
+    /// <summary>
+    /// Replaces characters that are invalid either on the local filesystem, when the filename
+    /// is embedded in <see cref="System.Diagnostics.ProcessStartInfo.Arguments"/> (notably <c>"</c>,
+    /// which .NET's CRT-style parser silently strips), or on FAT32/exFAT storage like the Kobo
+    /// device that these files are ultimately copied to. Uses the union of
+    /// <see cref="Path.GetInvalidFileNameChars"/> (host-specific; on Linux only <c>\0</c> and
+    /// <c>/</c>) and a hardcoded cross-platform + argv-safe set, so the host-specific list stays
+    /// as a safety net behind the explicit one.
+    /// </summary>
     private static string SanitizeFsName(string input)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        var cleaned = new string(input.Select(c => invalid.Contains(c) ? ' ' : c).ToArray()).Trim();
+        var cleaned = new string(input.Select(c => InvalidFsNameChars.Contains(c) ? ' ' : c).ToArray()).Trim();
         while (cleaned.Contains("  "))
             cleaned = cleaned.Replace("  ", " ");
         return cleaned;
+    }
+
+    private static readonly HashSet<char> InvalidFsNameChars = BuildInvalidFsNameChars();
+
+    private static HashSet<char> BuildInvalidFsNameChars()
+    {
+        var set = new HashSet<char>(Path.GetInvalidFileNameChars());
+        foreach (var c in "<>:\"/\\|?*")
+            set.Add(c);
+        for (var c = (char)0; c < 0x20; c++)
+            set.Add(c);
+        return set;
     }
 
     private static bool IsJpeg(byte[] data) => data is [0xFF, 0xD8, ..];

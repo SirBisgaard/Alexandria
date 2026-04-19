@@ -476,6 +476,29 @@ public sealed class FileMp3AudiobookConverterTests
             Assert.IsFalse(leaf.Contains(invalid), $"Folder leaf should not contain 0x{(int)invalid:X2}: '{leaf}'");
     }
 
+    [TestMethod]
+    public async Task Convert_ChapterTitleWithCrossPlatformInvalidChars_ChapterFileNameSanitized()
+    {
+        // Hardcoded union of Windows + Linux invalid filename chars — must hold on either host.
+        // SanitizeFsName uses Path.GetInvalidFileNameChars(), which on Linux only returns \0 and /,
+        // so `"`, `:`, `<`, `>`, `\`, `|`, `?`, `*` currently pass through into the chapter
+        // filename. `"` in particular breaks Process.StartInfo.Arguments parsing and makes ffmpeg
+        // see a path different from what's on disk.
+        var crossPlatformInvalids = new[] { '<', '>', ':', '"', '\\', '|', '?', '*' };
+        var chapterTitle = $"Chapter{new string(crossPlatformInvalids)}One";
+        var source = CreatePlaceholderM4B("b.m4b");
+        var book = MakeBook("Title", authorName: "A", chapters: 0);
+        book.File.SourcePath = source;
+        book.Chapters.Add(new AudiobookChapter { ChapterIndex = 0, Title = chapterTitle, StartTime = 0, EndTime = 10, Duration = 10 });
+        m4bHandler.SetExtractedMetadata(book);
+
+        await converter.Convert([book], CancellationToken.None);
+
+        var leaf = Path.GetFileName(ffmpegWrapper.TranscodeCalls.Single().OutPath);
+        foreach (var invalid in crossPlatformInvalids)
+            Assert.IsFalse(leaf.Contains(invalid), $"Chapter file name should not contain 0x{(int)invalid:X2}: '{leaf}'");
+    }
+
     // ---------- Helpers ----------
 
     private string CreatePlaceholderM4B(string fileName)
