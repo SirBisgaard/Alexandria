@@ -15,6 +15,7 @@ public class FileMp3AudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
             return [];
 
         return Directory.GetDirectories(settings.AudiobookFolder)
+            .Where(dir => !string.Equals(Path.GetFileName(dir), FileMp3AudiobookConverter.FailedFolderName, StringComparison.OrdinalIgnoreCase))
             .Where(dir => Directory.GetFiles(dir, "*.mp3").Length > 0)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .Select(dir => dir + ".mp3audiobook")
@@ -55,5 +56,5 @@ public class FileMp3AudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
     {
     }
 
-    private static bool IsJpeg(byte[] data) => data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
+    private static bool IsJpeg(byte[] data) => data is [0xFF, 0xD8, ..];
 }

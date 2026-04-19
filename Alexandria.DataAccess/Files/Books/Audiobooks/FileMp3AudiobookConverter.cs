@@ -18,15 +18,16 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
     private const string SentinelFileName = ".converting";
+    public const string FailedFolderName = "alexandria-conversion-failed";
 
-    public async Task<int> Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
+    public async Task Convert(IReadOnlyList<Book> existingBooks, CancellationToken cancellationToken)
     {
         var appSettings = await settingsService.Get();
         if (appSettings.M4BFileTreatment != M4BFileTreatment.ConvertAtIndex)
-            return 0;
+            return;
 
         if (!Directory.Exists(settings.AudiobookFolder))
-            return 0;
+            return;
 
         var m4BPaths = Directory.GetFiles(settings.AudiobookFolder, "*.m4b")
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
@@ -34,7 +35,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
 
         logger.LogInformation("ConvertAtIndex: found {Count} M4B file(s) to convert", m4BPaths.Length);
         if (m4BPaths.Length == 0)
-            return 0;
+            return;
 
         var existingByPath = existingBooks
             .Where(b => Path.GetExtension(b.File.SourcePath).Equals(".m4b", StringComparison.OrdinalIgnoreCase))
@@ -42,7 +43,6 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var claimedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var errorCount = 0;
 
         for (var i = 0; i < m4BPaths.Length; i++)
         {
@@ -80,14 +80,12 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
 
                 await ConvertOne(path, candidateDir, canonical, extracted, existing, i + 1, m4BPaths.Length, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                logger.LogError(ex, "Failed to convert {Source}", path);
-                errorCount += 1;
+                logger.LogError(ex, "Failed to convert {Source}; quarantining source file", path);
+                QuarantineFailedSource(path);
             }
         }
-
-        return errorCount;
     }
 
     private async Task ConvertOne(string sourcePath, string targetDir, Book canonical, Book extracted, Book? existing, int bookNumber, int totalBooks, CancellationToken cancellationToken)
@@ -177,6 +175,31 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to remove stale chapter cache {Dir}", cachedDir);
+        }
+    }
+
+    /// <summary>
+    /// Moves a source M4B that failed conversion into the <see cref="FailedFolderName"/>
+    /// quarantine folder so the next indexing run does not re-attempt and re-fail it.
+    /// Indexers do not recurse into subfolders of <see cref="AlexandriaSettings.AudiobookFolder"/>,
+    /// so quarantined files are excluded from discovery. Overwrites any prior copy at the
+    /// destination — a retry of the same source simply replaces its previous failed copy.
+    /// </summary>
+    private void QuarantineFailedSource(string sourcePath)
+    {
+        if (!File.Exists(sourcePath))
+            return;
+        try
+        {
+            var failedDir = Path.Combine(settings.AudiobookFolder, FailedFolderName);
+            Directory.CreateDirectory(failedDir);
+            var destPath = Path.Combine(failedDir, Path.GetFileName(sourcePath));
+            File.Move(sourcePath, destPath, overwrite: true);
+            logger.LogWarning("Quarantined failed source {Source} -> {Dest}", sourcePath, destPath);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to quarantine source {Source}", sourcePath);
         }
     }
 

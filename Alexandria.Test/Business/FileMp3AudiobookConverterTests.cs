@@ -329,7 +329,7 @@ public sealed class FileMp3AudiobookConverterTests
     }
 
     [TestMethod]
-    public async Task Convert_TranscodeFails_TargetFolderRolledBackAndSourcePreserved()
+    public async Task Convert_TranscodeFails_SourceQuarantinedAndTargetFolderRolledBack()
     {
         var source = CreatePlaceholderM4B("x.m4b");
         m4bHandler.SetExtractedMetadata(MakeBook("Doomed", authorName: "Author", chapters: 2));
@@ -337,8 +337,50 @@ public sealed class FileMp3AudiobookConverterTests
 
         await converter.Convert([], CancellationToken.None);
 
-        Assert.IsTrue(File.Exists(source));
+        Assert.IsFalse(File.Exists(source), "failed source must not linger at its original path");
         Assert.IsFalse(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "Author - Doomed")));
+        var quarantined = Path.Combine(alexandriaSettings.AudiobookFolder, FileMp3AudiobookConverter.FailedFolderName, "x.m4b");
+        Assert.IsTrue(File.Exists(quarantined), "failed source must be moved into the quarantine folder");
+    }
+
+    [TestMethod]
+    public async Task Convert_OneFailsOneSucceeds_FailedQuarantinedAndOtherConverts()
+    {
+        var bad = SeedPlaceholderBook("a-bad.m4b", "Bad", author: "X", chapters: 1);
+        var good = SeedPlaceholderBook("b-good.m4b", "Good", author: "Y", chapters: 1);
+        ffmpegWrapper.ThrowOnCall = 1; // first transcode (bad book) fails
+
+        await converter.Convert([bad, good], CancellationToken.None);
+
+        var quarantined = Path.Combine(alexandriaSettings.AudiobookFolder, FileMp3AudiobookConverter.FailedFolderName, "a-bad.m4b");
+        Assert.IsTrue(File.Exists(quarantined), "bad book's source must be quarantined");
+        Assert.IsFalse(File.Exists(bad.File.SourcePath), "bad book's original source must be gone");
+        Assert.IsTrue(Directory.Exists(Path.Combine(alexandriaSettings.AudiobookFolder, "Y - Good")), "good book must still convert");
+        Assert.IsFalse(File.Exists(good.File.SourcePath), "good book's source must be deleted after successful conversion");
+    }
+
+    [TestMethod]
+    public async Task Convert_RetryAfterPriorFailure_OverwritesPriorQuarantinedCopy()
+    {
+        // Seed a stale copy inside the quarantine folder with a marker payload, then run the
+        // converter against a fresh failing source of the same filename. The post-retry copy
+        // must replace the stale one.
+        var failedDir = Path.Combine(alexandriaSettings.AudiobookFolder, FileMp3AudiobookConverter.FailedFolderName);
+        Directory.CreateDirectory(failedDir);
+        var staleDest = Path.Combine(failedDir, "retry.m4b");
+        File.WriteAllBytes(staleDest, [0xFF, 0xFF, 0xFF]);
+
+        var freshBytes = new byte[] { 0x01, 0x02, 0x03 };
+        var source = Path.Combine(alexandriaSettings.AudiobookFolder, "retry.m4b");
+        File.WriteAllBytes(source, freshBytes);
+        m4bHandler.SetExtractedMetadata(MakeBook("Retry", authorName: "A", chapters: 1));
+        ffmpegWrapper.ThrowOnCall = 1;
+
+        await converter.Convert([], CancellationToken.None);
+
+        Assert.IsFalse(File.Exists(source));
+        var actual = await File.ReadAllBytesAsync(staleDest);
+        CollectionAssert.AreEqual(freshBytes, actual, "quarantined payload must be the fresh failure, not the stale prior copy");
     }
 
     // ---------- Chapter cache cleanup ----------
@@ -376,18 +418,19 @@ public sealed class FileMp3AudiobookConverterTests
     // ---------- Cancellation ----------
 
     [TestMethod]
-    public async Task Convert_CancellationRequested_CountsAsErrorAndSkipsTranscode()
+    public async Task Convert_CancellationRequested_PropagatesAndPreservesSource()
     {
-        // The outer loop catches all exceptions (including OperationCanceledException) and
-        // increments errorCount rather than propagating. Cancellation therefore surfaces to
-        // the caller as errorCount == book count, and no ffmpeg work is done.
+        // Cancellation is a caller-level signal, not a book-level failure: it must propagate
+        // rather than quarantine the source. The outer catch filters OperationCanceledException.
         var book = SeedPlaceholderBook("x.m4b", "WillCancel", author: "A", chapters: 1);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var errorCount = await converter.Convert([book], cts.Token);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => converter.Convert([book], cts.Token));
 
-        Assert.AreEqual(1, errorCount);
+        Assert.IsTrue(File.Exists(book.File.SourcePath), "source must remain at its original path on cancellation");
+        var quarantined = Path.Combine(alexandriaSettings.AudiobookFolder, FileMp3AudiobookConverter.FailedFolderName, "x.m4b");
+        Assert.IsFalse(File.Exists(quarantined), "cancellation must not move the source into quarantine");
         Assert.IsEmpty(ffmpegWrapper.TranscodeCalls);
     }
 
