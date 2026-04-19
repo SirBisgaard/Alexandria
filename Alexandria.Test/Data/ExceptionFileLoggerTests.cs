@@ -135,6 +135,27 @@ public sealed class ExceptionFileLoggerTests
     }
 
     [TestMethod]
+    public void Log_AfterFileDeleted_RecreatesFileAndWritesEntry()
+    {
+        using var provider = new ExceptionFileLoggerProvider(logPath);
+        var logger = provider.CreateLogger("Test");
+
+        logger.LogError(BuildThrown("first"), "first entry");
+        Assert.IsTrue(File.Exists(logPath));
+
+        File.Delete(logPath);
+        Assert.IsFalse(File.Exists(logPath));
+
+        logger.LogError(BuildThrown("second"), "second entry");
+
+        Assert.IsTrue(File.Exists(logPath));
+        var content = File.ReadAllText(logPath);
+        Assert.Contains("second entry", content);
+        Assert.Contains("second", content);
+        Assert.IsFalse(content.Contains("first entry"), "Recreated file must not contain entries that were in the deleted file.");
+    }
+
+    [TestMethod]
     public void Log_Concurrent_EntriesAreNotInterleaved()
     {
         const int iterations = 500;

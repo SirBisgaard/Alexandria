@@ -7,7 +7,7 @@ namespace Alexandria.Business.Logging;
 /// <see cref="LogLevel.Error"/> entries that carry a non-null exception; every
 /// other call is a no-op so the file is Error-only by construction.
 /// </summary>
-internal sealed class ExceptionFileLogger(StreamWriter writer, Lock gate) : ILogger
+internal sealed class ExceptionFileLogger(ExceptionFileLoggerProvider provider) : ILogger
 {
     public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 
@@ -20,13 +20,7 @@ internal sealed class ExceptionFileLogger(StreamWriter writer, Lock gate) : ILog
 
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         var message = formatter(state, null);
-
-        lock (gate)
-        {
-            writer.WriteLine($"{timestamp} => {message}");
-            writer.WriteLine(exception.ToString());
-            writer.WriteLine();
-        }
+        provider.Write(timestamp, message, exception);
     }
 
     private sealed class NullScope : IDisposable
