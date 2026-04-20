@@ -3,6 +3,7 @@ using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alexandria.Api.Controllers.Alexandria;
@@ -47,11 +48,13 @@ public class BooksController(IBookService bookService, ILogger<BooksController> 
     }
 
     [HttpGet("{uuid:guid}/cover")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetBookCover(Guid uuid, [FromQuery] int? width = null, [FromQuery] int? height = null)
     {
         var cover = await bookService.GetBookCover(uuid, width, height);
         if (cover is null)
             return NotFound();
+        Response.Headers.CacheControl = "public, max-age=604800, immutable";
         return File(cover, "image/jpeg");
     }
 
