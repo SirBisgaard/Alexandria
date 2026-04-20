@@ -109,6 +109,16 @@ Alexandria stands on the shoulders of a few excellent tools:
 
 And a special thanks to **Kobo** for making devices that are a genuine pleasure to read on, and for keeping their sync protocol approachable enough that a project like this is possible in the first place.
 
+## AI Disclosure
+
+Parts of this project were built with assistance from [Claude](https://claude.ai) (Anthropic).
+
+Used for:
+
+- Implementing draft work or cookiecutter-style boilerplate.
+- Writing and polishing documentation.
+- Helping reverse-engineer the Kobo sync protocol, enabling audiobooks.
+
 ## Copyright
 
 Alexandria is released under the MIT License. See [LICENSE](./LICENSE) for the full text.
