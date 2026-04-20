@@ -121,4 +121,4 @@ Used for:
 
 ## Copyright
 
-Alexandria is released under the MIT License. See [LICENSE](./LICENSE) for the full text.
+Alexandria is released under the European Union Public Licence v. 1.2 (EUPL-1.2). See [LICENSE](./LICENSE) for the full text.
