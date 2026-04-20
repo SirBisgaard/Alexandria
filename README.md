@@ -8,6 +8,8 @@ It exists because no other project offered stable large-library management for a
 
 If you own your media and want it to just show up on your Kobo, this is for you.
 
+![Alexandria home screen](Screenshots/home.png)
+
 ## Features
 
 ### Kobo device features
@@ -62,6 +64,8 @@ services:
       - AlexandriaSettings__AudiobookFolder=/books/audiobooks
 ```
 Once the container is up, point your Kobo's DNS at the host running Alexandria and connect the device.
+
+On first boot Alexandria seeds a default user with username `alexander` and password `TheGreat`. Sign in, then change the password immediately from the user settings — the defaults are public knowledge and anyone who can reach the instance can log in as admin until you do.
 
 ### Kobo eReader conf
 
