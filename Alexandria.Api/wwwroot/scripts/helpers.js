@@ -69,7 +69,7 @@ function readingStatusText(progress, mediaType) {
     var isAudiobook = mediaType === "Audiobook";
     if (!progress || progress.status === "ReadyToRead") { return isAudiobook ? "Unplayed" : "Unread"; }
     if (progress.status === "Finished" || (progress.progressPercent != null && Math.round(progress.progressPercent) >= 100)) { return "Finished"; }
-    if (progress.progressPercent != null) { return Math.max(1, Math.min(100, Math.round(progress.progressPercent))) + (isAudiobook ? "% Played" : "% Read"); }
+    if (progress.status === "Reading" || progress.progressPercent != null) { return Math.max(1, Math.min(100, Math.round(progress.progressPercent || 0))) + (isAudiobook ? "% Played" : "% Read"); }
     return progress.status;
 }
 
