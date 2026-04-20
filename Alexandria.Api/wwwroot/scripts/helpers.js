@@ -71,6 +71,11 @@ function readingStatusText(progress, mediaType) {
     return progress.status;
 }
 
+function readingRemainingText(progress) {
+    if (!progress || !progress.remainingTimeMinutes) { return ""; }
+    return Math.round(progress.remainingTimeMinutes / 60) + " hours to go";
+}
+
 function readingStatusRaw(progress) {
     if (!progress || progress.status === "ReadyToRead") { return "ReadyToRead"; }
     return progress.status;

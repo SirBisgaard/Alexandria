@@ -81,7 +81,7 @@ $(function () {
         var readingBooks = [];
         for (var i = 0; i < books.length; i++) {
             var p = books[i].readingProgress;
-            if (p && p.progressPercent != null && p.status !== "ReadyToRead" && p.status !== "Finished") {
+            if (p && p.status === "Reading") {
                 readingBooks.push(books[i]);
             }
         }
@@ -93,12 +93,11 @@ $(function () {
             var spanClass = readingBooks.length >= 3 ? ' home-reading-span' : '';
             var readingHtml = '<div class="home-reading' + spanClass + '">';
             $.each(readingBooks, function (i, book) {
-                var pct = Math.round(book.readingProgress.progressPercent);
-                var remaining = book.readingProgress.remainingTimeMinutes;
-                var subText = remaining ? Math.round(remaining / 60) + " hours to go" : "";
+                var status = readingStatusText(book.readingProgress, book.file.mediaType);
+                var subText = readingRemainingText(book.readingProgress);
                 readingHtml += '<div class="home-reading-item" onclick="openBookModal(\'' + book.bookUuid + '\')">' +
                     '<div class="home-card-covers">' + homeSingleCoverHtml(book) + '</div>' +
-                    '<div class="home-card-title">' + pct + (book.file.mediaType === "Audiobook" ? '% Played' : '% Read') + '</div>' +
+                    '<div class="home-card-title">' + escapeHtml(status) + '</div>' +
                     '<div class="home-card-sub">' + escapeHtml(subText) + '</div>' +
                 '</div>';
             });
