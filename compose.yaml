@@ -8,6 +8,7 @@ services:
       - "80:8080"
     volumes:
       - ./Data/Books:/app/content/books
+      - ./Data/Audiobooks:/app/content/audiobooks
       - ./Data/Alexandria:/app/content/data
     environment:
       # Logging
