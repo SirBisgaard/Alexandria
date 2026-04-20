@@ -1,20 +1,24 @@
 services:
-  alexandria.api:
-    image: alexandria.api
-    build:
-      context: .
-      dockerfile: Alexandria.Api/Dockerfile
+  alexandria:
+    container_name: alexandria
+    image: <registry>/alexandria:latest
+    platform: linux/amd64
     ports:
-      - "80:8080"
+      - 8080:8080
+    user: 1000:1000
+    privileged: false
+    pull_policy: always
+    restart: always
     volumes:
-      - ./Data/Books:/app/content/books
-      - ./Data/Audiobooks:/app/content/audiobooks
-      - ./Data/Alexandria:/app/content/data
+      - /path/to/your/ebooks:/books/ebooks
+      - /path/to/your/audiobooks:/books/audiobooks
+      - ./data:/data
     environment:
       # Logging
       - Logging__LogLevel__Default=Information
       # AlexandriaSettings
-      - AlexandriaSettings__PublicUrl=http://localhost
-      - AlexandriaSettings__DataFolder=/app/content/data
-      - AlexandriaSettings__EbookFolder=/app/content/books
-      - AlexandriaSettings__AudiobookFolder=/app/content/audiobooks
+      - AlexandriaSettings__PublicUrl=https://alexandria.example.com
+      - AlexandriaSettings__M4bFileTreatment=Nothing
+      - AlexandriaSettings__DataFolder=/data
+      - AlexandriaSettings__EbookFolder=/books/ebooks
+      - AlexandriaSettings__AudiobookFolder=/books/audiobooks

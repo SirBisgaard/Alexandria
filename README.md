@@ -33,34 +33,35 @@ If you own your media and want it to just show up on your Kobo, this is for you.
 
 ## How to run
 
-A prebuilt Docker image is available at:
-
-> `<registry>/alexandria:latest` — _update this link with your actual registry URL_
-
-A minimal `compose.yaml` is included in the repo root; the default shape looks like this:
+Alexandria is distributed as a Docker image — pull it from your registry of choice and run it with the bundled `compose.yaml`. The committed file uses placeholders; replace them with your own paths, registry, and public URL before running:
 
 ```yaml
 services:
-  alexandria.api:
-    image: alexandria.api
-    build:
-      context: .
-      dockerfile: Alexandria.Api/Dockerfile
+  alexandria:
+    container_name: alexandria
+    image: <registry>/alexandria:latest
+    platform: linux/amd64
     ports:
-      - "80:8080"
+      - 8080:8080
+    user: 1000:1000
+    privileged: false
+    pull_policy: always
+    restart: always
     volumes:
-      - ./Data/Books:/app/content/books
-      - ./Data/Audiobooks:/app/content/audiobooks
-      - ./Data/Alexandria:/app/content/data
+      - /path/to/your/ebooks:/books/ebooks
+      - /path/to/your/audiobooks:/books/audiobooks
+      - ./data:/data
     environment:
+      # Logging
       - Logging__LogLevel__Default=Information
-      - AlexandriaSettings__PublicUrl=http://localhost
-      - AlexandriaSettings__DataFolder=/app/content/data
-      - AlexandriaSettings__EbookFolder=/app/content/books
-      - AlexandriaSettings__AudiobookFolder=/app/content/audiobooks
+      # AlexandriaSettings
+      - AlexandriaSettings__PublicUrl=https://alexandria.example.com
+      - AlexandriaSettings__M4bFileTreatment=Nothing
+      - AlexandriaSettings__DataFolder=/data
+      - AlexandriaSettings__EbookFolder=/books/ebooks
+      - AlexandriaSettings__AudiobookFolder=/books/audiobooks
 ```
-
-Then point your Kobo's DNS at the host running Alexandria and connect the device.
+Once the container is up, point your Kobo's DNS at the host running Alexandria and connect the device.
 
 ### Kobo eReader conf
 
