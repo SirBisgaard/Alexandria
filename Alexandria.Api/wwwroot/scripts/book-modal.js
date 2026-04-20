@@ -27,9 +27,9 @@ function openBookModal(uuid) {
             $("#bm-cover").hide();
             $("#bm-cover-fallback").show();
         }
-        $("#bm-cover-frame .audiobook-badge").remove();
+        $("#bm-cover-inner .audiobook-badge").remove();
         if (book.file.mediaType === "Audiobook")
-            $("#bm-cover-frame").append(AUDIOBOOK_BADGE);
+            $("#bm-cover-inner").append(AUDIOBOOK_BADGE);
         $("#bm-cover-frame").show();
         $("#bm-title").text(book.title);
         var seriesHtml = seriesName ? ('<a href="series-detail.html?uuid=' + book.series.seriesUuid + '">' + escapeHtml(series) + '</a>') : "";

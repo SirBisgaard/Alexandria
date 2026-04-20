@@ -10,8 +10,8 @@ $(function () {
                 '<div class="book-modal-title-bar">My Books</div>' +
                 '<button class="book-modal-close" id="bm-close">&times;</button>' +
                 '<div class="book-modal-info">' +
-                    '<div class="cover-frame book-modal-cover" id="bm-cover-frame"><img id="bm-cover" src="" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-                    '<div id="bm-cover-fallback" class="book-cover" style="display:none;"></div></div>' +
+                    '<div class="cover-frame book-modal-cover" id="bm-cover-frame"><div class="book-modal-cover-inner" id="bm-cover-inner"><img id="bm-cover" src="" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+                    '<div id="bm-cover-fallback" class="book-cover" style="display:none;"></div></div></div>' +
                     '<div class="book-modal-meta">' +
                         '<div class="book-modal-book-title" id="bm-title"></div>' +
                         '<div class="book-modal-series" id="bm-series"></div>' +

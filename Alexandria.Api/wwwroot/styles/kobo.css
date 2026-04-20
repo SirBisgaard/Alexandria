@@ -773,6 +773,12 @@ a.series-list-item {
     cursor: pointer;
 }
 
+.book-modal-cover-inner {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+}
+
 .book-modal-cover img {
     position: static;
     transform: none;
