@@ -312,7 +312,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 UuidSeed TEXT NOT NULL,
                 LastIndexedTimestamp TEXT,
                 SyncBatchSize INTEGER NOT NULL DEFAULT 60,
-                ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 1,
+                ProxyLoggingEnabled INTEGER NOT NULL DEFAULT 0,
                 WordsPerPage INTEGER NOT NULL DEFAULT 250,
                 SyncLibraryAtBoot INTEGER NOT NULL DEFAULT 0,
                 M4bFileTreatment TEXT NOT NULL DEFAULT 'Nothing'
@@ -323,7 +323,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         // Generate a unique per-install UUID seed. Doubles as UUID v5 namespace, JWT HMAC key seed, and password hashing salt.
         var uuidSeed = Guid.NewGuid();
         const int syncBatchSize = 60;
-        const int proxyLoggingEnabled = 1;
+        const int proxyLoggingEnabled = 0;
         const int wordsPerPage = 250;
         const int syncLibraryAtBoot = 0;
         var m4BFileTreatment = (alexandriaSettings.M4BFileTreatment ?? M4BFileTreatment.Nothing).ToString();

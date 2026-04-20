@@ -25,7 +25,7 @@ public sealed class SettingsApiTests : IntegrationTestBase
         var body = await response.Content.ReadFromJsonAsync<SettingsResponseDto>();
         Assert.IsNotNull(body);
         Assert.AreEqual(60, body.SyncBatchSize);
-        Assert.IsTrue(body.ProxyLoggingEnabled);
+        Assert.IsFalse(body.ProxyLoggingEnabled);
         Assert.AreEqual(250, body.WordsPerPage);
         Assert.IsFalse(body.SyncLibraryAtBoot);
     }
@@ -166,7 +166,7 @@ public sealed class SettingsApiTests : IntegrationTestBase
     private sealed class UpdatePayload
     {
         public int SyncBatchSize { get; set; } = 60;
-        public bool ProxyLoggingEnabled { get; set; } = true;
+        public bool ProxyLoggingEnabled { get; set; }
         public int WordsPerPage { get; set; } = 250;
         public bool SyncLibraryAtBoot { get; set; }
         public M4BFileTreatment M4BFileTreatment { get; set; } = M4BFileTreatment.Nothing;

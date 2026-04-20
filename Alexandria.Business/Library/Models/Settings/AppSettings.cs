@@ -15,7 +15,7 @@ public class AppSettings
     public int SyncBatchSize { get; set; } = 60;
 
     /// <summary>When true, all Kobo proxy traffic is logged to the KoboTrafficLogs table.</summary>
-    public bool ProxyLoggingEnabled { get; set; } = true;
+    public bool ProxyLoggingEnabled { get; set; }
 
     /// <summary>Words per page for PageCount estimation from WordCount.</summary>
     public int WordsPerPage { get; set; } = 250;

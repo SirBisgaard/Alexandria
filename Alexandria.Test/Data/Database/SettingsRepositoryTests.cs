@@ -22,7 +22,7 @@ public sealed class SettingsRepositoryTests : DatabaseTestBase
         Assert.AreNotEqual(Guid.Empty, settings.UuidSeed);
         Assert.IsNull(settings.LastIndexedTimestamp);
         Assert.AreEqual(60, settings.SyncBatchSize);
-        Assert.IsTrue(settings.ProxyLoggingEnabled);
+        Assert.IsFalse(settings.ProxyLoggingEnabled);
         Assert.AreEqual(250, settings.WordsPerPage);
         Assert.IsFalse(settings.SyncLibraryAtBoot);
         Assert.AreEqual(M4BFileTreatment.Nothing, settings.M4BFileTreatment);
