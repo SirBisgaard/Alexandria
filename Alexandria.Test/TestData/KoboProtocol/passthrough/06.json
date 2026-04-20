@@ -1,0 +1,50 @@
+{
+  "name": "passthrough-06",
+  "request": {
+    "method": "GET",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/user/profile",
+    "query": "",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": ""
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json; charset=utf-8",
+  "isBinary": false
+}

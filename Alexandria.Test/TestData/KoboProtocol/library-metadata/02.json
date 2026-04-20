@@ -1,0 +1,112 @@
+{
+  "name": "library-metadata-02",
+  "request": {
+    "method": "GET",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/library/84f06db7-fd5b-1c65-dab5-4f44ddcd9d74/metadata",
+    "query": "",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": ""
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json; charset=utf-8",
+  "expectedBody": [
+    {
+      "Categories": [
+        "00000000-0000-0000-0000-000000000001"
+      ],
+      "CoverImageId": "84f06db7-fd5b-1c65-dab5-4f44ddcd9d74",
+      "CrossRevisionId": "84f06db7-fd5b-1c65-dab5-4f44ddcd9d74",
+      "CurrentDisplayPrice": {
+        "CurrencyCode": "USD",
+        "TotalAmount": 0
+      },
+      "CurrentLoveDisplayPrice": {
+        "TotalAmount": 0
+      },
+      "Description": "Scrubbed description.",
+      "DownloadUrls": [
+        {
+          "DrmType": "None",
+          "Format": "MANIFEST",
+          "Size": 198176444,
+          "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/84f06db7-fd5b-1c65-dab5-4f44ddcd9d74/manifest",
+          "Platform": "Generic"
+        }
+      ],
+      "EntitlementId": "84f06db7-fd5b-1c65-dab5-4f44ddcd9d74",
+      "ExternalIds": [],
+      "Genre": "00000000-0000-0000-0000-000000000001",
+      "IsEligibleForKoboLove": false,
+      "IsInternetArchive": false,
+      "IsPreOrder": false,
+      "IsSocialEnabled": true,
+      "Language": "",
+      "PhoneticPronunciations": {},
+      "PublicationDate": "2015T00:00:00Z",
+      "Publisher": {
+        "Imprint": "",
+        "Name": "Scrubbed Publisher"
+      },
+      "RevisionId": "84f06db7-fd5b-1c65-dab5-4f44ddcd9d74",
+      "Title": "Scrubbed Title",
+      "WorkId": "84f06db7-fd5b-1c65-dab5-4f44ddcd9d74",
+      "ContributorRoles": [
+        {
+          "Name": "Scrubbed Author",
+          "Role": "Author"
+        },
+        {
+          "Name": "Scrubbed Author",
+          "Role": "Narrator"
+        }
+      ],
+      "Contributors": [
+        "Scrubbed Author"
+      ],
+      "Duration": 44361,
+      "Locale": {
+        "LanguageCode": "en",
+        "ScriptCode": "",
+        "CountryCode": ""
+      }
+    }
+  ],
+  "isBinary": false
+}

@@ -1,0 +1,72 @@
+{
+  "name": "library-state-put-01",
+  "request": {
+    "method": "PUT",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/library/6e91afed-b0f6-09df-ed4c-f868d8e83abe/state",
+    "query": "",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Content-Length": [
+        "499"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": "{\u0022ReadingStates\u0022:[{\u0022CurrentBookmark\u0022:{\u0022ContentSourceProgressPercent\u0022:0,\u0022LastModified\u0022:\u00222026-04-19T20:31:09Z\u0022,\u0022Location\u0022:{\u0022Source\u0022:\u0022text/titlepage.xhtml\u0022,\u0022Type\u0022:\u0022KoboSpan\u0022,\u0022Value\u0022:\u0022kobo.1.1\u0022},\u0022ProgressPercent\u0022:0},\u0022EntitlementId\u0022:\u00226e91afed-b0f6-09df-ed4c-f868d8e83abe\u0022,\u0022LastModified\u0022:\u00222026-04-19T20:31:09Z\u0022,\u0022Statistics\u0022:{\u0022LastModified\u0022:\u00222026-04-19T20:31:09Z\u0022,\u0022RemainingTimeMinutes\u0022:0,\u0022SpentReadingMinutes\u0022:0},\u0022StatusInfo\u0022:{\u0022LastModified\u0022:\u00222026-04-19T20:31:09Z\u0022,\u0022Status\u0022:\u0022Reading\u0022}}]}"
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json; charset=utf-8",
+  "expectedBody": {
+    "RequestResult": "Success",
+    "UpdateResults": [
+      {
+        "EntitlementId": "6e91afed-b0f6-09df-ed4c-f868d8e83abe",
+        "CurrentBookmarkResult": {
+          "Result": "Success"
+        },
+        "StatisticsResult": {
+          "Result": "Success"
+        },
+        "StatusInfoResult": {
+          "Result": "Success"
+        },
+        "LastModified": "2026-04-19T20:31:09Z",
+        "PriorityTimestamp": "2026-04-19T20:31:09Z"
+      }
+    ]
+  },
+  "isBinary": false
+}

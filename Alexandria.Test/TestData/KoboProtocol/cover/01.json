@@ -1,0 +1,29 @@
+{
+  "name": "cover-01",
+  "request": {
+    "method": "GET",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/64302cdf-54dd-667e-700b-0509e7c9a1e6/355/530/80/false/image.jpg",
+    "query": "",
+    "headers": {
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "identity"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Cache-Control": [
+        "no-cache"
+      ],
+      "Pragma": [
+        "no-cache"
+      ]
+    },
+    "body": ""
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "image/jpeg",
+  "isBinary": true
+}

@@ -1,0 +1,65 @@
+{
+  "name": "analytics-event-02",
+  "request": {
+    "method": "POST",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/analytics/event",
+    "query": "",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Content-Length": [
+        "3895"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": "{\u0022AffiliateName\u0022:\u0022Kobo\u0022,\u0022ApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022Events\u0022:[{\u0022Attributes\u0022:{\u0022Origin\u0022:\u0022MarkAsFinished\u0022,\u0022Screen\u0022:\u0022Library\u0022,\u0022volumeid\u0022:\u0022b815e97f-000a-a097-bdb0-798ce074e7bb\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022MarkAsFinished\u0022,\u0022Id\u0022:\u00227d281931-f564-1c27-426e-30f2c75c8c21\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:18:30Z\u0022},{\u0022Attributes\u0022:{\u0022Action\u0022:\u0022Sort\u0022,\u0022Option\u0022:\u0022Title\u0022,\u0022SortType\u0022:\u0022Title\u0022,\u0022ViewType\u0022:\u0022Books\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022ChangeSort\u0022,\u0022Id\u0022:\u00222848480a-3e40-c108-8232-0da4d68896d4\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:18:40Z\u0022},{\u0022Attributes\u0022:{\u0022Origin\u0022:\u0022MarkAsFinished\u0022,\u0022Screen\u0022:\u0022Library\u0022,\u0022volumeid\u0022:\u00227bf58088-a769-9aac-284d-7850e0c79d9e\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022MarkAsFinished\u0022,\u0022Id\u0022:\u0022ba268545-a81b-c449-4f06-4c351fce3c66\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:18:56Z\u0022},{\u0022Attributes\u0022:{\u0022Origin\u0022:\u0022MarkAsFinished\u0022,\u0022Screen\u0022:\u0022Library\u0022,\u0022volumeid\u0022:\u0022e2618176-8631-b6a2-3a86-23408971d667\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022MarkAsFinished\u0022,\u0022Id\u0022:\u00223fad6679-c6e3-800c-fc35-afb3f0026cd0\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:19:07Z\u0022},{\u0022Attributes\u0022:{\u0022Origin\u0022:\u0022MarkAsFinished\u0022,\u0022Screen\u0022:\u0022Library\u0022,\u0022volumeid\u0022:\u0022ca10035b-f492-156c-13bf-2813c7456f83\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022MarkAsFinished\u0022,\u0022Id\u0022:\u00223450a46a-bfc6-46e5-bdf7-da16e42b411b\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:19:12Z\u0022},{\u0022Attributes\u0022:{\u0022Origin\u0022:\u0022MarkAsFinished\u0022,\u0022Screen\u0022:\u0022Library\u0022,\u0022volumeid\u0022:\u0022f0aec3f3-b50c-f62a-1095-b27b04dcea24\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022MarkAsFinished\u0022,\u0022Id\u0022:\u0022410223be-7ff4-c31e-43b7-f1bc245d4585\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:19:17Z\u0022},{\u0022Attributes\u0022:{\u0022AccountType\u0022:\u0022Adult\u0022,\u0022Affiliate\u0022:\u0022Kobo\u0022,\u0022CustomerType\u0022:\u0022RMR\u0022,\u0022DeviceModel\u0022:\u0022Kobo Libra Colour\u0022,\u0022ExternalSDTotal\u0022:\u00220\u0022,\u0022ExternalSDUsed\u0022:\u00220\u0022,\u0022HasSubscription\u0022:\u0022true\u0022,\u0022InternalTotal\u0022:\u002227677\u0022,\u0022InternalUsed\u0022:\u00222014\u0022,\u0022KoboSuperPointsBalance\u0022:\u00220\u0022,\u0022KoboSuperPointsStatus\u0022:\u0022\u0022,\u0022LastReadingFont\u0022:\u0022default\u0022,\u0022OSVersion\u0022:\u00224.9.77\u0022,\u0022SDCardStatus\u0022:\u0022No\u0022,\u0022StorageSize\u0022:\u002227677\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022UserMetadataUpdate\u0022,\u0022Id\u0022:\u00223a5fe28d-c0ee-222f-8690-aea5646a5bbf\u0022,\u0022Metrics\u0022:{\u0022DownloadedLibrarySize\u0022:5,\u0022LibrarySize\u0022:120,\u0022NumberOfBorrowedBooks\u0022:0,\u0022NumberOfDownloadedBorrowedBooks\u0022:0,\u0022NumberOfDownloadedFreeBooks\u0022:0,\u0022NumberOfDownloadedPaidBooks\u0022:5,\u0022NumberOfDownloadedPreviews\u0022:0,\u0022NumberOfDownloadedSubscribedBooks\u0022:0,\u0022NumberOfFixedLayoutBooks\u0022:0,\u0022NumberOfFreeBooks\u0022:0,\u0022NumberOfItemsOnCurrentReads\u0022:0,\u0022NumberOfPaidBooks\u0022:369,\u0022NumberOfPreviews\u0022:0,\u0022NumberOfReflowableBooks\u0022:369,\u0022NumberOfShelves\u0022:1,\u0022NumberOfSideloadedBooks\u0022:0,\u0022NumberOfSubscribedBooks\u0022:0},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:22:40Z\u0022},{\u0022Attributes\u0022:{\u0022Action\u0022:\u0022Sync\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022StatusBarOption\u0022,\u0022Id\u0022:\u002292a5637e-6527-06f5-8fad-3b48d3d898cc\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:24:49Z\u0022},{\u0022Attributes\u0022:{\u0022Action\u0022:\u0022Sync\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022StatusBarOption\u0022,\u0022Id\u0022:\u00224e9ade94-f480-5b20-f28c-d429095d7937\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:24:49Z\u0022},{\u0022Attributes\u0022:{\u0022Screen\u0022:\u0022Library\u0022,\u0022Type\u0022:\u0022Audiobooks\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022FilterSelected\u0022,\u0022Id\u0022:\u0022287c2377-c378-e5f1-b0ae-8e4cb437dd1b\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:25:03Z\u0022},{\u0022Attributes\u0022:{\u0022ViewType\u0022:\u0022Audiobooks\u0022},\u0022ClientApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022EventType\u0022:\u0022AccessLibrary\u0022,\u0022Id\u0022:\u0022e53baef7-766c-d9b8-0ab7-92ef0010b4ff\u0022,\u0022Metrics\u0022:{},\u0022TestGroups\u0022:{},\u0022Timestamp\u0022:\u00222026-04-19T20:25:03Z\u0022}],\u0022PlatformId\u0022:\u002211256499-e220-9849-a8cb-7ea10d639e8c\u0022,\u0022SerialNumber\u0022:\u0022TEST-SERIAL\u0022}"
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json",
+  "expectedBody": {
+    "Result": "Success",
+    "AcceptedEvents": [
+      "2848480a-3e40-c108-8232-0da4d68896d4",
+      "3a5fe28d-c0ee-222f-8690-aea5646a5bbf",
+      "92a5637e-6527-06f5-8fad-3b48d3d898cc",
+      "4e9ade94-f480-5b20-f28c-d429095d7937",
+      "287c2377-c378-e5f1-b0ae-8e4cb437dd1b",
+      "e53baef7-766c-d9b8-0ab7-92ef0010b4ff"
+    ],
+    "RejectedEvents": {}
+  },
+  "isBinary": false
+}

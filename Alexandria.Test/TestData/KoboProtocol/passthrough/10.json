@@ -1,0 +1,58 @@
+{
+  "name": "passthrough-10",
+  "request": {
+    "method": "POST",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/analytics/gettests",
+    "query": "",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Content-Length": [
+        "195"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": "{\u0022AffiliateName\u0022:\u0022Kobo\u0022,\u0022ApplicationVersion\u0022:\u00224.45.23684\u0022,\u0022PlatformId\u0022:\u002211256499-e220-9849-a8cb-7ea10d639e8c\u0022,\u0022SerialNumber\u0022:\u0022TEST-SERIAL\u0022,\u0022TestKey\u0022:\u0022d2e5633a-75ec-f3f9-390e-d4d76a7efa10\u0022}"
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json",
+  "expectedBody": {
+    "Result": "Success",
+    "TestKey": "d2e5633a-75ec-f3f9-390e-d4d76a7efa10",
+    "Tests": {}
+  },
+  "isBinary": false
+}

@@ -1,0 +1,171 @@
+{
+  "name": "products-series-02",
+  "request": {
+    "method": "GET",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/products/books/series/f8e1f3d1-b95d-16e0-5089-82177ad8b145",
+    "query": "?ExcludeOwned=false\u0026PageSize=100",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": ""
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json; charset=utf-8",
+  "expectedBody": {
+    "Items": [
+      {
+        "Audiobook": {
+          "Id": "e2618176-8631-b6a2-3a86-23408971d667",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 32647,
+          "TotalBytes": 207801529,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2013",
+          "WorkId": null,
+          "SeriesNumber": "1",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "f8e1f3d1-b95d-16e0-5089-82177ad8b145",
+          "SeriesNumberFloat": 1,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Audiobook": {
+          "Id": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 27366,
+          "TotalBytes": 150852099,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2013",
+          "WorkId": null,
+          "SeriesNumber": "2",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "f8e1f3d1-b95d-16e0-5089-82177ad8b145",
+          "SeriesNumberFloat": 2,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Audiobook": {
+          "Id": "f0aec3f3-b50c-f62a-1095-b27b04dcea24",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 33238,
+          "TotalBytes": 168986535,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2013",
+          "WorkId": null,
+          "SeriesNumber": "3",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "f8e1f3d1-b95d-16e0-5089-82177ad8b145",
+          "SeriesNumberFloat": 3,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "f0aec3f3-b50c-f62a-1095-b27b04dcea24",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      }
+    ],
+    "ItemCount": 3,
+    "TotalPageCount": 1,
+    "TotalItemCount": 3,
+    "CurrentPageIndex": 0,
+    "ItemsPerPage": 100,
+    "VersionCode": 2
+  },
+  "isBinary": false
+}

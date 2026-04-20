@@ -1,0 +1,5269 @@
+{
+  "name": "library-sync-01",
+  "request": {
+    "method": "GET",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/library/sync",
+    "query": "?Filter=ALL\u0026DownloadUrlFilter=Generic,Android\u0026PrioritizeRecentReads=true",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ],
+      "x-kobo-synctoken": [
+        "SYNC-TOKEN-PLACEHOLDER"
+      ]
+    },
+    "body": ""
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json; charset=utf-8",
+  "expectedBody": [
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:29Z"
+          },
+          "Created": "2026-04-19T20:10:29Z",
+          "CrossRevisionId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "Id": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:29Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "CrossRevisionId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 674785483,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/64302cdf-54dd-667e-700b-0509e7c9a1e6/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2016T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "Title": "Scrubbed Title",
+          "WorkId": "64302cdf-54dd-667e-700b-0509e7c9a1e6",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Duration": 53684,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:29Z"
+          },
+          "Created": "2026-04-19T20:10:29Z",
+          "CrossRevisionId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "Id": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:29Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "CrossRevisionId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 488217149,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/405b6856-ac91-d741-46a2-855f9e0f0a7b/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "Title": "Scrubbed Title",
+          "WorkId": "405b6856-ac91-d741-46a2-855f9e0f0a7b",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "b63f4a56-504d-a2cb-2746-75296cad932c"
+          },
+          "Duration": 56937,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:28Z"
+          },
+          "Created": "2026-04-19T20:10:28Z",
+          "CrossRevisionId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "Id": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:28Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "CrossRevisionId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 1378765329,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/29fd5b71-262c-6c3d-88cd-69404846f792/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2011T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "Title": "Scrubbed Title",
+          "WorkId": "29fd5b71-262c-6c3d-88cd-69404846f792",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "b63f4a56-504d-a2cb-2746-75296cad932c"
+          },
+          "Duration": 47380,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:26Z"
+          },
+          "Created": "2026-04-19T20:10:26Z",
+          "CrossRevisionId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "Id": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:26Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "CrossRevisionId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 420019826,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/10c8b424-ad0d-94be-b220-d702cd0c078b/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "Title": "Scrubbed Title",
+          "WorkId": "10c8b424-ad0d-94be-b220-d702cd0c078b",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "b63f4a56-504d-a2cb-2746-75296cad932c"
+          },
+          "Duration": 53832,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:25Z"
+          },
+          "Created": "2026-04-19T20:10:25Z",
+          "CrossRevisionId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "Id": "2258deb8-d200-5cd3-1343-13231376014b",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:25Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "CrossRevisionId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 655372331,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/2258deb8-d200-5cd3-1343-13231376014b/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2011T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "Title": "Scrubbed Title",
+          "WorkId": "2258deb8-d200-5cd3-1343-13231376014b",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Duration": 118819,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:22Z"
+          },
+          "Created": "2026-04-19T20:10:22Z",
+          "CrossRevisionId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "Id": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:22Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "CrossRevisionId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 210447054,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2018T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "Title": "Scrubbed Title",
+          "WorkId": "fcd64a3a-9e8f-6d79-e3a9-0fdead3c7ee0",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "f82eb93d-6494-4b3a-e3e7-d1a3c8b1e70c"
+          },
+          "Duration": 38127,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:21Z"
+          },
+          "Created": "2026-04-19T20:10:21Z",
+          "CrossRevisionId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "Id": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:21Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "CrossRevisionId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 1200622550,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/56cee7a1-6828-3f5e-a748-1ebcb28ee83f/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2020T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "Title": "Scrubbed Title",
+          "WorkId": "56cee7a1-6828-3f5e-a748-1ebcb28ee83f",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "5",
+            "NumberFloat": 5,
+            "Id": "11978867-ce49-21b2-e608-365450cb3332"
+          },
+          "Duration": 92948,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:20Z"
+          },
+          "Created": "2026-04-19T20:10:20Z",
+          "CrossRevisionId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "Id": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:20Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "CrossRevisionId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 849731019,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/85f1ab8a-1e76-fdd7-0645-3289871135a9/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "Title": "Scrubbed Title",
+          "WorkId": "85f1ab8a-1e76-fdd7-0645-3289871135a9",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "4",
+            "NumberFloat": 4,
+            "Id": "11978867-ce49-21b2-e608-365450cb3332"
+          },
+          "Duration": 73731,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:19Z"
+          },
+          "Created": "2026-04-19T20:10:19Z",
+          "CrossRevisionId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "Id": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:19Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "CrossRevisionId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 730100460,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/0c9e5aa6-a641-0c8f-0983-1001c9d1896e/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "Title": "Scrubbed Title",
+          "WorkId": "0c9e5aa6-a641-0c8f-0983-1001c9d1896e",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "3",
+            "NumberFloat": 3,
+            "Id": "11978867-ce49-21b2-e608-365450cb3332"
+          },
+          "Duration": 59182,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:18Z"
+          },
+          "Created": "2026-04-19T20:10:18Z",
+          "CrossRevisionId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "Id": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:18Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "CrossRevisionId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 664862240,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/67dc5ea0-0bc3-94db-fb07-f12990177712/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "Title": "Scrubbed Title",
+          "WorkId": "67dc5ea0-0bc3-94db-fb07-f12990177712",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "2",
+            "NumberFloat": 2,
+            "Id": "11978867-ce49-21b2-e608-365450cb3332"
+          },
+          "Duration": 53460,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:17Z"
+          },
+          "Created": "2026-04-19T20:10:17Z",
+          "CrossRevisionId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "Id": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:17Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "CrossRevisionId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 204573326,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/9ceea80b-6a91-722c-4fed-d2949d77848a/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "Title": "Scrubbed Title",
+          "WorkId": "9ceea80b-6a91-722c-4fed-d2949d77848a",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "11978867-ce49-21b2-e608-365450cb3332"
+          },
+          "Duration": 46356,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:17Z"
+          },
+          "Created": "2026-04-19T20:10:17Z",
+          "CrossRevisionId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "Id": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:17Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "CrossRevisionId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 482401005,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/a486c52d-eaf8-be3d-e9a7-f2282581bc91/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "Title": "Scrubbed Title",
+          "WorkId": "a486c52d-eaf8-be3d-e9a7-f2282581bc91",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "7",
+            "NumberFloat": 7,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 104184,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:15Z"
+          },
+          "Created": "2026-04-19T20:10:15Z",
+          "CrossRevisionId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "Id": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:15Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "CrossRevisionId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 229629458,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/82fccf7d-c6f4-eb5e-36ff-0f45f2df5683/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "Title": "Scrubbed Title",
+          "WorkId": "82fccf7d-c6f4-eb5e-36ff-0f45f2df5683",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "6",
+            "NumberFloat": 6,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 48993,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:15Z"
+          },
+          "Created": "2026-04-19T20:10:15Z",
+          "CrossRevisionId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "Id": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:15Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "CrossRevisionId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 430236501,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/afda1fd1-a39f-4dab-2279-501186399a85/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "Title": "Scrubbed Title",
+          "WorkId": "afda1fd1-a39f-4dab-2279-501186399a85",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "5",
+            "NumberFloat": 5,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 92985,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:14Z"
+          },
+          "Created": "2026-04-19T20:10:14Z",
+          "CrossRevisionId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "Id": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:14Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "CrossRevisionId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 470071611,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/e3572493-2453-6a28-4d65-7c925042cccd/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "Title": "Scrubbed Title",
+          "WorkId": "e3572493-2453-6a28-4d65-7c925042cccd",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "4",
+            "NumberFloat": 4,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 99413,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:12Z"
+          },
+          "Created": "2026-04-19T20:10:12Z",
+          "CrossRevisionId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "Id": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:12Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "CrossRevisionId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 287981201,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/e8a9489c-09d3-7342-acc5-1066c0140639/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "Title": "Scrubbed Title",
+          "WorkId": "e8a9489c-09d3-7342-acc5-1066c0140639",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "3",
+            "NumberFloat": 3,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 65458,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:12Z"
+          },
+          "Created": "2026-04-19T20:10:12Z",
+          "CrossRevisionId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "Id": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:12Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "CrossRevisionId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 215157509,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/566b4fc3-2573-2990-8853-0edf05df794d/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "Title": "Scrubbed Title",
+          "WorkId": "566b4fc3-2573-2990-8853-0edf05df794d",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "2",
+            "NumberFloat": 2,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 45965,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:11Z"
+          },
+          "Created": "2026-04-19T20:10:11Z",
+          "CrossRevisionId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "Id": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:11Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "CrossRevisionId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 127837141,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/54d816be-f24f-88e7-c7c9-f0ff963f4410/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2012T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "Title": "Scrubbed Title",
+          "WorkId": "54d816be-f24f-88e7-c7c9-f0ff963f4410",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "1d32dae9-8cf2-4876-42df-28dc33f9fb6d"
+          },
+          "Duration": 26462,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:11Z"
+          },
+          "Created": "2026-04-19T20:10:11Z",
+          "CrossRevisionId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "Id": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:11Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "CrossRevisionId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 117700941,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/6762d27a-7caf-ecdb-0f70-8fceaa7ea05d/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2016T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "Title": "Scrubbed Title",
+          "WorkId": "6762d27a-7caf-ecdb-0f70-8fceaa7ea05d",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Duration": 25027,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:10Z"
+          },
+          "Created": "2026-04-19T20:10:10Z",
+          "CrossRevisionId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "Id": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:10Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "CrossRevisionId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 757996544,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/63096bde-5a56-6692-6c2e-4100479111c7/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "Title": "Scrubbed Title",
+          "WorkId": "63096bde-5a56-6692-6c2e-4100479111c7",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "14",
+            "NumberFloat": 14,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 150471,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:09Z"
+          },
+          "Created": "2026-04-19T20:10:09Z",
+          "CrossRevisionId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "Id": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:09Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "CrossRevisionId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 567976004,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/1399325b-6eb7-3799-0d3a-8cad617e8fb3/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "Title": "Scrubbed Title",
+          "WorkId": "1399325b-6eb7-3799-0d3a-8cad617e8fb3",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "12",
+            "NumberFloat": 12,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 118843,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:08Z"
+          },
+          "Created": "2026-04-19T20:10:08Z",
+          "CrossRevisionId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "Id": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:08Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "CrossRevisionId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 555328691,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2011T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "Title": "Scrubbed Title",
+          "WorkId": "b0ee282a-24a5-7c26-bfdd-e5f4d44ae7b6",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "9",
+            "NumberFloat": 9,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 87178,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:07Z"
+          },
+          "Created": "2026-04-19T20:10:07Z",
+          "CrossRevisionId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "Id": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:07Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "CrossRevisionId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 452751025,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2008T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "Title": "Scrubbed Title",
+          "WorkId": "8ea9c3be-3acf-68dc-6ba2-d6e15dbacc22",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "8",
+            "NumberFloat": 8,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 84334,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:06Z"
+          },
+          "Created": "2026-04-19T20:10:06Z",
+          "CrossRevisionId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "Id": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:06Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "CrossRevisionId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 605547873,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2006T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "Title": "Scrubbed Title",
+          "WorkId": "4b8db20b-ea8f-a09d-73c3-8bd4dd9ae93e",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "7",
+            "NumberFloat": 7,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 109516,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:05Z"
+          },
+          "Created": "2026-04-19T20:10:05Z",
+          "CrossRevisionId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "Id": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:05Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "CrossRevisionId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 758728799,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/a014582e-249c-396e-c64f-4a94920b5eae/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2004T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "Title": "Scrubbed Title",
+          "WorkId": "a014582e-249c-396e-c64f-4a94920b5eae",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "6",
+            "NumberFloat": 6,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 149545,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:04Z"
+          },
+          "Created": "2026-04-19T20:10:04Z",
+          "CrossRevisionId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "Id": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:04Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "CrossRevisionId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 725705633,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/34ea16d8-4a48-4b53-5387-cdd894557c17/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2004T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "Title": "Scrubbed Title",
+          "WorkId": "34ea16d8-4a48-4b53-5387-cdd894557c17",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "5",
+            "NumberFloat": 5,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 131258,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:01Z"
+          },
+          "Created": "2026-04-19T20:10:01Z",
+          "CrossRevisionId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "Id": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:01Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "CrossRevisionId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 753368605,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/dbcf1163-c7a8-79bb-bcce-cf5b2a689580/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "Title": "Scrubbed Title",
+          "WorkId": "dbcf1163-c7a8-79bb-bcce-cf5b2a689580",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "4",
+            "NumberFloat": 4,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 148429,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:10:00Z"
+          },
+          "Created": "2026-04-19T20:10:00Z",
+          "CrossRevisionId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "Id": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:10:00Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "CrossRevisionId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 467751556,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/b4acbab5-18b3-86fc-d35b-3cbe08fe1d50/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "Title": "Scrubbed Title",
+          "WorkId": "b4acbab5-18b3-86fc-d35b-3cbe08fe1d50",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "3",
+            "NumberFloat": 3,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 89301,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:58Z"
+          },
+          "Created": "2026-04-19T20:09:58Z",
+          "CrossRevisionId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "Id": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:58Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "CrossRevisionId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 493486581,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/5c0ef573-5538-bf76-e399-8b15f14011ac/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "Title": "Scrubbed Title",
+          "WorkId": "5c0ef573-5538-bf76-e399-8b15f14011ac",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "2",
+            "NumberFloat": 2,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 95662,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:57Z"
+          },
+          "Created": "2026-04-19T20:09:57Z",
+          "CrossRevisionId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "Id": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:57Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "CrossRevisionId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 583035256,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/74f997e9-3679-cad3-bdd4-cf63505e6d75/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2004T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "Title": "Scrubbed Title",
+          "WorkId": "74f997e9-3679-cad3-bdd4-cf63505e6d75",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "11",
+            "NumberFloat": 11,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 116374,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:55Z"
+          },
+          "Created": "2026-04-19T20:09:55Z",
+          "CrossRevisionId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "Id": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:55Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "CrossRevisionId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 495886161,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "Title": "Scrubbed Title",
+          "WorkId": "008a13d8-3b6b-8ac3-b6c9-90f719ea1d4c",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "10",
+            "NumberFloat": 10,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 93874,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:54Z"
+          },
+          "Created": "2026-04-19T20:09:54Z",
+          "CrossRevisionId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "Id": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:54Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "CrossRevisionId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 560840271,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/b3523add-9a9d-ab58-1a04-c9d4b68cc5b3/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2006T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "Title": "Scrubbed Title",
+          "WorkId": "b3523add-9a9d-ab58-1a04-c9d4b68cc5b3",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 107839,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:52Z"
+          },
+          "Created": "2026-04-19T20:09:52Z",
+          "CrossRevisionId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "Id": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:52Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "CrossRevisionId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 252406197,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/b49d3861-fc9e-9b3d-d5f4-3ab128b98420/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "Title": "Scrubbed Title",
+          "WorkId": "b49d3861-fc9e-9b3d-d5f4-3ab128b98420",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "0",
+            "NumberFloat": 0,
+            "Id": "783843e0-4dbe-fb80-16e6-d2948759258d"
+          },
+          "Duration": 45493,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:51Z"
+          },
+          "Created": "2026-04-19T20:09:51Z",
+          "CrossRevisionId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "Id": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:51Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "CrossRevisionId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 217647244,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/bd0c09c3-688f-f581-f52d-0706ca2ea636/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "Title": "Scrubbed Title",
+          "WorkId": "bd0c09c3-688f-f581-f52d-0706ca2ea636",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "9",
+            "NumberFloat": 9,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 43617,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:50Z"
+          },
+          "Created": "2026-04-19T20:09:50Z",
+          "CrossRevisionId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "Id": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:50Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "CrossRevisionId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 249081559,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/deb04bf6-3cee-e799-6bc6-d9aa431864d1/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "Title": "Scrubbed Title",
+          "WorkId": "deb04bf6-3cee-e799-6bc6-d9aa431864d1",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "8",
+            "NumberFloat": 8,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 40837,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:49Z"
+          },
+          "Created": "2026-04-19T20:09:49Z",
+          "CrossRevisionId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "Id": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:49Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "CrossRevisionId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 195565433,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/d29b43ab-c0cc-9894-1fa2-97d8f7f1d968/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "Title": "Scrubbed Title",
+          "WorkId": "d29b43ab-c0cc-9894-1fa2-97d8f7f1d968",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "7",
+            "NumberFloat": 7,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 39111,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:48Z"
+          },
+          "Created": "2026-04-19T20:09:48Z",
+          "CrossRevisionId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "Id": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:48Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "CrossRevisionId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 246547842,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/aa3040b4-d9bb-7843-1a6e-71fd688e0474/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "Title": "Scrubbed Title",
+          "WorkId": "aa3040b4-d9bb-7843-1a6e-71fd688e0474",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "6",
+            "NumberFloat": 6,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 40891,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:47Z"
+          },
+          "Created": "2026-04-19T20:09:47Z",
+          "CrossRevisionId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "Id": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:47Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "CrossRevisionId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 215849062,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/d64c67f5-0906-ffcc-9173-298b9d2980fd/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "Title": "Scrubbed Title",
+          "WorkId": "d64c67f5-0906-ffcc-9173-298b9d2980fd",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "5",
+            "NumberFloat": 5,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 42832,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:46Z"
+          },
+          "Created": "2026-04-19T20:09:46Z",
+          "CrossRevisionId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "Id": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:46Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "CrossRevisionId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 226480249,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/54de71e3-fed0-ef2c-b5cb-a13c461b824e/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "Title": "Scrubbed Title",
+          "WorkId": "54de71e3-fed0-ef2c-b5cb-a13c461b824e",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "4",
+            "NumberFloat": 4,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 43351,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:45Z"
+          },
+          "Created": "2026-04-19T20:09:45Z",
+          "CrossRevisionId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "Id": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:45Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "CrossRevisionId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 219990994,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/15f5fdf0-47f9-88c6-1e06-2d6c639a14b1/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "Title": "Scrubbed Title",
+          "WorkId": "15f5fdf0-47f9-88c6-1e06-2d6c639a14b1",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "3",
+            "NumberFloat": 3,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 36861,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:44Z"
+          },
+          "Created": "2026-04-19T20:09:44Z",
+          "CrossRevisionId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "Id": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:44Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "CrossRevisionId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 229502616,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/0e43248a-7f69-c195-f25c-2f4c62763c97/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "Title": "Scrubbed Title",
+          "WorkId": "0e43248a-7f69-c195-f25c-2f4c62763c97",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "22",
+            "NumberFloat": 22,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 45218,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:43Z"
+          },
+          "Created": "2026-04-19T20:09:43Z",
+          "CrossRevisionId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "Id": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:43Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "CrossRevisionId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 273995635,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/03731a08-d2cf-5d01-41dd-902e4ef79f90/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2009T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "Title": "Scrubbed Title",
+          "WorkId": "03731a08-d2cf-5d01-41dd-902e4ef79f90",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "20",
+            "NumberFloat": 20,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 54657,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:42Z"
+          },
+          "Created": "2026-04-19T20:09:42Z",
+          "CrossRevisionId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "Id": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:42Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "CrossRevisionId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 227894784,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/a0155230-d9a7-70e1-ff9f-25fac8f693b3/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "Title": "Scrubbed Title",
+          "WorkId": "a0155230-d9a7-70e1-ff9f-25fac8f693b3",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "2",
+            "NumberFloat": 2,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 38561,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:41Z"
+          },
+          "Created": "2026-04-19T20:09:41Z",
+          "CrossRevisionId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "Id": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:41Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "CrossRevisionId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 224847294,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/28e65aff-eecc-fccc-98b0-824e782e1136/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "Title": "Scrubbed Title",
+          "WorkId": "28e65aff-eecc-fccc-98b0-824e782e1136",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "19",
+            "NumberFloat": 19,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 45597,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:40Z"
+          },
+          "Created": "2026-04-19T20:09:40Z",
+          "CrossRevisionId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "Id": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:40Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "CrossRevisionId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 344131326,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/8f271a90-79c5-1d46-2e7b-9411457822a1/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "Title": "Scrubbed Title",
+          "WorkId": "8f271a90-79c5-1d46-2e7b-9411457822a1",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "18",
+            "NumberFloat": 18,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 51352,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:39Z"
+          },
+          "Created": "2026-04-19T20:09:39Z",
+          "CrossRevisionId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "Id": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:39Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "CrossRevisionId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 231912612,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/13e3f47c-7464-7b26-5b8f-001991b880bf/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "Title": "Scrubbed Title",
+          "WorkId": "13e3f47c-7464-7b26-5b8f-001991b880bf",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "17",
+            "NumberFloat": 17,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 48611,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:38Z"
+          },
+          "Created": "2026-04-19T20:09:38Z",
+          "CrossRevisionId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "Id": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:38Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "CrossRevisionId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 235194944,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/c82dd18b-8800-357a-fc27-574c2582c549/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2008T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "Title": "Scrubbed Title",
+          "WorkId": "c82dd18b-8800-357a-fc27-574c2582c549",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "16",
+            "NumberFloat": 16,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 47880,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:37Z"
+          },
+          "Created": "2026-04-19T20:09:37Z",
+          "CrossRevisionId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "Id": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:37Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "CrossRevisionId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 213986780,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/8b8ee725-2cc3-89a1-9792-de43d2147412/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "Title": "Scrubbed Title",
+          "WorkId": "8b8ee725-2cc3-89a1-9792-de43d2147412",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "15",
+            "NumberFloat": 15,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 44522,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:36Z"
+          },
+          "Created": "2026-04-19T20:09:36Z",
+          "CrossRevisionId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "Id": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:36Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "CrossRevisionId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 229776629,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/42bf4a87-65b4-9a7e-22ba-300623eefc85/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "Title": "Scrubbed Title",
+          "WorkId": "42bf4a87-65b4-9a7e-22ba-300623eefc85",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "14",
+            "NumberFloat": 14,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 47845,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:35Z"
+          },
+          "Created": "2026-04-19T20:09:35Z",
+          "CrossRevisionId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "Id": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:35Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "CrossRevisionId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 273246132,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/a86af858-588e-1ec7-3116-5c8a3cee2127/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "Title": "Scrubbed Title",
+          "WorkId": "a86af858-588e-1ec7-3116-5c8a3cee2127",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "13",
+            "NumberFloat": 13,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 45451,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:34Z"
+          },
+          "Created": "2026-04-19T20:09:34Z",
+          "CrossRevisionId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "Id": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:34Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "CrossRevisionId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 224355774,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/bb00d0bc-42b9-50a1-4215-2d731b7e0075/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "Title": "Scrubbed Title",
+          "WorkId": "bb00d0bc-42b9-50a1-4215-2d731b7e0075",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "12",
+            "NumberFloat": 12,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 47128,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:33Z"
+          },
+          "Created": "2026-04-19T20:09:33Z",
+          "CrossRevisionId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "Id": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:33Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "CrossRevisionId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 220973205,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2014T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "Title": "Scrubbed Title",
+          "WorkId": "cc651aa2-fc6b-8d12-bf20-7c03a3b4e5ca",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "11",
+            "NumberFloat": 11,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 46132,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:32Z"
+          },
+          "Created": "2026-04-19T20:09:32Z",
+          "CrossRevisionId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "Id": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:32Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "CrossRevisionId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 252933910,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/3a487ece-517a-252c-37f9-ecd8ecef56ea/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "Title": "Scrubbed Title",
+          "WorkId": "3a487ece-517a-252c-37f9-ecd8ecef56ea",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "10",
+            "NumberFloat": 10,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 43008,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:31Z"
+          },
+          "Created": "2026-04-19T20:09:31Z",
+          "CrossRevisionId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "Id": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:31Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "CrossRevisionId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 235608510,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/4875936c-de81-0dba-00e0-a4692b6b540e/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "Title": "Scrubbed Title",
+          "WorkId": "4875936c-de81-0dba-00e0-a4692b6b540e",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "fa3d488f-ea38-da20-1d09-78a747627b67"
+          },
+          "Duration": 38894,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:31Z"
+          },
+          "Created": "2026-04-19T20:09:31Z",
+          "CrossRevisionId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "Id": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:31Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "CrossRevisionId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 150852099,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/ca10035b-f492-156c-13bf-2813c7456f83/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "Title": "Scrubbed Title",
+          "WorkId": "ca10035b-f492-156c-13bf-2813c7456f83",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "2",
+            "NumberFloat": 2,
+            "Id": "f8e1f3d1-b95d-16e0-5089-82177ad8b145"
+          },
+          "Duration": 27366,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:30Z"
+          },
+          "Created": "2026-04-19T20:09:30Z",
+          "CrossRevisionId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "Id": "e2618176-8631-b6a2-3a86-23408971d667",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:30Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "CrossRevisionId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 207801529,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/e2618176-8631-b6a2-3a86-23408971d667/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2013T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "Title": "Scrubbed Title",
+          "WorkId": "e2618176-8631-b6a2-3a86-23408971d667",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "1",
+            "NumberFloat": 1,
+            "Id": "f8e1f3d1-b95d-16e0-5089-82177ad8b145"
+          },
+          "Duration": 32647,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          }
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:29Z"
+          },
+          "Created": "2026-04-19T20:09:29Z",
+          "CrossRevisionId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "Id": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:29Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "CrossRevisionId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 555288730,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/b52cfbbf-462d-8df9-4f31-54fe12f648e5/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2004T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "Title": "Scrubbed Title",
+          "WorkId": "b52cfbbf-462d-8df9-4f31-54fe12f648e5",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "9",
+            "NumberFloat": 9,
+            "Id": "c68548d6-2a74-e4e4-ae8f-75626ab00f37"
+          },
+          "Duration": 46365,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "RelatedGroupId": "01a2d0fe-b275-9124-6cf9-a60e1d779423"
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:28Z"
+          },
+          "Created": "2026-04-19T20:09:28Z",
+          "CrossRevisionId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "Id": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:28Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "CrossRevisionId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 445545976,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/8c6866f9-09b2-b610-24cc-3de90e42a362/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2004T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "Title": "Scrubbed Title",
+          "WorkId": "8c6866f9-09b2-b610-24cc-3de90e42a362",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "8",
+            "NumberFloat": 8,
+            "Id": "c68548d6-2a74-e4e4-ae8f-75626ab00f37"
+          },
+          "Duration": 54774,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "RelatedGroupId": "921ce9e1-00f4-9f3d-c406-ea2b540e4009"
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:27Z"
+          },
+          "Created": "2026-04-19T20:09:27Z",
+          "CrossRevisionId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "Id": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:27Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "CrossRevisionId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 374839138,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "Title": "Scrubbed Title",
+          "WorkId": "9a1c30e7-f6ea-8cda-5f28-d4f950fc8fc3",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "7",
+            "NumberFloat": 7,
+            "Id": "c68548d6-2a74-e4e4-ae8f-75626ab00f37"
+          },
+          "Duration": 54934,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "RelatedGroupId": "cf9b202b-96c9-380c-0499-6f6dd67fbd12"
+        }
+      }
+    },
+    {
+      "NewEntitlement": {
+        "AudiobookEntitlement": {
+          "Accessibility": "Full",
+          "ActivePeriod": {
+            "From": "2026-04-19T20:09:27Z"
+          },
+          "Created": "2026-04-19T20:09:27Z",
+          "CrossRevisionId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "Id": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "IsRemoved": false,
+          "IsHiddenFromArchive": false,
+          "IsLocked": false,
+          "LastModified": "2026-04-19T20:09:27Z",
+          "OriginCategory": "Purchase",
+          "RevisionId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "Status": "Active"
+        },
+        "AudiobookMetadata": {
+          "Categories": [
+            "00000000-0000-0000-0000-000000000001"
+          ],
+          "CoverImageId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "CrossRevisionId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "CurrentDisplayPrice": {
+            "CurrencyCode": "USD",
+            "TotalAmount": 0
+          },
+          "CurrentLoveDisplayPrice": {
+            "TotalAmount": 0
+          },
+          "Description": "Scrubbed description.",
+          "DownloadUrls": [
+            {
+              "DrmType": "None",
+              "Format": "MANIFEST",
+              "Size": 390600988,
+              "Url": "https://test.example.com/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/download/06a011b2-f146-b94a-70a5-12777b7e3a80/manifest",
+              "Platform": "Generic"
+            }
+          ],
+          "EntitlementId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "ExternalIds": [],
+          "Genre": "00000000-0000-0000-0000-000000000001",
+          "IsEligibleForKoboLove": false,
+          "IsInternetArchive": false,
+          "IsPreOrder": false,
+          "IsSocialEnabled": true,
+          "Language": "",
+          "PhoneticPronunciations": {},
+          "PublicationDate": "2003T00:00:00Z",
+          "Publisher": {
+            "Imprint": "",
+            "Name": "Scrubbed Publisher"
+          },
+          "RevisionId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "Title": "Scrubbed Title",
+          "WorkId": "06a011b2-f146-b94a-70a5-12777b7e3a80",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            },
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Narrator"
+            }
+          ],
+          "Contributors": [
+            "Scrubbed Author"
+          ],
+          "Series": {
+            "Name": "Scrubbed Series",
+            "Number": "6",
+            "NumberFloat": 6,
+            "Id": "c68548d6-2a74-e4e4-ae8f-75626ab00f37"
+          },
+          "Duration": 47284,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "RelatedGroupId": "9f59f125-e741-028d-00bc-61b07f1c642b"
+        }
+      }
+    }
+  ],
+  "isBinary": false
+}

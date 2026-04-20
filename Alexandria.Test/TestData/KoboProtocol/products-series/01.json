@@ -1,0 +1,418 @@
+{
+  "name": "products-series-01",
+  "request": {
+    "method": "GET",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/products/books/series/261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+    "query": "?ExcludeOwned=false\u0026PageSize=100",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "x-kobo-affiliatename": [
+        "Kobo"
+      ],
+      "x-kobo-appversion": [
+        "4.45.23684"
+      ],
+      "x-kobo-deviceid": [
+        "TEST-SERIAL"
+      ],
+      "x-kobo-devicemodel": [
+        "Kobo Libra Colour"
+      ],
+      "x-kobo-deviceos": [
+        "4.9.77"
+      ],
+      "x-kobo-deviceosversion": [
+        "NA"
+      ],
+      "x-kobo-platformid": [
+        "00000000-0000-0000-0000-000000000390"
+      ]
+    },
+    "body": ""
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json; charset=utf-8",
+  "expectedBody": {
+    "Items": [
+      {
+        "Audiobook": {
+          "Id": "f4d201b8-f779-41b8-b447-feccb334b3af",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 121557,
+          "TotalBytes": 712542574,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2015",
+          "WorkId": null,
+          "SeriesNumber": "1",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 1,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "f4d201b8-f779-41b8-b447-feccb334b3af",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Book": {
+          "Id": "196b19da-f90b-7ec6-bc13-9476f0936ba5",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "en",
+          "ISBN": "9780000000000",
+          "PublicationDate": "1996-08-05T00:00:00.0000000Z",
+          "IsFree": false,
+          "IsRecommendation": false,
+          "SeriesNumber": "1",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 1,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "ImageId": "196b19da-f90b-7ec6-bc13-9476f0936ba5",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "HasPreview": false,
+          "Stats": {
+            "Pages": 1207,
+            "WordCount": 301549
+          },
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Audiobook": {
+          "Id": "c91e78a8-bc07-1f69-b0d5-3db75696118c",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 133942,
+          "TotalBytes": 615920138,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2015",
+          "WorkId": null,
+          "SeriesNumber": "2",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 2,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "c91e78a8-bc07-1f69-b0d5-3db75696118c",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Book": {
+          "Id": "a5199298-1749-ca76-21a4-0d878bd5d269",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "en",
+          "ISBN": "9780000000000",
+          "PublicationDate": "2003-01-01T00:00:00.0000000Z",
+          "IsFree": false,
+          "IsRecommendation": false,
+          "SeriesNumber": "2",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 2,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "ImageId": "a5199298-1749-ca76-21a4-0d878bd5d269",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "HasPreview": false,
+          "Stats": {
+            "Pages": 1327,
+            "WordCount": 331514
+          },
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Audiobook": {
+          "Id": "0f5e6d47-79aa-cfec-299a-3732216b3277",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 171126,
+          "TotalBytes": 779194072,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2011",
+          "WorkId": null,
+          "SeriesNumber": "3",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 3,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "0f5e6d47-79aa-cfec-299a-3732216b3277",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Book": {
+          "Id": "d1cf331f-2597-d5c1-e548-fb1bf668dcd0",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "en",
+          "ISBN": "9780000000000",
+          "PublicationDate": "2000-08-07T00:00:00.0000000Z",
+          "IsFree": false,
+          "IsRecommendation": false,
+          "SeriesNumber": "3",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 3,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "ImageId": "d1cf331f-2597-d5c1-e548-fb1bf668dcd0",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "HasPreview": false,
+          "Stats": {
+            "Pages": 1729,
+            "WordCount": 432176
+          },
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Audiobook": {
+          "Id": "f84a07b4-8619-745c-0b47-ee48dcbb32d4",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "",
+          "Duration": 121803,
+          "TotalBytes": 567965612,
+          "IsAbridged": false,
+          "HasPreview": false,
+          "IsFree": false,
+          "ISBN": null,
+          "PublicationDate": "2015",
+          "WorkId": null,
+          "SeriesNumber": "4",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 4,
+          "IsRecommendation": false,
+          "CrossRevisionId": null,
+          "ImageId": "f84a07b4-8619-745c-0b47-ee48dcbb32d4",
+          "PublisherName": null,
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Book": {
+          "Id": "5d533c0e-234b-0cf4-3341-844e08fd4b4a",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "en",
+          "ISBN": "9780000000000",
+          "PublicationDate": "2005-10-16T00:00:00.0000000Z",
+          "IsFree": false,
+          "IsRecommendation": false,
+          "SeriesNumber": "4",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 4,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "ImageId": "5d533c0e-234b-0cf4-3341-844e08fd4b4a",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "HasPreview": false,
+          "Stats": {
+            "Pages": 1251,
+            "WordCount": 312650
+          },
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      },
+      {
+        "Book": {
+          "Id": "380e0d21-1a8f-e27e-643c-3074060aba93",
+          "Title": "Scrubbed Title",
+          "Contributors": "Scrubbed Author",
+          "ContributorRoles": [
+            {
+              "Name": "Scrubbed Author",
+              "Role": "Author"
+            }
+          ],
+          "Description": "Scrubbed description.",
+          "Language": "en",
+          "ISBN": "9780000000000",
+          "PublicationDate": "2011-07-11T00:00:00.0000000Z",
+          "IsFree": false,
+          "IsRecommendation": false,
+          "SeriesNumber": "5",
+          "SeriesName": "Scrubbed Series",
+          "SeriesId": "261bbf19-9c95-24a3-5863-d5f9c88c86f0",
+          "SeriesNumberFloat": 5,
+          "Locale": {
+            "LanguageCode": "en",
+            "ScriptCode": "",
+            "CountryCode": ""
+          },
+          "ImageId": "380e0d21-1a8f-e27e-643c-3074060aba93",
+          "PublisherName": "Scrubbed Publisher",
+          "Rating": 0,
+          "TotalRating": 0,
+          "Slug": null,
+          "IsContentSharingEnabled": false,
+          "HasPreview": false,
+          "Stats": {
+            "Pages": 1731,
+            "WordCount": 432718
+          },
+          "EligibleForKoboLoveDiscount": false,
+          "IsPreOrder": false,
+          "AgeVerificationRequired": false
+        }
+      }
+    ],
+    "ItemCount": 9,
+    "TotalPageCount": 1,
+    "TotalItemCount": 9,
+    "CurrentPageIndex": 0,
+    "ItemsPerPage": 100,
+    "VersionCode": 2
+  },
+  "isBinary": false
+}

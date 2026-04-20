@@ -1,0 +1,37 @@
+{
+  "name": "passthrough-05",
+  "request": {
+    "method": "POST",
+    "path": "/api/kobo/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/v1/auth/refresh",
+    "query": "",
+    "headers": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "Mozilla/5.0 (Linux; U; Android 2.0; en-us;) AppleWebKit/538.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/538.1 (Kobo Touch 0390/4.45.23684)"
+      ],
+      "Accept-Encoding": [
+        "gzip"
+      ],
+      "Accept-Language": [
+        "en-US, *;q=0.9"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Content-Length": [
+        "769"
+      ]
+    },
+    "body": "{\u0022AppVersion\u0022:\u00224.45.23684\u0022,\u0022ClientKey\u0022:\u0022MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMzkw\u0022,\u0022PlatformId\u0022:\u002211256499-e220-9849-a8cb-7ea10d639e8c\u0022,\u0022RefreshToken\u0022:\u0022REFRESH-TOKEN-PLACEHOLDER\u0022}"
+  },
+  "expectedStatus": 200,
+  "expectedContentType": "application/json",
+  "expectedBody": {
+    "AccessToken": "ACCESS-TOKEN-PLACEHOLDER",
+    "TokenType": "Bearer",
+    "RefreshToken": "REFRESH-TOKEN-PLACEHOLDER"
+  },
+  "isBinary": false
+}

@@ -28,7 +28,7 @@ namespace Alexandria.Tests.Integration;
 public abstract class IntegrationTestBase
 {
     protected WebApplicationFactory<Program> Factory { get; private set; } = null!;
-    protected HttpClient Client { get; private set; } = null!;
+    protected HttpClient Client { get; set; } = null!;
     protected string TempDir { get; private set; } = null!;
     protected string EbookFolder => Path.Combine(TempDir, "ebooks");
     protected string AudiobookFolder => Path.Combine(TempDir, "audiobooks");
@@ -74,6 +74,8 @@ public abstract class IntegrationTestBase
                     var flushHost = services.SingleOrDefault(s => s.ImplementationType == typeof(DatabaseFlushService));
                     if (flushHost is not null)
                         services.Remove(flushHost);
+
+                    ExtendTestServices(services);
                 });
             });
 
@@ -81,6 +83,15 @@ public abstract class IntegrationTestBase
         {
             AllowAutoRedirect = false
         });
+    }
+
+    /// <summary>
+    /// Hook for derived test bases (e.g. KoboProtocolTestBase) to register additional services
+    /// or replace existing ones. Runs after the built-in overrides inside <c>ConfigureTestServices</c>
+    /// so a later registration wins. Default is no-op.
+    /// </summary>
+    protected virtual void ExtendTestServices(IServiceCollection services)
+    {
     }
 
     [TestCleanup]
