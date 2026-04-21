@@ -8,7 +8,7 @@ It exists because no other project offered stable large-library management for a
 
 If you own your media and want it to just show up on your Kobo, this is for you.
 
-![Alexandria home screen](Screenshots/home.png)
+![Alexandria tour](Screenshots/tour.gif)
 
 ## Features
 
