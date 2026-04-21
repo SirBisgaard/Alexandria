@@ -8,7 +8,7 @@ using Alexandria.DataAccess.Files.Books.Audiobooks;
 using Alexandria.DataAccess.Files.Interfaces;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.BusinessLayer;
+namespace Alexandria.Tests.Business;
 
 [TestClass]
 public sealed class FileMp3AudiobookConverterTests

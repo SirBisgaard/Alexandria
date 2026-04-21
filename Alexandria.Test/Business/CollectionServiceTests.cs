@@ -4,7 +4,7 @@ using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Alexandria.Business.Library.Services;
 
-namespace Alexandria.Tests.BusinessLayer;
+namespace Alexandria.Tests.Business;
 
 [TestClass]
 public sealed class CollectionServiceTests

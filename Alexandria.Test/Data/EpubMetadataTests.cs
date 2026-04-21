@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Xml.Linq;
 using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals;
 using Alexandria.Tests.TestData;
 
@@ -109,15 +110,15 @@ public sealed class EpubMetadataTests
         book.Publisher = "Alexandria Press";
         book.Authors =
         [
-            new Business.Library.Models.Author { Name = "First Author" },
-            new Business.Library.Models.Author { Name = "Second Author" }
+            new Author { Name = "First Author" },
+            new Author { Name = "Second Author" }
         ];
         book.Contributors =
         [
-            new Business.Library.Models.Contributor { Name = "The Narrator", Role = "Narrator" },
-            new Business.Library.Models.Contributor { Name = "The Translator", Role = "Translator" }
+            new Contributor { Name = "The Narrator", Role = "Narrator" },
+            new Contributor { Name = "The Translator", Role = "Translator" }
         ];
-        book.Series = new Business.Library.Models.Series { Name = "Alexandria Villains", Index = 7m };
+        book.Series = new Series { Name = "Alexandria Villains", Index = 7m };
 
         handler.EmbedMetadata(epubPath, book);
 
@@ -146,8 +147,8 @@ public sealed class EpubMetadataTests
         var (book, _) = handler.Extract(epubPath);
         book.Contributors =
         [
-            new Business.Library.Models.Contributor { Name = "Valid Narrator", Role = "Narrator" },
-            new Business.Library.Models.Contributor { Name = "Gibberish", Role = "NotARealRole" }
+            new Contributor { Name = "Valid Narrator", Role = "Narrator" },
+            new Contributor { Name = "Gibberish", Role = "NotARealRole" }
         ];
 
         handler.EmbedMetadata(epubPath, book);
@@ -213,7 +214,7 @@ public sealed class EpubMetadataTests
     public void EpubMetadata_Series_WriteUsesEpub3StandardNotCalibre()
     {
         var (book, _) = handler.Extract(epubPath);
-        book.Series = new Business.Library.Models.Series { Name = "Alexandria Series", Index = 2m };
+        book.Series = new Series { Name = "Alexandria Series", Index = 2m };
 
         handler.EmbedMetadata(epubPath, book);
 

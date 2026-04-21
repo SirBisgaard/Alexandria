@@ -1,3 +1,4 @@
+using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Repositories;
 
@@ -53,7 +54,7 @@ public sealed class ConcurrencyTests : DatabaseTestBase
         for (var i = 0; i < 25; i++)
         {
             tasks.Add(deviceRepo.Create(new KoboDevice { DeviceUuid = Guid.NewGuid(), Nickname = $"Writer-{i}" }));
-            tasks.Add(trafficRepo.Log(new Business.KoboStoreProxy.Models.KoboProxyTrafficLog
+            tasks.Add(trafficRepo.Log(new KoboProxyTrafficLog
             {
                 Timestamp = DateTimeOffset.UtcNow,
                 Method = "GET",

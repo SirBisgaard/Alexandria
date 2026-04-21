@@ -2,7 +2,6 @@ using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Externals;
-using Alexandria.DataAccess.Externals.Models;
 using Alexandria.DataAccess.Files.Services;
 using Alexandria.Tests.TestData;
 using Microsoft.Extensions.Logging.Abstractions;

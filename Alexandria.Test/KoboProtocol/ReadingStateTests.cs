@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Alexandria.Business.Interfaces;
-using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
 using Alexandria.Tests.KoboProtocol.Fixtures;
 using Alexandria.Tests.KoboProtocol.Shape;

@@ -1,7 +1,4 @@
 using Alexandria.Business.Library.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Api.Sync;
 

@@ -7,7 +7,7 @@ using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.BusinessLayer;
+namespace Alexandria.Tests.Business;
 
 /// <summary>
 /// Verifies <see cref="IndexerService.Index"/> orchestration under each <see cref="M4BFileTreatment"/>.

@@ -6,7 +6,7 @@ using Alexandria.Business.Library.Models.Settings;
 using Alexandria.Business.Library.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Alexandria.Tests.BusinessLayer;
+namespace Alexandria.Tests.Business;
 
 /// <summary>
 /// SettingsService caches the loaded AppSettings in a <see langword="private static"/>
