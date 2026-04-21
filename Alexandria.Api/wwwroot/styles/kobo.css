@@ -900,7 +900,7 @@ a.series-list-item {
 }
 
 #about-modal {
-    max-width: 480px;
+    max-width: 510px;
     min-height: auto;
 }
 
@@ -1037,7 +1037,7 @@ a.series-list-item {
 .settings-footer {
     margin-top: 16px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 12px;
 }
@@ -1046,11 +1046,6 @@ a.series-list-item {
     display: flex;
     align-items: center;
     gap: 12px;
-}
-
-.settings-version {
-    font-size: 10px;
-    color: var(--bs-secondary-color);
 }
 
 .settings-save-status {
@@ -1068,12 +1063,32 @@ a.series-list-item {
     margin-bottom: 12px;
 }
 
-.about-logo {
-    color: #c0392b;
-    font-size: 28px;
-    font-weight: bold;
+.about-divider {
+    margin: 20px 0 16px;
+    border: none;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.about-links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 14px;
+}
+
+.about-version {
+    font-size: 12px;
+    color: var(--bs-secondary-color);
     text-align: center;
     margin-top: 24px;
+}
+
+.about-logo {
+    color: #c0392b;
+    font-size: 33px;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 8px;
 }
 
 .bm-data-info {

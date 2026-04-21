@@ -44,16 +44,29 @@ $(function () {
                     '<p>Named after the ancient Library of Alexandria, Alexandria is an offline library manager for Kobo e-readers, supporting both ebooks and audiobooks.</p>' +
                     '<p>It works by acting as a transparent proxy between your Kobo and the Kobo store, intercepting sync endpoints to seamlessly inject your personal library into the standard Kobo reading experience.</p>' +
                     '<p>Your books appear alongside store purchases on every paired device, complete with covers, reading progress, and metadata &mdash; no sideloading or USB transfers required.</p>' +
-                    '<p>Drop EPUB or M4B files into the library folder, and they sync to each Kobo automatically. Pair any number of devices, share the library across multiple users, and use the web interface to edit metadata, manage collections, and track reading progress.</p>' +
+                    '<p>Drop EPUB files, M4B audiobooks, or folders of per-chapter MP3s into the library folder, and they sync to each Kobo automatically. Pair any number of devices, share the library across multiple users, and use the web interface to edit metadata, manage collections, and track reading progress.</p>' +
+                    '<hr class="about-divider">' +
+                    '<div class="about-links">' +
+                        '<a href="https://github.com/SirBisgaard/Alexandria" target="_blank" rel="noopener">Project repository</a>' +
+                        '<a href="https://eupl.eu/1.2/en/" target="_blank" rel="noopener">License (EUPL v1.2)</a>' +
+                    '</div>' +
+                    '<div class="about-version"></div>' +
                     '<div class="about-logo">Alexandria</div>' +
                 '</div>' +
             '</div>' +
         '</div>'
     );
 
+    var aboutVersionLoaded = false;
     $(document).on("click", "[data-about-alexandria]", function (e) {
         e.preventDefault();
         $("#about-modal-backdrop").addClass("open");
+        if (!aboutVersionLoaded) {
+            aboutVersionLoaded = true;
+            $.get("/api/alexandria/settings", function (data) {
+                $(".about-version").text(data.version || "");
+            });
+        }
     });
 
     $("#about-close").on("click", function () {
@@ -111,7 +124,6 @@ $(function () {
                     '</div>' +
                     '<div class="settings-error-banner"></div>' +
                     '<div class="settings-footer">' +
-                        '<span class="settings-version"></span>' +
                         '<span class="settings-footer-right">' +
                             '<span class="settings-save-status"></span>' +
                             '<button class="bm-edit-btn bm-edit-btn-primary settings-save-btn">Save</button>' +

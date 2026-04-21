@@ -24,7 +24,6 @@ function loadSettings(container) {
         $c.find("[data-setting='syncLibraryAtBoot']").prop("checked", data.syncLibraryAtBoot);
         $c.find("[data-setting='m4bFileTreatment']").val(data.m4BFileTreatment);
         updateM4bDescription(container);
-        $c.find(".settings-version").text(data.version || "");
     });
 }
 
