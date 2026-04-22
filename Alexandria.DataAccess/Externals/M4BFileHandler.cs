@@ -257,7 +257,12 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
     private static List<FfmpegChapter> BuildChapterList(Book book)
     {
-        return book.Chapters.Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title)).ToList();
+        return book.Chapters.Select(c => new FfmpegChapter
+        {
+            StartMs = (long)Math.Round(c.StartTime * 1000),
+            EndMs = (long)Math.Round(c.EndTime * 1000),
+            Title = c.Title
+        }).ToList();
     }
 
     private static Series ParseGrouping(string grouping)

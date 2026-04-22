@@ -283,7 +283,7 @@ public sealed class IndexerServiceTests
         var existing = MakeEbook("CoverEdit", "/c.epub");
         bookRepository.Seed(existing);
         contentManager.OnGetBook = book => Clone(book);
-        var cover = new CoverUpdate(CoverData: [1, 2, 3], MediaType: "image/jpeg");
+        var cover = new CoverUpdate { CoverData = [1, 2, 3], MediaType = "image/jpeg" };
 
         await service.ReindexBook(existing.BookUuid, coverUpdate: cover);
 

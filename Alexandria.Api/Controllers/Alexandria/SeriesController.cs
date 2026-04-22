@@ -12,7 +12,7 @@ public class SeriesController(ISeriesService seriesService, ILogger<SeriesContro
     [HttpGet]
     public async Task<IActionResult> GetSeries([FromQuery] SeriesSortField? sort, [FromQuery] SortOrder? order)
     {
-        var options = new SeriesSortOptions(sort ?? SeriesSortField.SeriesTitle, order ?? SortOrder.Asc);
+        var options = new SeriesSortOptions { Sort = sort ?? SeriesSortField.SeriesTitle, Order = order ?? SortOrder.Asc };
         var series = await seriesService.GetSeries(options);
         return Ok(series.Select(ApiMapper.ToSeriesDetailResponse));
     }
@@ -20,7 +20,7 @@ public class SeriesController(ISeriesService seriesService, ILogger<SeriesContro
     [HttpGet("{uuid:guid}")]
     public async Task<IActionResult> GetSeriesByUuid(Guid uuid, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var options = new BookSortOptions(sort ?? BookSortField.BookNumber, order ?? SortOrder.Asc);
+        var options = new BookSortOptions { Sort = sort ?? BookSortField.BookNumber, Order = order ?? SortOrder.Asc };
         var series = await seriesService.GetSeriesByUuid(uuid, options);
         if (series is null)
             return NotFound();

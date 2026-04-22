@@ -14,7 +14,7 @@ public class BooksController(IBookService bookService, ILogger<BooksController> 
     [HttpGet]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var options = new BookSortOptions(sort ?? BookSortField.Recent, order ?? SortOrder.Desc);
+        var options = new BookSortOptions { Sort = sort ?? BookSortField.Recent, Order = order ?? SortOrder.Desc };
         var books = await bookService.GetBooks(options);
         return Ok(books.Select(ApiMapper.ToBookResponse));
     }

@@ -52,7 +52,7 @@ public sealed class SeriesServiceTests
             MakeBookForSeries(big, index: 3),
             MakeBookForSeries(small, index: 1));
 
-        var result = await service.GetSeries(new SeriesSortOptions(SeriesSortField.NumberOfBooks, SortOrder.Desc));
+        var result = await service.GetSeries(new SeriesSortOptions { Sort = SeriesSortField.NumberOfBooks, Order = SortOrder.Desc });
 
         Assert.AreEqual("Big", result[0].Name);
         Assert.AreEqual("Small", result[1].Name);
@@ -70,7 +70,7 @@ public sealed class SeriesServiceTests
         newer.ModifiedAt = DateTimeOffset.UtcNow;
         bookService.Seed(older, newer);
 
-        var result = await service.GetSeries(new SeriesSortOptions(SeriesSortField.Recent, SortOrder.Desc));
+        var result = await service.GetSeries(new SeriesSortOptions { Sort = SeriesSortField.Recent, Order = SortOrder.Desc });
 
         Assert.AreEqual("S2", result[0].Name);
         Assert.AreEqual("S1", result[1].Name);
@@ -120,12 +120,12 @@ public sealed class SeriesServiceTests
             MakeBookForSeries(series, index: 1, title: "Alpha"),
             MakeBookForSeries(series, index: 2, title: "Zeta"));
 
-        var asc = await service.GetSeriesByUuid(series.SeriesUuid, new BookSortOptions(BookSortField.Title, SortOrder.Asc));
+        var asc = await service.GetSeriesByUuid(series.SeriesUuid, new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Asc });
         Assert.IsNotNull(asc);
         Assert.AreEqual("Alpha", asc.Books[0].Title);
         Assert.AreEqual("Zeta", asc.Books[1].Title);
 
-        var desc = await service.GetSeriesByUuid(series.SeriesUuid, new BookSortOptions(BookSortField.Title, SortOrder.Desc));
+        var desc = await service.GetSeriesByUuid(series.SeriesUuid, new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Desc });
         Assert.IsNotNull(desc);
         Assert.AreEqual("Zeta", desc.Books[0].Title);
         Assert.AreEqual("Alpha", desc.Books[1].Title);

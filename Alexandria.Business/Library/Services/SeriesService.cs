@@ -29,7 +29,7 @@ public class SeriesService(ISeriesRepository seriesRepository, IBookService book
         }
         var books = await bookService.GetBooks();
         series.Books = books.Where(b => b.Series?.SeriesUuid == series.SeriesUuid).ToList();
-        series.Books = AlexandriaLibraryHelper.SortBooks(series.Books, sortOptions ?? new BookSortOptions(BookSortField.BookNumber, SortOrder.Asc));
+        series.Books = AlexandriaLibraryHelper.SortBooks(series.Books, sortOptions ?? new BookSortOptions { Sort = BookSortField.BookNumber, Order = SortOrder.Asc });
         return series;
     }
 

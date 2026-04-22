@@ -120,7 +120,7 @@ public class BookService(IBookRepository bookRepository, IReadingStateRepository
         if (book is null)
             return null;
 
-        await indexerService.ReindexBook(uuid, coverUpdate: new CoverUpdate(coverData, mediaType));
+        await indexerService.ReindexBook(uuid, coverUpdate: new CoverUpdate { CoverData = coverData, MediaType = mediaType });
         return await bookRepository.FindByUuid(uuid);
     }
 
@@ -130,7 +130,7 @@ public class BookService(IBookRepository bookRepository, IReadingStateRepository
         if (book is null)
             return null;
 
-        await indexerService.ReindexBook(uuid, coverUpdate: new CoverUpdate(RemoveCover: true));
+        await indexerService.ReindexBook(uuid, coverUpdate: new CoverUpdate { RemoveCover = true });
         return await bookRepository.FindByUuid(uuid);
     }
 

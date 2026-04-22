@@ -47,7 +47,7 @@ public sealed class BookServiceTests
     {
         bookRepository.Seed(MakeBook("Zeta"), MakeBook("Alpha"), MakeBook("Mu"));
 
-        var result = await service.GetBooks(new BookSortOptions(BookSortField.Title, SortOrder.Asc));
+        var result = await service.GetBooks(new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Asc });
 
         Assert.AreEqual("Alpha", result[0].Title);
         Assert.AreEqual("Mu", result[1].Title);
@@ -62,7 +62,7 @@ public sealed class BookServiceTests
         var c = MakeBook("C", createdAt: DateTimeOffset.UtcNow.AddDays(-3));
         bookRepository.Seed(a, b, c);
 
-        var result = await service.GetBooks(new BookSortOptions(BookSortField.DateAdded, SortOrder.Desc));
+        var result = await service.GetBooks(new BookSortOptions { Sort = BookSortField.DateAdded, Order = SortOrder.Desc });
 
         Assert.AreEqual("B", result[0].Title);
         Assert.AreEqual("C", result[1].Title);
@@ -76,8 +76,8 @@ public sealed class BookServiceTests
         var large = MakeBook("Large", fileSize: 9000);
         bookRepository.Seed(small, large);
 
-        var asc = await service.GetBooks(new BookSortOptions(BookSortField.FileSize, SortOrder.Asc));
-        var desc = await service.GetBooks(new BookSortOptions(BookSortField.FileSize, SortOrder.Desc));
+        var asc = await service.GetBooks(new BookSortOptions { Sort = BookSortField.FileSize, Order = SortOrder.Asc });
+        var desc = await service.GetBooks(new BookSortOptions { Sort = BookSortField.FileSize, Order = SortOrder.Desc });
 
         Assert.AreEqual("Small", asc[0].Title);
         Assert.AreEqual("Large", desc[0].Title);

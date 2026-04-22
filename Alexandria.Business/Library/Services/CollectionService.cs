@@ -24,7 +24,7 @@ public class CollectionService(ICollectionRepository collectionRepository, IBook
         var allBooks = await bookService.GetBooks();
         var uuidSet = new HashSet<Guid>(collection.BookUuids);
         var books = allBooks.Where(b => uuidSet.Contains(b.BookUuid)).ToList();
-        return new CollectionWithBooks { CollectionUuid = collection.CollectionUuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc)), CreatedAt = collection.CreatedAt, ModifiedAt = collection.ModifiedAt };
+        return new CollectionWithBooks { CollectionUuid = collection.CollectionUuid, Name = collection.Name, Books = AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Asc }), CreatedAt = collection.CreatedAt, ModifiedAt = collection.ModifiedAt };
     }
 
     public async Task UpsertCollection(BookCollection collection) => await collectionRepository.Upsert(collection);

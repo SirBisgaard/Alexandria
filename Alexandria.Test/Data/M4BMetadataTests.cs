@@ -181,7 +181,12 @@ public sealed class M4BMetadataTests
     {
         var book = await handler.ExtractMetadata(m4bPath);
         var chapters = book.Chapters
-            .Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title))
+            .Select(c => new FfmpegChapter
+            {
+                StartMs = (long)Math.Round(c.StartTime * 1000),
+                EndMs = (long)Math.Round(c.EndTime * 1000),
+                Title = c.Title
+            })
             .ToList();
 
         var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
@@ -345,7 +350,12 @@ public sealed class M4BMetadataTests
     private static List<FfmpegChapter> BuildChapters(Book book)
     {
         return book.Chapters
-            .Select(c => new FfmpegChapter((long)Math.Round(c.StartTime * 1000), (long)Math.Round(c.EndTime * 1000), c.Title))
+            .Select(c => new FfmpegChapter
+            {
+                StartMs = (long)Math.Round(c.StartTime * 1000),
+                EndMs = (long)Math.Round(c.EndTime * 1000),
+                Title = c.Title
+            })
             .ToList();
     }
 }

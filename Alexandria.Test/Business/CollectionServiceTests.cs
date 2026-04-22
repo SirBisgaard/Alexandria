@@ -45,7 +45,7 @@ public sealed class CollectionServiceTests
             new BookCollection { CollectionUuid = Guid.NewGuid(), Name = "Big", BookUuids = [Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()] },
             new BookCollection { CollectionUuid = Guid.NewGuid(), Name = "Medium", BookUuids = [Guid.NewGuid(), Guid.NewGuid()] });
 
-        var result = await service.GetCollections(new CollectionSortOptions(CollectionSortField.NumberOfBooks, SortOrder.Desc));
+        var result = await service.GetCollections(new CollectionSortOptions { Sort = CollectionSortField.NumberOfBooks, Order = SortOrder.Desc });
 
         Assert.AreEqual("Big", result[0].Name);
         Assert.AreEqual("Medium", result[1].Name);
@@ -61,7 +61,7 @@ public sealed class CollectionServiceTests
             new BookCollection { CollectionUuid = Guid.NewGuid(), Name = "New", CreatedAt = now },
             new BookCollection { CollectionUuid = Guid.NewGuid(), Name = "Mid", CreatedAt = now.AddDays(-5) });
 
-        var result = await service.GetCollections(new CollectionSortOptions(CollectionSortField.DateCreated, SortOrder.Desc));
+        var result = await service.GetCollections(new CollectionSortOptions { Sort = CollectionSortField.DateCreated, Order = SortOrder.Desc });
 
         Assert.AreEqual("New", result[0].Name);
         Assert.AreEqual("Mid", result[1].Name);
@@ -108,8 +108,8 @@ public sealed class CollectionServiceTests
             BookUuids = [bookA.BookUuid, bookZ.BookUuid]
         });
 
-        var asc = await service.GetCollectionWithBooks(collectionUuid, new BookSortOptions(BookSortField.Title, SortOrder.Asc));
-        var desc = await service.GetCollectionWithBooks(collectionUuid, new BookSortOptions(BookSortField.Title, SortOrder.Desc));
+        var asc = await service.GetCollectionWithBooks(collectionUuid, new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Asc });
+        var desc = await service.GetCollectionWithBooks(collectionUuid, new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Desc });
 
         Assert.IsNotNull(asc);
         Assert.IsNotNull(desc);

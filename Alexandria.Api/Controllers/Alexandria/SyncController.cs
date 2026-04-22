@@ -15,7 +15,7 @@ public class SyncController(IIndexingBroker broker, ILogger<SyncController> logg
     [HttpGet("status")]
     public ActionResult<SyncStatusResponse> GetStatus()
     {
-        return new SyncStatusResponse(broker.IsRunning, broker.LastSnapshot);
+        return new SyncStatusResponse { Running = broker.IsRunning, Snapshot = broker.LastSnapshot };
     }
 
     /// <summary>

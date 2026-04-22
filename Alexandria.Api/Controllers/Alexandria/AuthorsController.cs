@@ -12,7 +12,7 @@ public class AuthorsController(IAuthorService authorService, ILogger<AuthorsCont
     [HttpGet]
     public async Task<IActionResult> GetAuthors([FromQuery] AuthorSortField? sort, [FromQuery] SortOrder? order)
     {
-        var options = new AuthorSortOptions(sort ?? AuthorSortField.LastName, order ?? SortOrder.Asc);
+        var options = new AuthorSortOptions { Sort = sort ?? AuthorSortField.LastName, Order = order ?? SortOrder.Asc };
         var authors = await authorService.GetAuthors(options);
         return Ok(authors.Select(ApiMapper.ToAuthorDetailResponse));
     }
@@ -20,7 +20,7 @@ public class AuthorsController(IAuthorService authorService, ILogger<AuthorsCont
     [HttpGet("{uuid:guid}")]
     public async Task<IActionResult> GetAuthor(Guid uuid, [FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
     {
-        var options = new BookSortOptions(sort ?? BookSortField.Title, order ?? SortOrder.Asc);
+        var options = new BookSortOptions { Sort = sort ?? BookSortField.Title, Order = order ?? SortOrder.Asc };
         var author = await authorService.GetAuthorByUuid(uuid, options);
         if (author is null)
             return NotFound();

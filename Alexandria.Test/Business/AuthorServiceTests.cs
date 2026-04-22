@@ -54,7 +54,7 @@ public sealed class AuthorServiceTests
         authorRepository.Seed(a1, a2, a3);
         bookService.Seed(MakeBookFor(a1), MakeBookFor(a2), MakeBookFor(a3));
 
-        var result = await service.GetAuthors(new AuthorSortOptions(AuthorSortField.FirstName, SortOrder.Asc));
+        var result = await service.GetAuthors(new AuthorSortOptions { Sort = AuthorSortField.FirstName, Order = SortOrder.Asc });
 
         Assert.AreEqual("Alice Zeta", result[0].Name);
         Assert.AreEqual("Bob Alpha", result[1].Name);
@@ -73,7 +73,7 @@ public sealed class AuthorServiceTests
             MakeBookFor(prolific),
             MakeBookFor(sparse));
 
-        var result = await service.GetAuthors(new AuthorSortOptions(AuthorSortField.NumberOfBooks, SortOrder.Desc));
+        var result = await service.GetAuthors(new AuthorSortOptions { Sort = AuthorSortField.NumberOfBooks, Order = SortOrder.Desc });
 
         Assert.AreEqual("Prolific", result[0].Name);
         Assert.AreEqual("Sparse", result[1].Name);
@@ -91,7 +91,7 @@ public sealed class AuthorServiceTests
         newBook.ModifiedAt = DateTimeOffset.UtcNow;
         bookService.Seed(oldBook, newBook);
 
-        var result = await service.GetAuthors(new AuthorSortOptions(AuthorSortField.Recent, SortOrder.Desc));
+        var result = await service.GetAuthors(new AuthorSortOptions { Sort = AuthorSortField.Recent, Order = SortOrder.Desc });
 
         Assert.AreEqual("A2", result[0].Name);
         Assert.AreEqual("A1", result[1].Name);
@@ -139,7 +139,7 @@ public sealed class AuthorServiceTests
             MakeBookFor(author, title: "Alpha"),
             MakeBookFor(author, title: "Zeta"));
 
-        var result = await service.GetAuthorByUuid(author.AuthorUuid, new BookSortOptions(BookSortField.Title, SortOrder.Desc));
+        var result = await service.GetAuthorByUuid(author.AuthorUuid, new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Desc });
 
         Assert.IsNotNull(result);
         Assert.AreEqual("Zeta", result.Books[0].Title);

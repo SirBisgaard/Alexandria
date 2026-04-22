@@ -28,7 +28,7 @@ public class AuthorService(IAuthorRepository authorRepository, IBookService book
 
         var books = await bookService.GetBooks();
         author.Books = books.Where(b => b.Authors.Any(a => a.AuthorUuid == author.AuthorUuid)).ToList();
-        author.Books = AlexandriaLibraryHelper.SortBooks(author.Books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc));
+        author.Books = AlexandriaLibraryHelper.SortBooks(author.Books, sortOptions ?? new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Asc });
         return author;
     }
 
@@ -41,7 +41,7 @@ public class AuthorService(IAuthorRepository authorRepository, IBookService book
         }
         var books = await bookService.GetBooks();
         author.Books = books.Where(b => b.Authors.Any(a => a.AuthorUuid == author.AuthorUuid)).ToList();
-        author.Books = AlexandriaLibraryHelper.SortBooks(author.Books, sortOptions ?? new BookSortOptions(BookSortField.Title, SortOrder.Asc));
+        author.Books = AlexandriaLibraryHelper.SortBooks(author.Books, sortOptions ?? new BookSortOptions { Sort = BookSortField.Title, Order = SortOrder.Asc });
         return author;
     }
 
