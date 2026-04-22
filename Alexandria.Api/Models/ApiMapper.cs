@@ -136,6 +136,7 @@ public static class ApiMapper
         WordsPerPage = settings.WordsPerPage,
         SyncLibraryAtBoot = settings.SyncLibraryAtBoot,
         M4BFileTreatment = settings.M4BFileTreatment.ToString(),
+        FileRenameTemplate = settings.FileRenameTemplate,
         Version = BuildVersion
     };
 
@@ -155,7 +156,8 @@ public static class ApiMapper
         ProxyLoggingEnabled = request.ProxyLoggingEnabled,
         WordsPerPage = request.WordsPerPage,
         SyncLibraryAtBoot = request.SyncLibraryAtBoot,
-        M4BFileTreatment = request.M4BFileTreatment
+        M4BFileTreatment = request.M4BFileTreatment,
+        FileRenameTemplate = request.FileRenameTemplate.Trim()
     };
 
     public static Book ToBook(UpdateBookMetadataRequest request) => new()

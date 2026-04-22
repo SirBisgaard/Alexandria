@@ -7,18 +7,18 @@ namespace Alexandria.Api.Sync;
 /// <summary>
 /// Singleton fan-out broker for library-sync progress. The background service runs the
 /// actual indexing; the broker brokers between it and any number of SSE subscribers.
-/// Replaces the request-scoped <c>ChannelProgress</c> + <c>LibrarySyncLock</c> pair that
-/// used to live inside <c>SyncController</c>.
+/// Exclusivity is delegated to <see cref="Alexandria.Business.Interfaces.ILibraryOperationLock"/>
+/// so indexing shares one busy-state with inline operations like file-management.
 /// </summary>
 public interface IIndexingBroker : IProgress<IndexingReport>
 {
-    /// <summary>True from the moment <see cref="TryEnqueueRun"/> accepts a request until <see cref="EndRun"/> is called.</summary>
+    /// <summary>True while any library operation (indexing or inline) holds the exclusivity lease.</summary>
     bool IsRunning { get; }
 
     /// <summary>The most recent progress frame for the in-flight run, or null if idle.</summary>
     SyncProgressEvent? LastSnapshot { get; }
 
-    /// <summary>Enqueues a run request. Returns false if a run is already in flight or queued.</summary>
+    /// <summary>Enqueues a run request. Returns false if another library operation is already in flight.</summary>
     bool TryEnqueueRun();
 
     /// <summary>Awaits the next enqueued run request. Used by the hosted service's consume loop.</summary>

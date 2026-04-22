@@ -1,18 +1,19 @@
 using System.Text.Json;
 using System.Threading.Channels;
 using Alexandria.Api.Models.Events;
+using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Models.Others;
 
 namespace Alexandria.Api.Sync;
 
 /// <summary>
-/// Singleton broker that sits between the hosted indexing service (producer) and any number
-/// of SSE subscribers (consumers). Combines three concerns the old controller-owned design
-/// split across <c>LibrarySyncLock</c>, <c>ChannelProgress</c>, and <c>IIndexingProgressService</c>:
-/// (1) at-most-one-in-flight gating, (2) fan-out broadcast to N subscribers, (3) snapshot cache
-/// so late joiners catch up instantly.
+/// Singleton broker between the hosted indexing service (producer) and any number of SSE
+/// subscribers (consumers). Owns three concerns: (1) the 1-deep dispatch queue that triggers
+/// the hosted service, (2) fan-out broadcast to N subscribers, (3) snapshot cache so late
+/// joiners catch up instantly. Exclusivity is delegated to <see cref="ILibraryOperationLock"/>
+/// so indexing and inline operations (e.g. file management) share a single busy-state.
 /// </summary>
-public sealed class IndexingBroker : IIndexingBroker
+public sealed class IndexingBroker(ILibraryOperationLock libraryLock) : IIndexingBroker
 {
     private readonly Channel<byte> runRequests = Channel.CreateBounded<byte>(new BoundedChannelOptions(1)
     {
@@ -24,17 +25,10 @@ public sealed class IndexingBroker : IIndexingBroker
     private readonly List<ChannelWriter<string>> subscribers = [];
     private readonly JsonSerializerOptions jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    private bool isRunning;
+    private IDisposable? activeLease;
     private SyncProgressEvent? lastSnapshot;
 
-    public bool IsRunning
-    {
-        get
-        {
-            lock (gate)
-                return isRunning;
-        }
-    }
+    public bool IsRunning => libraryLock.IsBusy;
 
     public SyncProgressEvent? LastSnapshot
     {
@@ -46,20 +40,28 @@ public sealed class IndexingBroker : IIndexingBroker
     }
 
     /// <summary>
-    /// Sets <see cref="IsRunning"/> eagerly under the lock so clicks from other tabs see "running"
+    /// Reserves the shared library-operation lease eagerly so clicks from other tabs see "running"
     /// immediately, closing the race where TryEnqueueRun would accept duplicates in the tiny window
-    /// between dequeue and BeginRun.
+    /// between dequeue and BeginRun. If the lease can't be acquired (another op in flight), returns
+    /// false without writing to the channel.
     /// </summary>
     public bool TryEnqueueRun()
     {
+        if (!libraryLock.TryBeginExclusive(out var lease))
+            return false;
+
         lock (gate)
-        {
-            if (isRunning)
-                return false;
-            isRunning = true;
-        }
-        runRequests.Writer.TryWrite(0);
-        return true;
+            activeLease = lease;
+
+        if (runRequests.Writer.TryWrite(0))
+            return true;
+
+        // Channel was already full (another run dequeue in flight). Release the lease so the
+        // already-pending run keeps exclusivity; we don't want two leases outstanding.
+        lock (gate)
+            activeLease = null;
+        lease.Dispose();
+        return false;
     }
 
     public async Task WaitForRunRequest(CancellationToken cancellationToken)
@@ -76,15 +78,18 @@ public sealed class IndexingBroker : IIndexingBroker
     public void EndRun()
     {
         List<ChannelWriter<string>> toComplete;
+        IDisposable? leaseToRelease;
         lock (gate)
         {
-            isRunning = false;
             lastSnapshot = null;
+            leaseToRelease = activeLease;
+            activeLease = null;
             toComplete = [.. subscribers];
             subscribers.Clear();
         }
         foreach (var writer in toComplete)
             writer.TryComplete();
+        leaseToRelease?.Dispose();
     }
 
     public IndexingSubscription Subscribe()
@@ -116,14 +121,16 @@ public sealed class IndexingBroker : IIndexingBroker
 
     public void Report(IndexingReport report)
     {
-        var evt = new SyncProgressEvent(
-            report.Title,
-            report.Subtitle,
-            report.Progress,
-            report.Total,
-            report.SubTask?.Title,
-            report.SubTask?.Progress,
-            report.SubTask?.Total);
+        var evt = new SyncProgressEvent
+        {
+            Title = report.Title,
+            Subtitle = report.Subtitle,
+            Progress = report.Progress,
+            Total = report.Total,
+            SubTaskTitle = report.SubTask?.Title,
+            SubProgress = report.SubTask?.Progress,
+            SubTotal = report.SubTask?.Total
+        };
 
         var frame = FormatFrame(evt);
         List<ChannelWriter<string>> snapshotSubs;
@@ -138,12 +145,17 @@ public sealed class IndexingBroker : IIndexingBroker
 
     public void EmitComplete(int bookCount, string? lastIndexedTimestamp)
     {
-        BroadcastTerminal(FormatFrame(new SyncCompleteEvent(true, bookCount, lastIndexedTimestamp)));
+        BroadcastTerminal(FormatFrame(new SyncCompleteEvent
+        {
+            Done = true,
+            BookCount = bookCount,
+            LastIndexedTimestamp = lastIndexedTimestamp
+        }));
     }
 
     public void EmitError(string message)
     {
-        BroadcastTerminal(FormatFrame(new SyncErrorEvent(true, true, message)));
+        BroadcastTerminal(FormatFrame(new SyncErrorEvent { Done = true, Failed = true, Error = message }));
     }
 
     /// <summary>

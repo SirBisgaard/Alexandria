@@ -1,3 +1,5 @@
+using Alexandria.Business.Library.Services;
+
 namespace Alexandria.Business.Library.Models.Settings;
 
 /// <summary>
@@ -25,4 +27,7 @@ public class AppSettings
 
     /// <summary>Controls how M4B audiobook files are processed during library indexing.</summary>
     public M4BFileTreatment M4BFileTreatment { get; set; } = M4BFileTreatment.Nothing;
+
+    /// <summary>Template used by the file-management feature to normalize filenames. Seeded with <see cref="FileNameTemplate.DefaultTemplate"/> by the V2 migration.</summary>
+    public string FileRenameTemplate { get; set; } = FileNameTemplate.DefaultTemplate;
 }

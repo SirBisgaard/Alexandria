@@ -19,6 +19,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 FileNotFoundException => (StatusCodes.Status404NotFound, ex.Message),
                 InvalidOperationException => (StatusCodes.Status400BadRequest, ex.Message),
                 NotSupportedException => (StatusCodes.Status400BadRequest, ex.Message),
+                ArgumentException => (StatusCodes.Status400BadRequest, ex.Message),
                 _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred")
             };
 

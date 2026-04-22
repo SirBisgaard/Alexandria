@@ -28,6 +28,11 @@ public class SettingsService(ISettingsRepository settingsRepository, IKoboTraffi
     public async Task UpdateSettings(AppSettings settings)
     {
         logger.LogInformation("Updating application settings");
+
+        var validation = FileNameTemplate.Validate(settings.FileRenameTemplate);
+        if (!validation.IsValid)
+            throw new ArgumentException($"FileRenameTemplate is invalid: {validation.Error}", nameof(settings));
+
         var current = await Get();
         await settingsRepository.UpdateSettings(settings);
         cached = null;

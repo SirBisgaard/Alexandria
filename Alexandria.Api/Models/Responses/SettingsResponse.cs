@@ -9,5 +9,6 @@ public class SettingsResponse
     public int WordsPerPage { get; set; }
     public bool SyncLibraryAtBoot { get; set; }
     public string M4BFileTreatment { get; set; } = string.Empty;
+    public string FileRenameTemplate { get; set; } = string.Empty;
     public string? Version { get; set; }
 }

@@ -23,6 +23,7 @@ function loadSettings(container) {
         $c.find("[data-setting='proxyLoggingEnabled']").prop("checked", data.proxyLoggingEnabled);
         $c.find("[data-setting='syncLibraryAtBoot']").prop("checked", data.syncLibraryAtBoot);
         $c.find("[data-setting='m4bFileTreatment']").val(data.m4BFileTreatment);
+        $c.find("[data-setting='fileRenameTemplate']").val(data.fileRenameTemplate || "");
         updateM4bDescription(container);
     });
 }
@@ -38,7 +39,8 @@ function saveSettings(container) {
         wordsPerPage: parseInt($c.find("[data-setting='wordsPerPage']").val(), 10),
         proxyLoggingEnabled: $c.find("[data-setting='proxyLoggingEnabled']").prop("checked"),
         syncLibraryAtBoot: $c.find("[data-setting='syncLibraryAtBoot']").prop("checked"),
-        m4BFileTreatment: $c.find("[data-setting='m4bFileTreatment']").val()
+        m4BFileTreatment: $c.find("[data-setting='m4bFileTreatment']").val(),
+        fileRenameTemplate: $c.find("[data-setting='fileRenameTemplate']").val()
     };
 
     var $btns = $c.find(".bm-edit-btn");
@@ -62,7 +64,8 @@ function saveSettings(container) {
                     if (body && body.errors) {
                         var fieldMap = {
                             "SyncBatchSize": "syncBatchSize",
-                            "WordsPerPage": "wordsPerPage"
+                            "WordsPerPage": "wordsPerPage",
+                            "FileRenameTemplate": "fileRenameTemplate"
                         };
                         for (var key in body.errors) {
                             var setting = fieldMap[key];
@@ -105,6 +108,26 @@ $(function () {
             ? "#" + $(this).closest("#settings-modal, #settings-page-tiles").attr("id")
             : "#settings-modal";
         updateM4bDescription(container);
+    });
+
+    $(document).on("click", "[data-validate-template]", function () {
+        var $tile = $(this).closest(".settings-tile");
+        var $result = $tile.find("[data-validate-result]");
+        var template = $tile.find("[data-setting='fileRenameTemplate']").val();
+        $result.text("...");
+        $.ajax({
+            url: "/api/alexandria/settings/preview-template",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ template: template }),
+            success: function (data) {
+                $result.text(data.result);
+            },
+            error: function (jqXHR) {
+                var msg = (jqXHR.responseJSON && jqXHR.responseJSON.error) || "Invalid template.";
+                $result.text(msg);
+            }
+        });
     });
 
     if ($("#settings-page-tiles").length)

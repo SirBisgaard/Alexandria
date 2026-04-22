@@ -98,8 +98,8 @@ public sealed class FfmpegWrapperTests
         };
         var chapters = new List<Alexandria.DataAccess.Externals.Models.FfmpegChapter>
         {
-            new(0, 4000, "Chapter One"),
-            new(4000, 8000, "Chapter Two")
+            new() { StartMs = 0, EndMs = 4000, Title = "Chapter One" },
+            new() { StartMs = 4000, EndMs = 8000, Title = "Chapter Two" }
         };
 
         var tempPath = m4bPath + ".tmp";

@@ -21,7 +21,8 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
 
             var migrations = new (int Version, Action<SqliteConnection> Apply)[]
             {
-                (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher, alexandriaSettings, logger))
+                (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher, alexandriaSettings, logger)),
+                (2, conn => MigrateV2_FileRenameTemplate(conn, logger))
             };
 
             foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -375,5 +376,14 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         userSeedCmd.Parameters.AddWithValue("@modifiedAt", now);
         userSeedCmd.Parameters.AddWithValue("@lastLoginAt", now);
         userSeedCmd.ExecuteNonQuery();
+    }
+
+    private static void MigrateV2_FileRenameTemplate(SqliteConnection connection, ILogger logger)
+    {
+        // Default must stay in sync with Alexandria.Business.Library.Services.FileNameTemplate.DefaultTemplate.
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "ALTER TABLE Settings ADD COLUMN FileRenameTemplate TEXT NOT NULL DEFAULT '<Authors> - (<Serie> #<SerieIndex> - )<Title>'";
+        cmd.ExecuteNonQuery();
+        logger.LogInformation("V2: added Settings.FileRenameTemplate column with default template");
     }
 }

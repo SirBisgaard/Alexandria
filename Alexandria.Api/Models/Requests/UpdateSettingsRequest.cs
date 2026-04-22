@@ -17,4 +17,9 @@ public record UpdateSettingsRequest
     public bool SyncLibraryAtBoot { get; set; }
 
     public M4BFileTreatment M4BFileTreatment { get; set; }
+
+    [Required(ErrorMessage = "File rename template is required.")]
+    [MinLength(1, ErrorMessage = "File rename template must not be empty.")]
+    [MaxLength(500, ErrorMessage = "File rename template must be 500 characters or fewer.")]
+    public string FileRenameTemplate { get; set; } = string.Empty;
 }

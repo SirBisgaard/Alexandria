@@ -152,6 +152,43 @@ public sealed class SettingsApiTests : IntegrationTestBase
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [TestMethod]
+    public async Task Put_FileRenameTemplate_RoundTrips()
+    {
+        var token = await LoginAsync();
+        using var authed = AuthenticatedClient(token);
+
+        var payload = new UpdatePayload
+        {
+            SyncBatchSize = 60,
+            WordsPerPage = 250,
+            FileRenameTemplate = "<Authors> - <Title>"
+        };
+        var put = await authed.PutAsJsonAsync("/api/alexandria/settings", payload);
+        put.EnsureSuccessStatusCode();
+
+        var get = await authed.GetAsync("/api/alexandria/settings");
+        var body = await get.Content.ReadFromJsonAsync<SettingsResponseDto>();
+        Assert.AreEqual("<Authors> - <Title>", body!.FileRenameTemplate);
+    }
+
+    [TestMethod]
+    public async Task Put_InvalidFileRenameTemplate_Returns400()
+    {
+        var token = await LoginAsync();
+        using var authed = AuthenticatedClient(token);
+
+        var payload = new UpdatePayload
+        {
+            SyncBatchSize = 60,
+            WordsPerPage = 250,
+            FileRenameTemplate = "<UnknownToken>"
+        };
+        var response = await authed.PutAsJsonAsync("/api/alexandria/settings", payload);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private sealed class SettingsResponseDto
     {
         public DateTimeOffset? LastIndexedTimestamp { get; set; }
@@ -160,6 +197,7 @@ public sealed class SettingsApiTests : IntegrationTestBase
         public int WordsPerPage { get; set; }
         public bool SyncLibraryAtBoot { get; set; }
         public string M4BFileTreatment { get; set; } = "";
+        public string FileRenameTemplate { get; set; } = string.Empty;
         public string? Version { get; set; }
     }
 
@@ -170,5 +208,6 @@ public sealed class SettingsApiTests : IntegrationTestBase
         public int WordsPerPage { get; set; } = 250;
         public bool SyncLibraryAtBoot { get; set; }
         public M4BFileTreatment M4BFileTreatment { get; set; } = M4BFileTreatment.Nothing;
+        public string FileRenameTemplate { get; set; } = "<Authors> - <Title>";
     }
 }

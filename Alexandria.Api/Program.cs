@@ -78,8 +78,13 @@ builder.Services.AddTransient<IFileContentMediaHandler, FileMp3AudiobookMediaHan
 builder.Services.AddTransient<IFileConverter, FileMp3AudiobookConverter>();
 builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
+builder.Services.AddTransient<IFileRenamer, EbookFileRenamer>();
+builder.Services.AddTransient<IFileRenamer, M4BFileRenamer>();
+builder.Services.AddTransient<IFileRenamer, Mp3FolderFileRenamer>();
+
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
+builder.Services.AddSingleton<ILibraryOperationLock, LibraryOperationLock>();
 builder.Services.AddSingleton<IIndexingBroker, IndexingBroker>();
 builder.Services.AddHostedService<IndexingBackgroundService>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
@@ -89,12 +94,14 @@ builder.Services.AddTransient<IKoboReadingStateService, KoboReadingStateService>
 builder.Services.AddTransient<IKoboAnalyticsService, KoboAnalyticsService>();
 builder.Services.AddTransient<IKoboProductService, KoboProductService>();
 builder.Services.AddScoped<IIndexingProgressService, IndexingProgressService>();
+builder.Services.AddScoped<IFileManagementProgressService, FileManagementProgressService>();
 builder.Services.AddTransient<IIndexerService, IndexerService>();
 builder.Services.AddTransient<IBookService, BookService>();
 builder.Services.AddTransient<IAuthorService, AuthorService>();
 builder.Services.AddTransient<ISeriesService, SeriesService>();
 builder.Services.AddTransient<ICollectionService, CollectionService>();
 builder.Services.AddTransient<ISettingsService, SettingsService>();
+builder.Services.AddTransient<IFileManagementService, FileManagementService>();
 
 // Authentication
 var authSecrets = new AuthSecretProvider();

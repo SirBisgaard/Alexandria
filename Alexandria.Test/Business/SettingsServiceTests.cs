@@ -126,6 +126,35 @@ public sealed class SettingsServiceTests
     }
 
     [TestMethod]
+    public async Task UpdateSettings_FileRenameTemplateRoundTripsThroughRepository()
+    {
+        settingsRepository.Seed(new AppSettings());
+
+        await service.UpdateSettings(new AppSettings { FileRenameTemplate = "<Authors> - <Title>" });
+
+        var refreshed = await service.Get();
+        Assert.AreEqual("<Authors> - <Title>", refreshed.FileRenameTemplate);
+    }
+
+    [TestMethod]
+    public async Task UpdateSettings_InvalidFileRenameTemplate_Throws()
+    {
+        settingsRepository.Seed(new AppSettings());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(
+            async () => await service.UpdateSettings(new AppSettings { FileRenameTemplate = "<Unknown>" }));
+    }
+
+    [TestMethod]
+    public async Task UpdateSettings_EmptyFileRenameTemplate_Throws()
+    {
+        settingsRepository.Seed(new AppSettings());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(
+            async () => await service.UpdateSettings(new AppSettings { FileRenameTemplate = "" }));
+    }
+
+    [TestMethod]
     public async Task UpdateSettings_SyncLibraryAtBootRoundTripsThroughRepository()
     {
         settingsRepository.Seed(new AppSettings { SyncLibraryAtBoot = false });
@@ -192,7 +221,8 @@ public sealed class SettingsServiceTests
                 ProxyLoggingEnabled = source.ProxyLoggingEnabled,
                 WordsPerPage = source.WordsPerPage,
                 SyncLibraryAtBoot = source.SyncLibraryAtBoot,
-                M4BFileTreatment = source.M4BFileTreatment
+                M4BFileTreatment = source.M4BFileTreatment,
+                FileRenameTemplate = source.FileRenameTemplate
             };
         }
     }

@@ -1,4 +1,5 @@
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Library.Services;
 using Alexandria.DataAccess.Database.Repositories;
 
 namespace Alexandria.Tests.Data.Database;
@@ -66,6 +67,29 @@ public sealed class SettingsRepositoryTests : DatabaseTestBase
 
         var fetchedSeed = (await repository.Get()).UuidSeed;
         Assert.AreEqual(originalSeed, fetchedSeed);
+    }
+
+    [TestMethod]
+    public async Task SettingsRepository_Get_FileRenameTemplateDefaultsToSeededValue()
+    {
+        var settings = await repository.Get();
+
+        Assert.AreEqual(FileNameTemplate.DefaultTemplate, settings.FileRenameTemplate);
+    }
+
+    [TestMethod]
+    public async Task SettingsRepository_UpdateSettings_FileRenameTemplateRoundTrips()
+    {
+        await repository.UpdateSettings(new AppSettings
+        {
+            SyncBatchSize = 60,
+            WordsPerPage = 250,
+            M4BFileTreatment = M4BFileTreatment.Nothing,
+            FileRenameTemplate = "<Authors> - <Title>"
+        });
+
+        var fetched = await repository.Get();
+        Assert.AreEqual("<Authors> - <Title>", fetched.FileRenameTemplate);
     }
 
     [TestMethod]

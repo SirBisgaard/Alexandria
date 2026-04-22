@@ -120,6 +120,16 @@ $(function () {
                             '</select>' +
                             '<div class="settings-tile-desc settings-m4b-desc"></div>' +
                         '</div>' +
+                        '<div class="settings-tile">' +
+                            '<div class="settings-tile-label">Filename template</div>' +
+                            '<div class="settings-tile-inline">' +
+                                '<input type="text" class="bm-edit-input" data-setting="fileRenameTemplate" placeholder="&lt;Authors&gt; - (&lt;Serie&gt; #&lt;SerieIndex&gt; - )&lt;Title&gt;">' +
+                                '<button class="bm-edit-btn" data-validate-template>Validate</button>' +
+                            '</div>' +
+                            '<div class="settings-tile-desc">Tokens: &lt;Authors&gt; &lt;Title&gt; &lt;Serie&gt; &lt;SerieIndex&gt;. Groups in ( ) are dropped when any token inside resolves empty.</div>' +
+                            '<div class="settings-tile-validate-result" data-validate-result></div>' +
+                            '<div class="settings-tile-error"></div>' +
+                        '</div>' +
 
                     '</div>' +
                     '<div class="settings-error-banner"></div>' +
