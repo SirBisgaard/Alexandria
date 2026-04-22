@@ -1,3 +1,6 @@
 namespace Alexandria.Api.Models.Requests;
 
-public record UpdateArchiveRequest(bool IsArchived);
+public record UpdateArchiveRequest
+{
+    public bool IsArchived { get; init; }
+}

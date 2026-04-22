@@ -1,3 +1,6 @@
 namespace Alexandria.Api.Models.Requests;
 
-public record UpdateDeviceRequest(string Nickname) { }
+public record UpdateDeviceRequest
+{
+    public string Nickname { get; init; } = string.Empty;
+}

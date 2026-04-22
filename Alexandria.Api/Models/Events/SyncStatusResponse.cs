@@ -5,4 +5,8 @@ namespace Alexandria.Api.Models.Events;
 /// to decide the button label ("Sync now" vs "Syncing…") and paint the current progress frame
 /// before opening an SSE stream to receive live updates.
 /// </summary>
-public record SyncStatusResponse(bool Running, SyncProgressEvent? Snapshot);
+public record SyncStatusResponse
+{
+    public bool Running { get; init; }
+    public SyncProgressEvent? Snapshot { get; init; }
+}

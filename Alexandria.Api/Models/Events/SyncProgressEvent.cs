@@ -6,11 +6,13 @@ namespace Alexandria.Api.Models.Events;
 /// <see cref="SubTaskTitle"/> / <see cref="SubProgress"/> / <see cref="SubTotal"/> are
 /// populated when a nested long-running operation (e.g. chapter transcoding) is active.
 /// </summary>
-public record SyncProgressEvent(
-    string Title,
-    string? Subtitle,
-    int Progress,
-    int Total,
-    string? SubTaskTitle,
-    int? SubProgress,
-    int? SubTotal);
+public record SyncProgressEvent
+{
+    public string Title { get; init; } = string.Empty;
+    public string? Subtitle { get; init; }
+    public int Progress { get; init; }
+    public int Total { get; init; }
+    public string? SubTaskTitle { get; init; }
+    public int? SubProgress { get; init; }
+    public int? SubTotal { get; init; }
+}

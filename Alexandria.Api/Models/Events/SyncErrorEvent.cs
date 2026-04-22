@@ -5,4 +5,9 @@ namespace Alexandria.Api.Models.Events;
 /// The frontend treats <see cref="Done"/> + <see cref="Failed"/> as mutually exclusive with
 /// <see cref="SyncCompleteEvent"/>'s success path and surfaces <see cref="Error"/> to the user.
 /// </summary>
-public record SyncErrorEvent(bool Done, bool Failed, string Error);
+public record SyncErrorEvent
+{
+    public bool Done { get; init; }
+    public bool Failed { get; init; }
+    public string Error { get; init; } = string.Empty;
+}

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Alexandria.Business.KoboStoreProxy.Models.Store;
 
+// TODO: split KoboStoreProductRecommendationItem, KoboStoreProductRecommendationAudiobook, and KoboStorePrice into their own files to match the one-record-per-file standard.
 public record KoboStoreProductRecommendations
 {
     [JsonPropertyName("Items")]
