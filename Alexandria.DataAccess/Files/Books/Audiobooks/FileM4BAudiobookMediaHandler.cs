@@ -58,5 +58,22 @@ public class FileM4BAudiobookMediaHandler(IM4BFileHandler m4BFileHandler, Alexan
 
     public void RemoveCover(Book book) => m4BFileHandler.RemoveCover(book).GetAwaiter().GetResult();
 
+    public void PreservePropertiesNotStoredInFile(Book source, Book target)
+    {
+        // Carried over because the MP4 muxer has no tag for them — the write emits nothing
+        // and the re-read returns default. Publisher and Language are format-supported on
+        // the wire but silently dropped by ffmpeg's MP4 muxer, so they live in the same bucket.
+        target.Subtitle = source.Subtitle;
+        target.Isbn = source.Isbn;
+        target.Identifiers = source.Identifiers;
+        target.Source = source.Source;
+        target.Type = source.Type;
+        target.Relation = source.Relation;
+        target.Coverage = source.Coverage;
+        target.Format = source.Format;
+        target.Publisher = source.Publisher;
+        target.Language = source.Language;
+    }
+
     public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => m4BFileHandler.ExtractCover(filePath, coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
 }

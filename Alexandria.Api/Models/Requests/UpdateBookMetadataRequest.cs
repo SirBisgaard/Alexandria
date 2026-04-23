@@ -12,7 +12,7 @@ public class UpdateBookMetadataRequest : IValidatableObject
 
     public string? Language { get; set; }
 
-    [RegularExpression(@"^\d{4}(-\d{2}(-\d{2})?)?$", ErrorMessage = "PublicationDate must be in YYYY, YYYY-MM, or YYYY-MM-DD format.")]
+    [RegularExpression(@"^(\d{4}(-\d{2}(-\d{2})?)?)?$", ErrorMessage = "PublicationDate must be in YYYY, YYYY-MM, or YYYY-MM-DD format.")]
     public string? PublicationDate { get; set; }
 
     public string? Description { get; set; }

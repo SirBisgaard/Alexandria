@@ -13,4 +13,11 @@ public interface IFileContentMediaHandler
     void EmbedMetadata(Book book);
     void EmbedCover(Book book, byte[] coverData, string mediaType);
     void RemoveCover(Book book);
+
+    /// <summary>
+    /// Copies Book properties that this file format cannot represent from <paramref name="source"/>
+    /// onto <paramref name="target"/>. Called after a file is re-read following a write, so the
+    /// returned book carries file-derived fields plus DB-only fields the format can't hold.
+    /// </summary>
+    void PreservePropertiesNotStoredInFile(Book source, Book target);
 }

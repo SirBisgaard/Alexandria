@@ -160,16 +160,23 @@ public static class ApiMapper
         FileRenameTemplate = request.FileRenameTemplate.Trim()
     };
 
-    public static Book ToBook(UpdateBookMetadataRequest request) => new()
+    /// <summary>
+    /// Applies every editable field from <paramref name="request"/> onto <paramref name="book"/>
+    /// in place. The DTO is treated as a full snapshot of editable state — nullable fields
+    /// overwrite unconditionally, so the frontend must send the current value of every field
+    /// on every save. Fields the DTO does not carry (Subtitle, Isbn, Identifiers, Subjects,
+    /// Rights, Source, Type, Relation, Coverage, Format) are untouched and retain their DB values.
+    /// </summary>
+    public static void ApplyToBook(UpdateBookMetadataRequest request, Book book)
     {
-        Title = request.Title,
-        Authors = request.Authors.Select(name => new Author { Name = name }).ToList(),
-        Language = request.Language ?? string.Empty,
-        PublicationDate = request.PublicationDate,
-        Description = request.Description,
-        Publisher = request.Publisher,
-        File = new BookFile { IsAbridged = request.IsAbridged },
-        Contributors = request.Contributors?.Select(c => new Contributor { Name = c.Name.Trim(), Role = c.Role?.Trim() }).ToList() ?? [],
-        Series = request.SeriesName is not null ? new Series { Name = request.SeriesName, Index = request.Index } : null
-    };
+        book.Title = request.Title;
+        book.Authors = request.Authors.Select(name => new Author { Name = name }).ToList();
+        book.Language = request.Language ?? string.Empty;
+        book.PublicationDate = request.PublicationDate;
+        book.Description = request.Description;
+        book.Publisher = request.Publisher;
+        book.File.IsAbridged = request.IsAbridged;
+        book.Contributors = request.Contributors?.Select(c => new Contributor { Name = c.Name.Trim(), Role = c.Role?.Trim() }).ToList() ?? [];
+        book.Series = !string.IsNullOrEmpty(request.SeriesName) ? new Series { Name = request.SeriesName, Index = request.Index } : null;
+    }
 }

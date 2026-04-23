@@ -43,6 +43,20 @@ public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFil
 
     public void RemoveCover(Book book) => mp3FileHandler.RemoveCover(book).GetAwaiter().GetResult();
 
+    public void PreservePropertiesNotStoredInFile(Book source, Book target)
+    {
+        // ID3v2 has no standard frame for these fields and the reader never recovers them
+        // from tags — carry them across from the pre-write book so the DB keeps its values.
+        target.Subtitle = source.Subtitle;
+        target.Isbn = source.Isbn;
+        target.Identifiers = source.Identifiers;
+        target.Source = source.Source;
+        target.Type = source.Type;
+        target.Relation = source.Relation;
+        target.Coverage = source.Coverage;
+        target.Format = source.Format;
+    }
+
     public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => mp3FileHandler.ExtractCover(ToFolderPath(filePath), coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
 
     private static string ToFolderPath(string virtualPath) => virtualPath[..^".mp3audiobook".Length];

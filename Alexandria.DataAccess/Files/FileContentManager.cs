@@ -91,7 +91,9 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         if (modified)
             indexer.DeleteDerivedFiles(book);
 
-        return await GetBook(book);
+        var fresh = await GetBook(book);
+        handler.PreservePropertiesNotStoredInFile(book, fresh);
+        return fresh;
     }
 
     public Task CreateDerivativeFiles(Book book)

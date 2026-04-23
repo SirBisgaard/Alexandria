@@ -215,11 +215,11 @@ function saveBookMetadata(uuid) {
         title: $("#bm-edit-title").val(),
         authors: $("#bm-edit-authors").val().split(",").map(function (a) { return a.trim(); }).filter(function (a) { return a; }),
         language: $("#bm-edit-language").val(),
-        publisher: $("#bm-edit-publisher").val() || null,
-        seriesName: $("#bm-edit-series-name").val() || null,
+        publisher: $("#bm-edit-publisher").val(),
+        seriesName: $("#bm-edit-series-name").val(),
         index: seriesIdx !== "" ? parseFloat(seriesIdx) : null,
-        publicationDate: $("#bm-edit-pub-date").val() || null,
-        description: $("#bm-edit-description").val() || null,
+        publicationDate: $("#bm-edit-pub-date").val(),
+        description: $("#bm-edit-description").val(),
         isAbridged: $abridged.length ? $abridged.is(":checked") : null,
         contributors: contributors
     };

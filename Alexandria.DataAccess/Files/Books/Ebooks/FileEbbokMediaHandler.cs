@@ -28,4 +28,11 @@ public class FileEbbokMediaHandler(IEpubFileHandler epubFileHandler, IFileReposi
     public void EmbedCover(Book book, byte[] coverData, string mediaType) => epubFileHandler.EmbedCover(book.File.SourcePath, coverData, mediaType);
 
     public void RemoveCover(Book book) => epubFileHandler.RemoveCover(book.File.SourcePath);
+
+    public void PreservePropertiesNotStoredInFile(Book source, Book target)
+    {
+        // EPUB reads every Dublin Core element (subjects, rights, source, type, relation,
+        // coverage, format, identifiers), and the writer leaves the ones it doesn't manage
+        // untouched — so a write-then-reread roundtrips everything already.
+    }
 }
