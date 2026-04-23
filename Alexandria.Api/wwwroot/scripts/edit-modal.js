@@ -102,11 +102,12 @@ function openEditModal(uuid) {
         currentContributorRoles = book.file.mediaType === "Audiobook" ? ["Narrator"] : allRoles;
 
         currentModalUuid = book.bookUuid;
+        currentModalModifiedAt = book.modifiedAt;
         if (!originalModalHtml)
             originalModalHtml = $("#book-modal").html();
 
         var authors = (book.authors || []).map(function(a){return a.name}).join(", ");
-        var coverSrc = coverUrl(book.bookUuid, COVER_LARGE.w, COVER_LARGE.h);
+        var coverSrc = coverUrl(book.bookUuid, COVER_LARGE.w, COVER_LARGE.h, book.modifiedAt);
 
         $("#book-modal").html(
             '<div class="book-modal-title-bar">Edit Book</div>' +

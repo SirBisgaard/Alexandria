@@ -176,7 +176,7 @@ $(function () {
     // ===== Modal Cover Lightbox =====
     $(document).on("click", "#bm-cover-frame, #bm-edit-cover-img", function (e) {
         if (!currentModalUuid) { return; }
-        var src = coverUrl(currentModalUuid);
+        var src = coverUrl(currentModalUuid, null, null, currentModalModifiedAt);
         var lightbox = GLightbox({ elements: [{ href: src, type: "image" }], closeOnOutsideClick: true });
         lightbox.open();
     });

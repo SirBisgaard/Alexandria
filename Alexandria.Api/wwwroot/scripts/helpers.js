@@ -8,10 +8,14 @@ function bustCoverCache(uuid) {
     coverCacheBusters[uuid] = Date.now();
 }
 
-function coverUrl(uuid, width, height) {
+function coverUrl(uuid, width, height, modifiedAt) {
     var url = "/api/alexandria/books/" + uuid + "/cover";
     if (width && height) { url += "?width=" + width + "&height=" + height; }
     var v = coverCacheBusters[uuid];
+    if (!v && modifiedAt) {
+        var t = new Date(modifiedAt).getTime();
+        if (!isNaN(t)) { v = Math.floor(t / 1000); }
+    }
     if (v) { url += (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + v; }
     return url;
 }
@@ -116,7 +120,7 @@ function bookCoverHtml(book, cssClass) {
     var hasCover = !!book.file.hasCover;
     var badge = book.file.mediaType === "Audiobook" ? AUDIOBOOK_BADGE : "";
     return '<div class="cover-frame ' + cls + '">' +
-           (hasCover ? '<img loading="lazy" src="' + coverUrl(book.bookUuid, size.w, size.h) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' : '') +
+           (hasCover ? '<img loading="lazy" src="' + coverUrl(book.bookUuid, size.w, size.h, book.modifiedAt) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' : '') +
            '<div class="book-cover" style="' + (hasCover ? 'display:none;' : '') + 'background:' + fallbackColor(book.bookUuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml((book.authors || []).map(function(a){return a.name}).join(", ")) + '</small></div>' +
            badge + '</div>';
 }

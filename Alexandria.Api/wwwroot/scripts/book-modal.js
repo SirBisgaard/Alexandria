@@ -1,5 +1,6 @@
 // ===== Book Detail Modal =====
 var currentModalUuid = null;
+var currentModalModifiedAt = null;
 var originalModalHtml = null;
 
 function updateReadingStatus(uuid, status) {
@@ -13,6 +14,7 @@ function updateArchiveStatus(uuid, isArchived) {
 function openBookModal(uuid) {
     $.get("/api/alexandria/books/" + uuid, function (book) {
         currentModalUuid = book.bookUuid;
+        currentModalModifiedAt = book.modifiedAt;
         var authors = (book.authors || []).map(function(a){return a.name}).join(", ");
         var seriesName = book.series ? book.series.name : "";
         var series = seriesName ? (seriesName.toUpperCase() + ((book.series ? book.series.index : null) ? " - " + (book.series ? book.series.index : null) : "")) : "";
@@ -21,7 +23,7 @@ function openBookModal(uuid) {
 
         $("#bm-cover-fallback").css("background", fallbackColor(book.bookUuid)).html(escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small>');
         if (book.file.hasCover) {
-            $("#bm-cover").attr("src", coverUrl(book.bookUuid, COVER_LARGE.w, COVER_LARGE.h)).show();
+            $("#bm-cover").attr("src", coverUrl(book.bookUuid, COVER_LARGE.w, COVER_LARGE.h, book.modifiedAt)).show();
             $("#bm-cover-fallback").hide();
         } else {
             $("#bm-cover").hide();
@@ -96,6 +98,7 @@ function openBookModal(uuid) {
 
 function closeBookModal() {
     currentModalUuid = null;
+    currentModalModifiedAt = null;
     if (originalModalHtml) {
         $("#book-modal").html(originalModalHtml);
         originalModalHtml = null;

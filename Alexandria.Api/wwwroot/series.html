@@ -124,7 +124,7 @@ $(function () {
                 );
                 $list.append(
                     '<a href="' + detailUrl + '" class="series-list-item">' +
-                        '<img loading="lazy" src="' + coverUrl(firstBook.bookUuid) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
+                        '<img loading="lazy" src="' + coverUrl(firstBook.bookUuid, null, null, firstBook.modifiedAt) + '" class="book-list-cover-img" alt="" onerror="this.style.display=\'none\'">' +
                         '<div class="series-list-info">' +
                             '<div class="series-list-title">' + escapeHtml(s.name) + '</div>' +
                             '<div class="series-list-author">' + escapeHtml(authors) + '</div>' +
