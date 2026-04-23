@@ -1,9 +1,9 @@
 namespace Alexandria.Business.Library.Models.Others;
 
 /// <summary>
-/// A self-describing move. <see cref="OldSourcePath"/> / <see cref="NewSourcePath"/> use the
-/// same virtualized form stored in <c>BookFiles.SourcePath</c> — that is, for MP3-folder
-/// audiobooks these include the <c>.mp3audiobook</c> suffix; the renamer strips it internally.
+/// A self-describing move. <see cref="OldSourcePath"/> / <see cref="NewSourcePath"/> are the
+/// real on-disk paths — EPUB/M4B files carry their extension, MP3-folder audiobooks are
+/// directory paths.
 /// </summary>
 public sealed record FileRenameStep
 {

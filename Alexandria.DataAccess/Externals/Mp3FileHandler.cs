@@ -183,7 +183,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         if (chapter.FileName is null)
             throw new InvalidOperationException("Chapter has no FileName — cannot resolve MP3 file.");
 
-        var filePath = Path.Combine(ToFolderPath(book.File.SourcePath), chapter.FileName);
+        var filePath = Path.Combine(book.File.SourcePath, chapter.FileName);
         await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         await fileStream.CopyToAsync(outputStream, cancellationToken);
     }
@@ -197,7 +197,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     /// </summary>
     public async Task EmbedMetadata(Book book, byte[]? coverBytes = null)
     {
-        var folderPath = ToFolderPath(book.File.SourcePath);
+        var folderPath = book.File.SourcePath;
         var jpegCover = coverBytes is null ? null : NormalizeToJpeg(coverBytes);
         var files = await ProbeAndSort(folderPath);
 
@@ -237,7 +237,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     public async Task EmbedCover(Book book, byte[] coverData)
     {
         var jpegCover = NormalizeToJpeg(coverData);
-        var folderPath = ToFolderPath(book.File.SourcePath);
+        var folderPath = book.File.SourcePath;
         await File.WriteAllBytesAsync(GetFolderCoverPath(folderPath), jpegCover);
 
         var files = await ProbeAndSort(folderPath);
@@ -255,7 +255,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
     public async Task RemoveCover(Book book)
     {
-        var folderPath = ToFolderPath(book.File.SourcePath);
+        var folderPath = book.File.SourcePath;
         var coverFile = GetFolderCoverPath(folderPath);
         if (File.Exists(coverFile))
             File.Delete(coverFile);
@@ -408,8 +408,6 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
         return new Series { Name = primary };
     }
-
-    private static string ToFolderPath(string sourcePath) => sourcePath.EndsWith(".mp3audiobook") ? sourcePath[..^".mp3audiobook".Length] : sourcePath;
 
     private static string GetFolderCoverPath(string folderPath) => Path.Combine(folderPath, "cover.jpg");
 

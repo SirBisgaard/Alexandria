@@ -8,17 +8,13 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class Mp3FolderFileRenamer : IFileRenamer
 {
-    private const string VirtualSuffix = ".mp3audiobook";
-
-    public string[] SupportedExtensions => [VirtualSuffix];
+    public bool CanHandle(string path) => Directory.Exists(path) && Directory.EnumerateFiles(path, "*.mp3").Any();
 
     public FileRenameStep PlanRename(Book book, string newBaseName)
     {
-        var oldSourcePath = book.File.SourcePath;
-        var oldFolder = StripSuffix(oldSourcePath);
+        var oldFolder = book.File.SourcePath;
         var parent = Path.GetDirectoryName(oldFolder) ?? string.Empty;
         var newFolder = Path.Combine(parent, newBaseName);
-        var newSourcePath = newFolder + VirtualSuffix;
 
         var chapters = book.Chapters
             .Where(c => !string.IsNullOrEmpty(c.FileName))
@@ -48,8 +44,8 @@ public class Mp3FolderFileRenamer : IFileRenamer
 
         return new FileRenameStep
         {
-            OldSourcePath = oldSourcePath,
-            NewSourcePath = newSourcePath,
+            OldSourcePath = oldFolder,
+            NewSourcePath = newFolder,
             ChapterRenames = renames
         };
     }
@@ -59,8 +55,8 @@ public class Mp3FolderFileRenamer : IFileRenamer
         if (step.IsNoOperation)
             return;
 
-        var oldFolder = StripSuffix(step.OldSourcePath);
-        var newFolder = StripSuffix(step.NewSourcePath);
+        var oldFolder = step.OldSourcePath;
+        var newFolder = step.NewSourcePath;
         var folderMoved = false;
 
         if (!string.Equals(oldFolder, newFolder, StringComparison.Ordinal))
@@ -111,12 +107,5 @@ public class Mp3FolderFileRenamer : IFileRenamer
             }
             throw;
         }
-    }
-
-    private static string StripSuffix(string sourcePath)
-    {
-        if (!sourcePath.EndsWith(VirtualSuffix, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Expected path ending with '{VirtualSuffix}': {sourcePath}");
-        return sourcePath[..^VirtualSuffix.Length];
     }
 }

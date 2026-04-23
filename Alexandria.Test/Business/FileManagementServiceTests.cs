@@ -217,7 +217,7 @@ public sealed class FileManagementServiceTests
         public List<FileRenameStep> Executed { get; } = [];
         public Func<FileRenameStep, bool>? FailExecutionWhen { get; set; }
 
-        public string[] SupportedExtensions { get; } = extensions;
+        public bool CanHandle(string path) => extensions.Any(e => path.EndsWith(e, StringComparison.OrdinalIgnoreCase));
 
         public FileRenameStep PlanRename(Book book, string newBaseName)
         {

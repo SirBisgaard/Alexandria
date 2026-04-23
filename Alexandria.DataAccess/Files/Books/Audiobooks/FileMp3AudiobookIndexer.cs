@@ -7,7 +7,14 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class FileMp3AudiobookIndexer(AlexandriaSettings settings, ICoverThumbnailService coverThumbnailService, IMp3FileHandler mp3FileHandler) : IFileContentIndexer
 {
-    public string[] SupportedExtensions => [".mp3audiobook"];
+    public bool CanHandle(string path)
+    {
+        if (!Directory.Exists(path))
+            return false;
+        if (string.Equals(Path.GetFileName(path), FileMp3AudiobookConverter.FailedFolderName, StringComparison.OrdinalIgnoreCase))
+            return false;
+        return Directory.EnumerateFiles(path, "*.mp3").Any();
+    }
 
     public string[] GetContentFiles()
     {
@@ -15,17 +22,14 @@ public class FileMp3AudiobookIndexer(AlexandriaSettings settings, ICoverThumbnai
             return [];
 
         return Directory.GetDirectories(settings.AudiobookFolder)
-            .Where(dir => !string.Equals(Path.GetFileName(dir), FileMp3AudiobookConverter.FailedFolderName, StringComparison.OrdinalIgnoreCase))
-            .Where(dir => Directory.GetFiles(dir, "*.mp3").Length > 0)
+            .Where(CanHandle)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .Select(dir => dir + ".mp3audiobook")
             .ToArray();
     }
 
     public async Task<(Book Metadata, byte[]? CoverBytes)> Extract(string filePath)
     {
-        var folder = filePath[..^".mp3audiobook".Length];
-        var (metadata, rawCover) = await mp3FileHandler.Extract(folder);
+        var (metadata, rawCover) = await mp3FileHandler.Extract(filePath);
         var cover = rawCover is null ? null : IsJpeg(rawCover) ? rawCover : coverThumbnailService.ConvertToJpeg(rawCover);
         return (metadata, cover);
     }

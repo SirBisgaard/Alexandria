@@ -7,7 +7,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class M4BFileRenamer : IFileRenamer
 {
-    public string[] SupportedExtensions => [".m4b"];
+    public bool CanHandle(string path) => path.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase);
 
     public FileRenameStep PlanRename(Book book, string newBaseName)
     {

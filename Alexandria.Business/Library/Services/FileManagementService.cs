@@ -1,6 +1,5 @@
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
-using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
 using Microsoft.Extensions.Logging;
 
@@ -184,16 +183,7 @@ public class FileManagementService(
 
     private IFileRenamer? TryGetRenamer(string sourcePath)
     {
-        var extension = GetVirtualExtension(sourcePath);
-        return renamers.FirstOrDefault(r => r.SupportedExtensions.Any(e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)));
-    }
-
-    private static string GetVirtualExtension(string sourcePath)
-    {
-        const string mp3Suffix = ".mp3audiobook";
-        if (sourcePath.EndsWith(mp3Suffix, StringComparison.OrdinalIgnoreCase))
-            return mp3Suffix;
-        return Path.GetExtension(sourcePath);
+        return renamers.FirstOrDefault(r => r.CanHandle(sourcePath));
     }
 
     private sealed class DelegateProgress<T>(Action<T> onReport) : IProgress<T>
@@ -201,14 +191,8 @@ public class FileManagementService(
         public void Report(T value) => onReport(value);
     }
 
-    private static bool PhysicalExists(string virtualPath)
+    private static bool PhysicalExists(string sourcePath)
     {
-        const string mp3Suffix = ".mp3audiobook";
-        if (virtualPath.EndsWith(mp3Suffix, StringComparison.OrdinalIgnoreCase))
-        {
-            var folder = virtualPath[..^mp3Suffix.Length];
-            return Directory.Exists(folder) || File.Exists(folder);
-        }
-        return File.Exists(virtualPath) || Directory.Exists(virtualPath);
+        return File.Exists(sourcePath) || Directory.Exists(sourcePath);
     }
 }

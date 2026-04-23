@@ -1,9 +1,9 @@
 namespace Alexandria.Business.Library.Models.Others;
 
 /// <summary>
-/// A single intended filesystem rename. <see cref="CurrentPath"/> / <see cref="NewPath"/> carry
-/// the virtual <c>BookFiles.SourcePath</c> form — for MP3-folder audiobooks these include the
-/// <c>.mp3audiobook</c> suffix.
+/// A single intended filesystem rename. <see cref="CurrentPath"/> / <see cref="NewPath"/> are
+/// the real on-disk paths — EPUB/M4B files carry their extension, MP3-folder audiobooks are
+/// directory paths.
 /// </summary>
 public sealed record FileManagementOperation
 {

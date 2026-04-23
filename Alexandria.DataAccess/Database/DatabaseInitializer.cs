@@ -385,5 +385,13 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         cmd.CommandText = "ALTER TABLE Settings ADD COLUMN FileRenameTemplate TEXT NOT NULL DEFAULT '<Authors> - (<Serie> #<SerieIndex> - )<Title>'";
         cmd.ExecuteNonQuery();
         logger.LogInformation("V2: added Settings.FileRenameTemplate column with default template");
+
+        // Drop the historical ".mp3audiobook" pseudo-extension from BookFiles.SourcePath — MP3-folder
+        // audiobooks are now stored as plain directory paths (dispatch runs via IFileContent*.CanHandle
+        // instead of a virtual extension).
+        using var stripSuffixCmd = connection.CreateCommand();
+        stripSuffixCmd.CommandText = "UPDATE BookFiles SET SourcePath = SUBSTR(SourcePath, 1, LENGTH(SourcePath) - LENGTH('.mp3audiobook')) WHERE SourcePath LIKE '%.mp3audiobook'";
+        var rowsUpdated = stripSuffixCmd.ExecuteNonQuery();
+        logger.LogInformation("V2: stripped .mp3audiobook suffix from {Rows} BookFiles.SourcePath row(s)", rowsUpdated);
     }
 }

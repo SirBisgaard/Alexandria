@@ -30,7 +30,7 @@ public sealed class Mp3FolderFileRenamerTests
     {
         var folderName = "old-folder";
         var physical = Fixtures.CopyMp3AudiobookTo(tempDir, folderName);
-        var book = BuildAudiobook(physical + ".mp3audiobook", "The Great Title", chapterFiles: ["1.mp3", "2.mp3", "3.mp3", "4.mp3"]);
+        var book = BuildAudiobook(physical, "The Great Title", chapterFiles: ["1.mp3", "2.mp3", "3.mp3", "4.mp3"]);
 
         var step = renamer.PlanRename(book, "Author - Title");
 
@@ -38,7 +38,7 @@ public sealed class Mp3FolderFileRenamerTests
         Assert.AreEqual("1.mp3", step.ChapterRenames[0].OldFileName);
         Assert.AreEqual("01 - The Great Title.mp3", step.ChapterRenames[0].NewFileName);
         Assert.AreEqual("04 - The Great Title.mp3", step.ChapterRenames[3].NewFileName);
-        Assert.AreEqual(Path.Combine(tempDir, "Author - Title.mp3audiobook"), step.NewSourcePath);
+        Assert.AreEqual(Path.Combine(tempDir, "Author - Title"), step.NewSourcePath);
     }
 
     [TestMethod]
@@ -46,7 +46,7 @@ public sealed class Mp3FolderFileRenamerTests
     {
         var folderName = "old-folder";
         var physical = Fixtures.CopyMp3AudiobookTo(tempDir, folderName);
-        var book = BuildAudiobook(physical + ".mp3audiobook", "Title", chapterFiles: ["1.mp3", "2.mp3", "3.mp3", "4.mp3"]);
+        var book = BuildAudiobook(physical, "Title", chapterFiles: ["1.mp3", "2.mp3", "3.mp3", "4.mp3"]);
 
         var step = renamer.PlanRename(book, "Renamed");
         renamer.Execute(step);
@@ -66,7 +66,7 @@ public sealed class Mp3FolderFileRenamerTests
     {
         var folderName = "old-folder";
         var physical = Fixtures.CopyMp3AudiobookTo(tempDir, folderName);
-        var book = BuildAudiobook(physical + ".mp3audiobook", "Title", chapterFiles: ["1.mp3", "2.mp3", "3.mp3", "4.mp3"]);
+        var book = BuildAudiobook(physical, "Title", chapterFiles: ["1.mp3", "2.mp3", "3.mp3", "4.mp3"]);
         var step = renamer.PlanRename(book, "Renamed");
 
         renamer.Execute(step);
@@ -83,7 +83,7 @@ public sealed class Mp3FolderFileRenamerTests
     {
         var folderName = "old-folder";
         var physical = Fixtures.CopyMp3AudiobookTo(tempDir, folderName);
-        var book = BuildAudiobook(physical + ".mp3audiobook", "Title", chapterFiles: ["1.mp3", "missing.mp3", "3.mp3", "4.mp3"]);
+        var book = BuildAudiobook(physical, "Title", chapterFiles: ["1.mp3", "missing.mp3", "3.mp3", "4.mp3"]);
 
         var step = renamer.PlanRename(book, "Renamed");
 
@@ -100,7 +100,7 @@ public sealed class Mp3FolderFileRenamerTests
         {
             Title = "Title",
             Authors = [new Author { Name = "A" }],
-            File = new BookFile { SourcePath = Path.Combine(tempDir, "x.mp3audiobook"), MediaType = MediaType.Audiobook },
+            File = new BookFile { SourcePath = Path.Combine(tempDir, "x"), MediaType = MediaType.Audiobook },
             Chapters = Enumerable.Range(1, 12).Select(i => new AudiobookChapter { ChapterIndex = i - 1, FileName = $"{i}.mp3" }).ToList()
         };
 

@@ -93,11 +93,9 @@ $(function () {
 
     function basename(path) {
         if (!path) return "";
-        var isFolder = path.toLowerCase().endsWith(".mp3audiobook");
-        if (isFolder)
-            path = path.substring(0, path.length - ".mp3audiobook".length);
         var idx = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
         var name = idx >= 0 ? path.substring(idx + 1) : path;
+        var isFolder = !/\.(epub|m4b)$/i.test(name);
         return isFolder ? "/" + name + "/" : "/" + name;
     }
 

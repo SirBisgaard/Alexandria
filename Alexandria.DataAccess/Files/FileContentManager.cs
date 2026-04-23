@@ -64,8 +64,8 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
     /// <summary>
     /// Updates a book's source file with new metadata and/or cover. Compares metadata before
     /// embedding to avoid unnecessary file writes — each write triggers file timestamp change,
-    /// kepub reconversion, and device re-sync. Extension-based dispatch routes to the correct
-    /// IFileContentMediaHandler implementation (one per media type, matched by SupportedExtensions).
+    /// kepub reconversion, and device re-sync. Dispatch routes to the correct
+    /// IFileContentMediaHandler implementation (one per media type, matched by CanHandle).
     /// </summary>
     public async Task<Book> UpdateBook(Book book, CoverUpdate? coverUpdate = null)
     {
@@ -110,15 +110,13 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
 
     private IFileContentIndexer GetIndexerFor(string filePath)
     {
-        var extension = Path.GetExtension(filePath);
-        return indexers.FirstOrDefault(i => i.SupportedExtensions.Any(e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
-            ?? throw new NotSupportedException($"No indexer registered for extension '{extension}'.");
+        return indexers.FirstOrDefault(i => i.CanHandle(filePath))
+            ?? throw new NotSupportedException($"No indexer registered for path '{filePath}'.");
     }
 
     private IFileContentMediaHandler GetHandlerFor(string filePath)
     {
-        var extension = Path.GetExtension(filePath);
-        return handlers.FirstOrDefault(h => h.SupportedExtensions.Any(e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
-            ?? throw new NotSupportedException($"No media handler registered for extension '{extension}'.");
+        return handlers.FirstOrDefault(h => h.CanHandle(filePath))
+            ?? throw new NotSupportedException($"No media handler registered for path '{filePath}'.");
     }
 }

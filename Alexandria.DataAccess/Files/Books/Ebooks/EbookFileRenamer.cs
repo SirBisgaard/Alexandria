@@ -7,7 +7,7 @@ namespace Alexandria.DataAccess.Files.Books.Ebooks;
 
 public class EbookFileRenamer : IFileRenamer
 {
-    public string[] SupportedExtensions => [".epub"];
+    public bool CanHandle(string path) => path.EndsWith(".epub", StringComparison.OrdinalIgnoreCase);
 
     public FileRenameStep PlanRename(Book book, string newBaseName)
     {

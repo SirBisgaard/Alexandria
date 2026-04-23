@@ -4,7 +4,11 @@ namespace Alexandria.DataAccess.Files.Interfaces;
 
 public interface IFileContentMediaHandler
 {
-    string[] SupportedExtensions { get; }
+    /// <summary>
+    /// Returns true if this handler handles the given path. File-based handlers check
+    /// the file extension; folder-based handlers inspect directory layout.
+    /// </summary>
+    bool CanHandle(string path);
     Task<byte[]?> ReadContent(Book book);
     Task StreamChapter(Book book, int chapterIndex, Stream outputStream, CancellationToken cancellationToken);
     Task<byte[]?> ReadCover(Book book, int? width = null, int? height = null, int? quality = null);

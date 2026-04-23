@@ -20,7 +20,7 @@ The modal has three sections:
 
 ### Execution model
 
-Per-format rename primitives live behind `IFileRenamer` (`.epub`, `.m4b`, `.mp3audiobook`). Each implementation has a two-phase contract:
+Per-format rename primitives live behind `IFileRenamer` (EPUB file, M4B file, MP3 folder). Each implementation has a two-phase contract:
 
 - `PlanRename(book, newBaseName) → FileRenameStep` is pure (no I/O) and computes the exact filesystem moves that would happen — for MP3-folder audiobooks that includes a list of chapter-file renames into canonical `NN - <Title>.mp3` form.
 - `Execute(step)` performs the moves. Transactional per-step: on partial failure completed moves are rolled back so the filesystem is left at the prior state. Rollback of a *successfully completed* Execute (driven by a failed DB write that followed it) is done by the caller calling `Execute(step.Invert())`.

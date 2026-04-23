@@ -4,14 +4,18 @@ using Alexandria.Business.Library.Models.Others;
 namespace Alexandria.Business.Interfaces;
 
 /// <summary>
-/// Per-format file-move primitive. One implementation per source extension, dispatched
-/// via <see cref="SupportedExtensions"/>. The two-phase <see cref="PlanRename"/> /
-/// <see cref="Execute"/> split lets <c>FileManagementService</c> compute all operations during
-/// dry-run (no I/O) and then commit them one at a time.
+/// Per-format file-move primitive. One implementation per source layout, dispatched via
+/// <see cref="CanHandle"/>. The two-phase <see cref="PlanRename"/> / <see cref="Execute"/>
+/// split lets <c>FileManagementService</c> compute all operations during dry-run (no I/O)
+/// and then commit them one at a time.
 /// </summary>
 public interface IFileRenamer
 {
-    string[] SupportedExtensions { get; }
+    /// <summary>
+    /// Returns true if this renamer handles the given source path. File-based renamers check
+    /// the extension; folder-based renamers inspect directory layout.
+    /// </summary>
+    bool CanHandle(string path);
 
     /// <summary>
     /// Pure computation — returns the exact filesystem moves that would happen for

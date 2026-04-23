@@ -7,7 +7,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFileContentMediaHandler
 {
-    public string[] SupportedExtensions => [".mp3audiobook"];
+    public bool CanHandle(string path) => Directory.Exists(path) && Directory.EnumerateFiles(path, "*.mp3").Any();
 
     public Task<byte[]?> ReadContent(Book book) => throw new NotSupportedException();
 
@@ -27,9 +27,9 @@ public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFil
         return await File.ReadAllBytesAsync(book.File.CoverFilePath);
     }
 
-    public Book ExtractMetadata(string filePath) => mp3FileHandler.ExtractMetadata(ToFolderPath(filePath)).GetAwaiter().GetResult();
+    public Book ExtractMetadata(string filePath) => mp3FileHandler.ExtractMetadata(filePath).GetAwaiter().GetResult();
 
-    public byte[]? ExtractCoverBytes(string filePath) => mp3FileHandler.ExtractCoverBytes(ToFolderPath(filePath)).GetAwaiter().GetResult();
+    public byte[]? ExtractCoverBytes(string filePath) => mp3FileHandler.ExtractCoverBytes(filePath).GetAwaiter().GetResult();
 
     public bool MetadataEquals(Book desired, string filePath)
     {
@@ -57,7 +57,5 @@ public class FileMp3AudiobookMediaHandler(IMp3FileHandler mp3FileHandler) : IFil
         target.Format = source.Format;
     }
 
-    public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => mp3FileHandler.ExtractCover(ToFolderPath(filePath), coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
-
-    private static string ToFolderPath(string virtualPath) => virtualPath[..^".mp3audiobook".Length];
+    public string? ExtractCover(string filePath, string coverOutputDirectory, Guid coverUuid) => mp3FileHandler.ExtractCover(filePath, coverOutputDirectory, coverUuid).GetAwaiter().GetResult();
 }

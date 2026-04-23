@@ -7,7 +7,7 @@ namespace Alexandria.DataAccess.Files.Books.Ebooks;
 
 public class FileEbbokMediaHandler(IEpubFileHandler epubFileHandler, IFileRepository fileRepository) : IFileContentMediaHandler
 {
-    public string[] SupportedExtensions => [".epub"];
+    public bool CanHandle(string path) => path.EndsWith(".epub", StringComparison.OrdinalIgnoreCase);
 
     public Task<byte[]?> ReadContent(Book book) => fileRepository.ReadKepub(book);
 

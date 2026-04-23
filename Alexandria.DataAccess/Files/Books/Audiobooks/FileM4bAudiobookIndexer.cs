@@ -9,7 +9,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class FileM4BAudiobookIndexer(AlexandriaSettings settings, ICoverThumbnailService coverThumbnailService, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IProgressService progressService, ILogger<FileM4BAudiobookIndexer> logger) : IFileContentIndexer
 {
-    public string[] SupportedExtensions => [".m4b"];
+    public bool CanHandle(string path) => path.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase);
 
     public string[] GetContentFiles()
     {

@@ -7,7 +7,7 @@ namespace Alexandria.DataAccess.Files.Books.Ebooks;
 
 public class FileEbookIndexer(AlexandriaSettings settings, IFileRepository fileRepository, IEpubFileHandler epubFileHandler, IKepubifyWrapper kepubifyWrapper, ICoverThumbnailService coverThumbnailService) : IFileContentIndexer
 {
-    public string[] SupportedExtensions => [".epub"];
+    public bool CanHandle(string path) => path.EndsWith(".epub", StringComparison.OrdinalIgnoreCase);
 
     public string[] GetContentFiles() => fileRepository.GetEpubFiles();
 

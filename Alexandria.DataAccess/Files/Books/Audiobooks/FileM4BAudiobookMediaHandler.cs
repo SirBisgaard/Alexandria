@@ -8,7 +8,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 
 public class FileM4BAudiobookMediaHandler(IM4BFileHandler m4BFileHandler, AlexandriaSettings settings) : IFileContentMediaHandler
 {
-    public string[] SupportedExtensions => [".m4b"];
+    public bool CanHandle(string path) => path.EndsWith(".m4b", StringComparison.OrdinalIgnoreCase);
 
     public Task<byte[]?> ReadContent(Book book) => throw new NotSupportedException();
 
