@@ -1,6 +1,7 @@
 using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Library.Services;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Files.Services;
 using Alexandria.Tests.TestData;
@@ -36,7 +37,7 @@ public sealed class Mp3MetadataTests
         };
         var ffmpeg = new FfmpegWrapper(NullLogger<FfmpegWrapper>.Instance);
         var coverService = new CoverThumbnailService(settings, NullLogger<CoverThumbnailService>.Instance);
-        handler = new Mp3FileHandler(ffmpeg, coverService);
+        handler = new Mp3FileHandler(ffmpeg, coverService, new ProgressService());
     }
 
     [TestCleanup]

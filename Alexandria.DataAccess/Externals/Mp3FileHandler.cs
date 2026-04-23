@@ -2,13 +2,14 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using Alexandria.Business.Library.Extensions;
+using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
 
 namespace Alexandria.DataAccess.Externals;
 
-public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService) : IMp3FileHandler
+public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IProgressService progressService) : IMp3FileHandler
 {
     /// <summary>
     /// Extracts metadata by probing each MP3 file once. Album-level tags come from the first
@@ -282,6 +283,8 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             return [];
 
         var fileRecords = new ConcurrentBag<(string Path, string Json, int Track, string FileName)>();
+        var total = mp3Files.Length;
+        var completed = 0;
         var options = new ParallelOptions { MaxDegreeOfParallelism = ParallelismPolicy.MaxDegree };
 
         await Parallel.ForEachAsync(mp3Files, options, async (file, _) =>
@@ -309,6 +312,8 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
                 // Fall back to filename sort; json stays empty and the main-loop parse will throw clearly if used.
             }
             fileRecords.Add((file, json, track, Path.GetFileName(file)));
+            var done = Interlocked.Increment(ref completed);
+            progressService.ReportSubTask("Reading chapters", done, total);
         });
 
         return fileRecords

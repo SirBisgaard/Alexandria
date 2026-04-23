@@ -21,6 +21,8 @@ public sealed class ProgressService : IProgressService
 
     public void Report(string title, int count, int total)
     {
+        if (lastOuter is { } current && current.Title == title && current.Count == count && current.Total == total)
+            return;
         lastOuter = new ProgressTask { Title = title, Count = count, Total = total };
         sink?.Report(new ProgressReport { Task = lastOuter });
     }
