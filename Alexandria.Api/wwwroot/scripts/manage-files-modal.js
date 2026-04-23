@@ -19,6 +19,10 @@ $(function () {
                         '<hr class="about-divider">' +
                         '<div class="sync-popover-progress"><div class="sync-popover-progress-bar" id="mf-progress-bar" style="width:0%"></div></div>' +
                         '<div class="settings-tile-desc mt-2" id="mf-run-status"></div>' +
+                        '<div id="mf-subtask-row" style="display:none;">' +
+                            '<div class="settings-tile-desc mt-2" id="mf-subtask-title"></div>' +
+                            '<div class="sync-popover-progress"><div class="sync-popover-progress-bar" id="mf-subtask-progress-bar" style="width:0%"></div></div>' +
+                        '</div>' +
                         '<div class="manage-files-row">' +
                             '<div class="mf-template-info">' +
                                 '<span class="mf-template-example" id="mf-template-example"></span>' +
@@ -120,10 +124,27 @@ $(function () {
         });
     }
 
-    function runRename() {
+    function renderProgress(snapshot) {
+        var count = snapshot.count || 0;
+        var total = snapshot.total || 0;
+        var pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        $("#mf-progress-bar").css("width", pct + "%");
+        $("#mf-run-status").text(snapshot.title + " (" + count + " / " + total + ")");
+        if (snapshot.subTaskTitle) {
+            var subCount = snapshot.subCount || 0;
+            var subTotal = snapshot.subTotal || 0;
+            $("#mf-subtask-title").text(snapshot.subTaskTitle + " (" + subCount + " / " + subTotal + ")");
+            var subPct = subTotal > 0 ? Math.round((subCount / subTotal) * 100) : 0;
+            $("#mf-subtask-progress-bar").css("width", subPct + "%");
+            $("#mf-subtask-row").show();
+        } else {
+            $("#mf-subtask-row").hide();
+        }
+    }
+
+    function openStream() {
+        $("#mf-dry-run").prop("disabled", true);
         $("#mf-run").prop("disabled", true);
-        $("#mf-progress-bar").css("width", "0%");
-        $("#mf-run-status").text("Starting...");
 
         var token = localStorage.getItem("alexandria-token");
         var headers = token ? { "Authorization": "Bearer " + token } : {};
@@ -145,16 +166,16 @@ $(function () {
                         var json = JSON.parse(line.substring(6));
                         if (json.failed) {
                             $("#mf-run-status").text(json.error || "Failed.");
-                            $("#mf-run").prop("disabled", false);
+                            $("#mf-subtask-row").hide();
+                            $("#mf-dry-run").prop("disabled", false);
                         } else if (json.done) {
                             $("#mf-progress-bar").css("width", "100%");
                             $("#mf-run-status").text("Done. " + json.renamed + " renamed, " + json.skipped + " skipped, " + json.failed.length + " failed.");
-                            $("#mf-run").prop("disabled", true);
+                            $("#mf-subtask-row").hide();
+                            $("#mf-dry-run").prop("disabled", false);
                             dryRun();
                         } else {
-                            var pct = json.total > 0 ? Math.round((json.progress / json.total) * 100) : 0;
-                            $("#mf-progress-bar").css("width", pct + "%");
-                            $("#mf-run-status").text(json.title + " (" + json.progress + " / " + json.total + ")");
+                            renderProgress(json);
                         }
                     });
                     read();
@@ -163,17 +184,17 @@ $(function () {
             read();
         }).catch(function () {
             $("#mf-run-status").text("Request failed.");
-            $("#mf-run").prop("disabled", false);
+            $("#mf-dry-run").prop("disabled", false);
         });
     }
 
-    $(document).on("click", "[data-open-manage-files]", function (e) {
-        e.preventDefault();
-        $("#manage-files-modal-backdrop").addClass("open");
-        invalidatePreview();
+    function runRename() {
         $("#mf-progress-bar").css("width", "0%");
-        $("#mf-run-status").text("");
-        $("#mf-template-example").text("");
+        $("#mf-run-status").text("Starting...");
+        openStream();
+    }
+
+    function loadTemplateAndExample() {
         $.get("/api/alexandria/settings", function (data) {
             var template = data.fileRenameTemplate || "";
             $("#mf-template-display").text(template);
@@ -190,6 +211,35 @@ $(function () {
                     $("#mf-template-example").text(msg);
                 }
             });
+        });
+    }
+
+    $(document).on("click", "[data-open-manage-files]", function (e) {
+        e.preventDefault();
+        $("#manage-files-modal-backdrop").addClass("open");
+        invalidatePreview();
+        $("#mf-progress-bar").css("width", "0%");
+        $("#mf-run-status").text("");
+        $("#mf-subtask-row").hide();
+        $("#mf-template-example").text("");
+        $("#mf-dry-run").prop("disabled", false);
+        loadTemplateAndExample();
+
+        $.get("/api/alexandria/library-task/status", function (status) {
+            if (!status.running) {
+                return;
+            }
+            if (status.kind !== "file-management") {
+                $("#mf-run-status").text("Library sync is running. Try again shortly.");
+                $("#mf-dry-run").prop("disabled", true);
+                return;
+            }
+            if (status.snapshot) {
+                renderProgress(status.snapshot);
+            } else {
+                $("#mf-run-status").text("Renaming in progress...");
+            }
+            openStream();
         });
     });
 

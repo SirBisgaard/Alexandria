@@ -46,8 +46,8 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
 
         var book = BuildBookFromProbed(files, folderPath);
 
-        var coverFile = GetFolderCoverPath(folderPath);
-        byte[]? cover = File.Exists(coverFile)
+        var coverFile = ResolveOrCreateCoverJpg(folderPath);
+        byte[]? cover = coverFile is not null
             ? await File.ReadAllBytesAsync(coverFile)
             : await ffmpegWrapper.ExtractCoverImage(files[0].Path);
 
@@ -151,8 +151,8 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     /// </summary>
     public async Task<byte[]?> ExtractCoverBytes(string folderPath)
     {
-        var coverFile = GetFolderCoverPath(folderPath);
-        if (File.Exists(coverFile))
+        var coverFile = ResolveOrCreateCoverJpg(folderPath);
+        if (coverFile is not null)
             return await File.ReadAllBytesAsync(coverFile);
 
         var mp3Files = Directory.GetFiles(folderPath, "*.mp3");
@@ -224,9 +224,9 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
                 ["track"] = $"{i + 1}/{total}"
             };
             if (jpegCover is null)
-                await WriteViaFfmpeg(files[i].Path, (input, output) => ffmpegWrapper.WriteMetadata(input, output, perFileTags, []));
+                await WriteViaFfmpeg(files[i].Path, (input, output) => ffmpegWrapper.WriteMp3Metadata(input, output, perFileTags));
             else
-                await WriteViaFfmpeg(files[i].Path, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, perFileTags, [], jpegCover));
+                await WriteViaFfmpeg(files[i].Path, (input, output) => ffmpegWrapper.WriteMp3MetadataWithCover(input, output, perFileTags, jpegCover));
         });
     }
 
@@ -245,7 +245,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         await Parallel.ForEachAsync(files, options, async (file, _) =>
         {
             var existingTags = ParseStandardTagsFromJson(file.Json);
-            await WriteViaFfmpeg(file.Path, (input, output) => ffmpegWrapper.WriteMetadataWithCover(input, output, existingTags, [], jpegCover));
+            await WriteViaFfmpeg(file.Path, (input, output) => ffmpegWrapper.WriteMp3MetadataWithCover(input, output, existingTags, jpegCover));
         });
     }
 
@@ -265,7 +265,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
         await Parallel.ForEachAsync(files, options, async (file, _) =>
         {
             var existingTags = ParseStandardTagsFromJson(file.Json);
-            await WriteViaFfmpeg(file.Path, (input, output) => ffmpegWrapper.WriteMetadataRemoveCover(input, output, existingTags, []));
+            await WriteViaFfmpeg(file.Path, (input, output) => ffmpegWrapper.WriteMp3MetadataRemoveCover(input, output, existingTags));
         });
     }
 
@@ -333,7 +333,7 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             return [];
 
         var result = new Dictionary<string, string>();
-        string[] standardKeys = ["title", "album", "artist", "album_artist", "composer", "comment", "description", "date", "copyright", "publisher", "genre", "grouping", "track"];
+        string[] standardKeys = ["title", "album", "artist", "album_artist", "composer", "comment", "description", "date", "copyright", "publisher", "language", "genre", "grouping", "track"];
         foreach (var key in standardKeys)
         {
             var val = GetTag(tags, key);
@@ -347,37 +347,24 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     {
         var tags = new Dictionary<string, string>();
 
-        if (!string.IsNullOrWhiteSpace(book.Title))
-            tags["album"] = book.Subtitle is not null ? $"{book.Title}: {book.Subtitle}" : book.Title;
+        tags["album"] = !string.IsNullOrEmpty(book.Title) && !string.IsNullOrEmpty(book.Subtitle)
+            ? $"{book.Title}: {book.Subtitle}"
+            : book.Title ?? "";
 
-        if (book.Authors.Count > 0)
-        {
-            var authorStr = string.Join(", ", book.Authors.Select(a => a.Name));
-            tags["artist"] = authorStr;
-            tags["album_artist"] = authorStr;
-        }
+        var authorStr = book.Authors.Count > 0 ? string.Join(", ", book.Authors.Select(a => a.Name)) : "";
+        tags["artist"] = authorStr;
+        tags["album_artist"] = authorStr;
 
         var narrators = book.Contributors.Where(c => c.Role == "Narrator").ToList();
-        if (narrators.Count > 0)
-            tags["composer"] = string.Join(", ", narrators.Select(n => n.Name));
+        tags["composer"] = narrators.Count > 0 ? string.Join(", ", narrators.Select(n => n.Name)) : "";
 
-        if (book.Description is not null)
-        {
-            tags["comment"] = book.Description;
-            tags["description"] = book.Description;
-        }
-
-        if (book.PublicationDate is not null)
-            tags["date"] = book.PublicationDate;
-
-        if (book.Rights is not null)
-            tags["copyright"] = book.Rights;
-
-        if (book.Publisher is not null)
-            tags["publisher"] = book.Publisher;
-
-        if (book.Subjects.Count > 0)
-            tags["genre"] = string.Join("; ", book.Subjects);
+        tags["comment"] = book.Description ?? "";
+        tags["description"] = book.Description ?? "";
+        tags["date"] = book.PublicationDate ?? "";
+        tags["copyright"] = book.Rights ?? "";
+        tags["publisher"] = book.Publisher ?? "";
+        tags["language"] = book.Language ?? "";
+        tags["genre"] = book.Subjects.Count > 0 ? string.Join("; ", book.Subjects) : "";
 
         if (book.Series is not null)
         {
@@ -385,6 +372,10 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             if (book.Series.Index is not null)
                 grouping += $" #{book.Series.Index.Value}";
             tags["grouping"] = grouping;
+        }
+        else
+        {
+            tags["grouping"] = "";
         }
 
         return tags;
@@ -421,6 +412,26 @@ public class Mp3FileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     private static string ToFolderPath(string sourcePath) => sourcePath.EndsWith(".mp3audiobook") ? sourcePath[..^".mp3audiobook".Length] : sourcePath;
 
     private static string GetFolderCoverPath(string folderPath) => Path.Combine(folderPath, "cover.jpg");
+
+    /// <summary>
+    /// Returns the path to <c>cover.jpg</c> when present. If missing, promotes the first other
+    /// <c>.jpg</c> (case-insensitive) in the folder to <c>cover.jpg</c> by copy, so later lookups
+    /// hit the canonical filename. Returns <c>null</c> when no JPG is available.
+    /// </summary>
+    private static string? ResolveOrCreateCoverJpg(string folderPath)
+    {
+        var coverFile = GetFolderCoverPath(folderPath);
+        if (File.Exists(coverFile))
+            return coverFile;
+
+        var fallback = Directory.EnumerateFiles(folderPath)
+            .FirstOrDefault(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase));
+        if (fallback is null)
+            return null;
+
+        File.Copy(fallback, coverFile);
+        return coverFile;
+    }
 
     private static string? GetTag(JsonElement tags, string key)
     {

@@ -315,12 +315,11 @@ public sealed class IndexerM4BTreatmentTests
         public Task<bool> Flush() => Task.FromResult(true);
     }
 
-    internal sealed class FakeIndexingProgressService : IIndexingProgressService
+    internal sealed class FakeIndexingProgressService : IProgressService
     {
-        public void Subscribe(IProgress<IndexingReport> sink) { }
-        public void ReportConverting(string bookTitle, int index, int total) { }
-        public void ReportIndexing(string bookTitle, int index, int total) { }
-        public void ReportSubTask(string title, int progress, int total) { }
-        public void ReportDone() { }
+        public void Subscribe(IProgress<object> sink) { }
+        public void Report(string title, int count, int total) { }
+        public void ReportSubTask(string title, int count, int total) { }
+        public void ReportDone<T>(T doneObject) { }
     }
 }

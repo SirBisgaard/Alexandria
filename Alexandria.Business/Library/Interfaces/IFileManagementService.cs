@@ -13,7 +13,8 @@ public interface IFileManagementService
     /// <summary>
     /// Executes the current plan. Recomputes the plan against live DB + FS state and aborts with
     /// <see cref="FileManagementConflictException"/> if any conflict is present. Yields progress
-    /// through the scoped <see cref="IFileManagementProgressService"/>.
+    /// and a terminal <see cref="FileManagementCompletion"/> through the scoped
+    /// <see cref="IProgressService"/>.
     /// </summary>
     Task Run(CancellationToken cancellationToken);
 }

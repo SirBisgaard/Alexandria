@@ -10,8 +10,7 @@ public class FileManagementService(
     IBookRepository bookRepository,
     ISettingsService settingsService,
     IEnumerable<IFileRenamer> renamers,
-    ILibraryOperationLock libraryLock,
-    IFileManagementProgressService progressService,
+    IProgressService progressService,
     IDatabasePersistence databasePersistence,
     ILogger<FileManagementService> logger) : IFileManagementService
 {
@@ -113,37 +112,31 @@ public class FileManagementService(
         if (plan.HasConflicts)
             throw new FileManagementConflictException(plan.Conflicts);
 
-        if (!libraryLock.TryBeginExclusive(out var lease))
-            throw new InvalidOperationException("Another library operation is in progress.");
+        var renamed = 0;
+        var failed = new List<FileManagementFailure>();
+        var ordinal = 0;
+        var total = plan.Operations.Count;
 
-        using (lease)
+        foreach (var operation in plan.Operations)
         {
-            var renamed = 0;
-            var failed = new List<FileManagementFailure>();
-            var ordinal = 0;
-            var total = plan.Operations.Count;
+            cancellationToken.ThrowIfCancellationRequested();
+            ordinal++;
+            progressService.Report("Renaming", ordinal, total);
 
-            foreach (var operation in plan.Operations)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                ordinal++;
-                progressService.ReportRenaming(operation.Title, ordinal, total);
-
-                try
-                {
-                    await ExecuteOne(operation);
-                    renamed++;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "File rename failed for {Uuid} ({Title})", operation.BookUuid, operation.Title);
-                    failed.Add(new FileManagementFailure { BookUuid = operation.BookUuid, Error = ex.Message });
-                }
+                await ExecuteOne(operation);
+                renamed++;
             }
-
-            await databasePersistence.Flush();
-            progressService.ReportDone(renamed, plan.Skipped.Count, failed);
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "File rename failed for {Uuid} ({Title})", operation.BookUuid, operation.Title);
+                failed.Add(new FileManagementFailure { BookUuid = operation.BookUuid, Error = ex.Message });
+            }
         }
+
+        await databasePersistence.Flush();
+        progressService.ReportDone(new FileManagementCompletion { Renamed = renamed, Skipped = plan.Skipped.Count, Failed = failed });
     }
 
     private async Task ExecuteOne(FileManagementOperation operation)
@@ -161,7 +154,8 @@ public class FileManagementService(
             throw new InvalidOperationException($"Target path exists: {operation.NewPath}");
 
         var step = renamer.PlanRename(book, operation.NewBaseName);
-        renamer.Execute(step);
+        var subProgress = new DelegateProgress<ProgressTask>(t => progressService.ReportSubTask(t.Title, t.Count, t.Total));
+        renamer.Execute(step, subProgress);
 
         try
         {
@@ -200,6 +194,11 @@ public class FileManagementService(
         if (sourcePath.EndsWith(mp3Suffix, StringComparison.OrdinalIgnoreCase))
             return mp3Suffix;
         return Path.GetExtension(sourcePath);
+    }
+
+    private sealed class DelegateProgress<T>(Action<T> onReport) : IProgress<T>
+    {
+        public void Report(T value) => onReport(value);
     }
 
     private static bool PhysicalExists(string virtualPath)

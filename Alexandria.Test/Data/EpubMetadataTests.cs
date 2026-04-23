@@ -141,6 +141,101 @@ public sealed class EpubMetadataTests
         Assert.AreEqual(7m, reread.Series.Index);
     }
 
+    /// <summary>
+    /// Populates every editable Book property, then clears them all to <c>""</c> / empty / null.
+    /// Every property is asserted in both phases. The EPUB handler embeds Dublin Core elements
+    /// (title, language, date, description, publisher, creators, contributors) plus an EPUB3
+    /// belongs-to-collection series. Subtitle, Isbn, Identifiers, Subjects, Rights, Source,
+    /// Type, Relation, Coverage, Format are read from existing DC elements in the fixture but
+    /// the writer does not update them — they keep whatever the source EPUB carried on the
+    /// populate pass and are not touched on the clear pass either.
+    /// </summary>
+    [TestMethod]
+    public void EpubMetadata_EmbedMetadata_SetsAllFieldsThenClearsAllFields()
+    {
+        var (fixture, _) = handler.Extract(epubPath);
+        var fixtureSubjects = fixture.Subjects.ToList();
+        var fixtureRights = fixture.Rights;
+        var fixtureSource = fixture.Source;
+
+        var book = fixture;
+        book.Title = "All Fields Title";
+        book.Subtitle = "Populated Subtitle";
+        book.Language = "da";
+        book.Isbn = "978-0-00-000000-0";
+        book.PublicationDate = "2024-06-15";
+        book.Description = "Populated description.";
+        book.Publisher = "Alexandria Press";
+        book.Identifiers = ["urn:isbn:978-0-00-000000-0"];
+        book.Subjects = ["Fiction"];
+        book.Rights = "© 2024 Alexandria";
+        book.Source = "Populated source";
+        book.Type = "Populated type";
+        book.Relation = "Populated relation";
+        book.Coverage = "Populated coverage";
+        book.Format = "Populated format";
+        book.Authors = [new Author { Name = "First Author" }, new Author { Name = "Second Author" }];
+        book.Contributors = [new Contributor { Name = "The Narrator", Role = "Narrator" }];
+        book.Series = new Series { Name = "Populated Series", Index = 6m };
+
+        handler.EmbedMetadata(epubPath, book);
+
+        var (populated, _) = handler.Extract(epubPath);
+        Assert.AreEqual("All Fields Title", populated.Title);
+        Assert.IsNull(populated.Subtitle);
+        Assert.AreEqual("da", populated.Language);
+        Assert.AreEqual("2024-06-15", populated.PublicationDate);
+        Assert.AreEqual("Populated description.", populated.Description);
+        Assert.AreEqual("Alexandria Press", populated.Publisher);
+        CollectionAssert.AreEqual(fixtureSubjects, populated.Subjects);
+        Assert.AreEqual(fixtureRights, populated.Rights);
+        Assert.AreEqual(fixtureSource, populated.Source);
+        Assert.HasCount(2, populated.Authors);
+        Assert.AreEqual("First Author", populated.Authors[0].Name);
+        Assert.AreEqual("Second Author", populated.Authors[1].Name);
+        Assert.HasCount(1, populated.Contributors);
+        Assert.AreEqual("The Narrator", populated.Contributors[0].Name);
+        Assert.AreEqual("Narrator", populated.Contributors[0].Role);
+        Assert.IsNotNull(populated.Series);
+        Assert.AreEqual("Populated Series", populated.Series.Name);
+        Assert.AreEqual(6m, populated.Series.Index);
+
+        populated.Title = "";
+        populated.Subtitle = "";
+        populated.Language = "";
+        populated.Isbn = "";
+        populated.PublicationDate = "";
+        populated.Description = "";
+        populated.Publisher = "";
+        populated.Identifiers = [];
+        populated.Subjects = [];
+        populated.Rights = "";
+        populated.Source = "";
+        populated.Type = "";
+        populated.Relation = "";
+        populated.Coverage = "";
+        populated.Format = "";
+        populated.Authors = [];
+        populated.Contributors = [];
+        populated.Series = null;
+
+        handler.EmbedMetadata(epubPath, populated);
+
+        var (cleared, _) = handler.Extract(epubPath);
+        Assert.AreEqual("", cleared.Title);
+        Assert.IsNull(cleared.Subtitle);
+        Assert.AreEqual("", cleared.Language);
+        Assert.IsNull(cleared.PublicationDate);
+        Assert.IsNull(cleared.Description);
+        Assert.IsNull(cleared.Publisher);
+        CollectionAssert.AreEqual(fixtureSubjects, cleared.Subjects);
+        Assert.AreEqual(fixtureRights, cleared.Rights);
+        Assert.AreEqual(fixtureSource, cleared.Source);
+        Assert.IsEmpty(cleared.Authors);
+        Assert.IsEmpty(cleared.Contributors);
+        Assert.IsNull(cleared.Series);
+    }
+
     [TestMethod]
     public void EpubMetadata_Contributors_UnrecognizedRole_IsFilteredOut()
     {

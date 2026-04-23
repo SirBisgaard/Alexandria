@@ -22,9 +22,9 @@ public class EbookFileRenamer : IFileRenamer
         };
     }
 
-    public void Execute(FileRenameStep step)
+    public void Execute(FileRenameStep step, IProgress<ProgressTask>? subProgress = null)
     {
-        if (step.IsNoOp)
+        if (step.IsNoOperation)
             return;
         FileSystemSafeMove.File(step.OldSourcePath, step.NewSourcePath);
     }

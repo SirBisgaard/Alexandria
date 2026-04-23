@@ -304,6 +304,86 @@ public class FfmpegWrapper(ILogger<FfmpegWrapper> logger) : IFfmpegWrapper
         }
     }
 
+    /// <summary>
+    /// Writes ID3v2.3 metadata to an MP3 file. MP3 audiobooks are a folder of per-file MP3s, so
+    /// chapters are never embedded inside a single file. <c>-f mp3</c> is load-bearing: using
+    /// <c>-f mp4</c> (as the M4B writers do) silently drops <c>publisher</c>/<c>language</c>
+    /// because the MP4 metadata schema has no equivalent frames. <c>-id3v2_version 3</c> forces
+    /// ID3v2.3 for cross-player compatibility (Kobo, most desktop players).
+    /// </summary>
+    public async Task WriteMp3Metadata(string inputPath, string outputPath, Dictionary<string, string> tags)
+    {
+        try
+        {
+            var metadataPath = outputPath + ".ffmetadata";
+            try
+            {
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, []), Encoding.UTF8);
+                await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map 0:v? -map_metadata 1 -map_metadata 0 -c copy -id3v2_version 3 -f mp3 -y \"{outputPath}\"");
+            }
+            finally
+            {
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "WriteMp3Metadata failed for {Input}", inputPath);
+            throw;
+        }
+    }
+
+    public async Task WriteMp3MetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, byte[] coverData)
+    {
+        try
+        {
+            var metadataPath = outputPath + ".ffmetadata";
+            var coverPath = outputPath + ".cover.jpg";
+            try
+            {
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, []), Encoding.UTF8);
+                await File.WriteAllBytesAsync(coverPath, coverData);
+                await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -i \"{coverPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -map 2:v -c copy -disposition:v:0 attached_pic -metadata:s:v title=Cover -metadata:s:v comment=Cover -id3v2_version 3 -f mp3 -y \"{outputPath}\"");
+            }
+            finally
+            {
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
+                if (File.Exists(coverPath))
+                    File.Delete(coverPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "WriteMp3MetadataWithCover failed for {Input}", inputPath);
+            throw;
+        }
+    }
+
+    public async Task WriteMp3MetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags)
+    {
+        try
+        {
+            var metadataPath = outputPath + ".ffmetadata";
+            try
+            {
+                await File.WriteAllTextAsync(metadataPath, GenerateFfMetadata(tags, []), Encoding.UTF8);
+                await RunFfmpeg($"-i \"{inputPath}\" -f ffmetadata -i \"{metadataPath}\" -map 0:a -map_metadata 1 -map_metadata 0 -c copy -id3v2_version 3 -f mp3 -y \"{outputPath}\"");
+            }
+            finally
+            {
+                if (File.Exists(metadataPath))
+                    File.Delete(metadataPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "WriteMp3MetadataRemoveCover failed for {Input}", inputPath);
+            throw;
+        }
+    }
+
     private static string GenerateFfMetadata(IReadOnlyDictionary<string, string> tags, IReadOnlyList<FfmpegChapter> chapters)
     {
         var sb = new StringBuilder();

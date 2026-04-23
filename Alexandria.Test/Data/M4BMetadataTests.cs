@@ -144,6 +144,114 @@ public sealed class M4BMetadataTests
         Assert.HasCount(originalChapterCount, reread.Chapters);
     }
 
+    /// <summary>
+    /// Populates every editable Book property, then clears them all to <c>""</c> / empty / null.
+    /// Every property is asserted in both phases. Reader returns the combined "Title: Subtitle"
+    /// as Title because the MP4 album tag doesn't distinguish them. Publisher and Language are
+    /// dropped by the MP4 muxer (no standard tag), so they always read back as default. Isbn,
+    /// Identifiers, Source, Type, Relation, Coverage, Format have no MP4 equivalent.
+    /// </summary>
+    [TestMethod]
+    public async Task M4BMetadata_EmbedMetadata_SetsAllFieldsThenClearsAllFields()
+    {
+        var originalChapterCount = (await handler.ExtractMetadata(m4bPath)).Chapters.Count;
+
+        var book = await handler.ExtractMetadata(m4bPath);
+        book.File.SourcePath = m4bPath;
+
+        book.Title = "All Fields Title";
+        book.Subtitle = "Populated Subtitle";
+        book.Language = "eng";
+        book.Isbn = "978-0-00-000000-0";
+        book.PublicationDate = "2024-06-15";
+        book.Description = "Populated description.";
+        book.Publisher = "Alexandria Press";
+        book.Identifiers = ["urn:isbn:978-0-00-000000-0"];
+        book.Subjects = ["Fiction"];
+        book.Rights = "© 2024 Alexandria";
+        book.Source = "Populated source";
+        book.Type = "Populated type";
+        book.Relation = "Populated relation";
+        book.Coverage = "Populated coverage";
+        book.Format = "Populated format";
+        book.Authors = [new Author { Name = "First Author" }, new Author { Name = "Second Author" }];
+        book.Contributors = [new Contributor { Name = "First Narrator", Role = "Narrator" }];
+        book.Series = new Series { Name = "Populated Series", Index = 5m };
+
+        await handler.EmbedMetadata(book);
+
+        var populated = await handler.ExtractMetadata(m4bPath);
+        Assert.AreEqual("All Fields Title", populated.Title);
+        Assert.IsNull(populated.Subtitle);
+        Assert.AreEqual("", populated.Language);
+        Assert.IsNull(populated.Isbn);
+        Assert.AreEqual("2024-06-15", populated.PublicationDate);
+        Assert.AreEqual("Populated description.", populated.Description);
+        Assert.IsNull(populated.Publisher);
+        Assert.IsEmpty(populated.Identifiers);
+        Assert.HasCount(1, populated.Subjects);
+        Assert.AreEqual("Fiction", populated.Subjects[0]);
+        Assert.AreEqual("© 2024 Alexandria", populated.Rights);
+        Assert.IsNull(populated.Source);
+        Assert.IsNull(populated.Type);
+        Assert.IsNull(populated.Relation);
+        Assert.IsNull(populated.Coverage);
+        Assert.IsNull(populated.Format);
+        Assert.HasCount(2, populated.Authors);
+        Assert.AreEqual("First Author", populated.Authors[0].Name);
+        Assert.AreEqual("Second Author", populated.Authors[1].Name);
+        Assert.HasCount(1, populated.Contributors);
+        Assert.AreEqual("First Narrator", populated.Contributors[0].Name);
+        Assert.AreEqual("Narrator", populated.Contributors[0].Role);
+        Assert.IsNotNull(populated.Series);
+        Assert.AreEqual("Populated Series", populated.Series.Name);
+        Assert.AreEqual(5m, populated.Series.Index);
+        Assert.HasCount(originalChapterCount, populated.Chapters);
+
+        populated.File.SourcePath = m4bPath;
+        populated.Title = "";
+        populated.Subtitle = "";
+        populated.Language = "";
+        populated.Isbn = "";
+        populated.PublicationDate = "";
+        populated.Description = "";
+        populated.Publisher = "";
+        populated.Identifiers = [];
+        populated.Subjects = [];
+        populated.Rights = "";
+        populated.Source = "";
+        populated.Type = "";
+        populated.Relation = "";
+        populated.Coverage = "";
+        populated.Format = "";
+        populated.Authors = [];
+        populated.Contributors = [];
+        populated.Series = null;
+
+        await handler.EmbedMetadata(populated);
+
+        var cleared = await handler.ExtractMetadata(m4bPath);
+        Assert.AreEqual(Path.GetFileNameWithoutExtension(m4bPath), cleared.Title);
+        Assert.IsNull(cleared.Subtitle);
+        Assert.AreEqual("", cleared.Language);
+        Assert.IsNull(cleared.Isbn);
+        Assert.IsNull(cleared.PublicationDate);
+        Assert.IsNull(cleared.Description);
+        Assert.IsNull(cleared.Publisher);
+        Assert.IsEmpty(cleared.Identifiers);
+        Assert.IsEmpty(cleared.Subjects);
+        Assert.IsNull(cleared.Rights);
+        Assert.IsNull(cleared.Source);
+        Assert.IsNull(cleared.Type);
+        Assert.IsNull(cleared.Relation);
+        Assert.IsNull(cleared.Coverage);
+        Assert.IsNull(cleared.Format);
+        Assert.IsEmpty(cleared.Authors);
+        Assert.IsEmpty(cleared.Contributors);
+        Assert.IsNull(cleared.Series);
+        Assert.HasCount(originalChapterCount, cleared.Chapters);
+    }
+
     [TestMethod]
     public async Task M4BMetadata_EmbedCover_ReplacesCover()
     {

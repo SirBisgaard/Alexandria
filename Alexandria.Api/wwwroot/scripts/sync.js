@@ -40,18 +40,16 @@ $(function () {
     }
 
     function renderProgress(snapshot) {
-        if (snapshot.title === "Done") {
-            $("#sync-popover-text").text("Synced");
-            $("#sync-popover-progress-bar").css("width", "100%");
-            $("#sync-popover-subtask-row").hide();
-            return;
-        }
-        $("#sync-popover-text").text("Syncing, " + snapshot.title + " (" + snapshot.progress + " / " + snapshot.total + ")");
-        var pct = snapshot.total > 0 ? Math.round((snapshot.progress / snapshot.total) * 100) : 0;
+        var count = snapshot.count || 0;
+        var total = snapshot.total || 0;
+        $("#sync-popover-text").text(snapshot.title + " (" + count + " / " + total + ")");
+        var pct = total > 0 ? Math.round((count / total) * 100) : 0;
         $("#sync-popover-progress-bar").css("width", pct + "%");
         if (snapshot.subTaskTitle) {
-            $("#sync-popover-subtask-title").text(snapshot.subTaskTitle + " (" + snapshot.subProgress + " / " + snapshot.subTotal + ")");
-            var subPct = snapshot.subTotal > 0 ? Math.round((snapshot.subProgress / snapshot.subTotal) * 100) : 0;
+            var subCount = snapshot.subCount || 0;
+            var subTotal = snapshot.subTotal || 0;
+            $("#sync-popover-subtask-title").text(snapshot.subTaskTitle + " (" + subCount + " / " + subTotal + ")");
+            var subPct = subTotal > 0 ? Math.round((subCount / subTotal) * 100) : 0;
             $("#sync-popover-subtask-progress-bar").css("width", subPct + "%");
             $("#sync-popover-subtask-row").show();
         } else {
@@ -91,7 +89,7 @@ $(function () {
                         } else if (json.done) {
                             $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(json.lastIndexedTimestamp));
                             $("#sync-popover-progress-bar").css("width", "100%");
-                            $("#sync-popover-text").text("Sync complete. " + json.bookCount + " books indexed.");
+                            $("#sync-popover-text").text("Sync complete.");
                             $("#sync-popover-subtask-row").hide();
                             $("#sync-popover-btn").text("Close").prop("disabled", false);
                             syncInProgress = false;
@@ -126,8 +124,13 @@ $(function () {
             $("#sync-popover-last-sync").text("LAST SYNC: " + formatLastIndexed(data.lastIndexedTimestamp));
         });
 
-        $.get("/api/alexandria/sync/status", function (status) {
+        $.get("/api/alexandria/library-task/status", function (status) {
             if (!status.running) { return; }
+            if (status.kind !== "sync") {
+                resetSlots("Another library operation is running. Try again shortly.");
+                $("#sync-popover-btn").text("Busy").prop("disabled", true);
+                return;
+            }
             syncInProgress = true;
             $("#sync-popover-btn").text("Syncing...").prop("disabled", true);
             if (status.snapshot) {

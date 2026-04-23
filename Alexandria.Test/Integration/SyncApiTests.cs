@@ -14,9 +14,9 @@ namespace Alexandria.Tests.Integration;
 
 /// <summary>
 /// <para>
-/// Sync endpoint coverage. Indexing now runs in a hosted <see cref="IndexingBackgroundService"/>
-/// with an <see cref="IIndexingBroker"/> mediating between the hosted service and any SSE
-/// subscribers. Covers: SSE headers on POST /sync, status shape on GET /sync/status, 401
+/// Sync endpoint coverage. Indexing runs through the shared <see cref="LibraryTaskBackgroundService"/>
+/// with an <see cref="ILibraryTaskBroker"/> mediating between the hosted service and any SSE
+/// subscribers. Covers: SSE headers on POST /sync, status shape on GET /library-task/status, 401
 /// unauthenticated on both routes, and the conversion-failure error-event flow.
 /// </para>
 /// <para>
@@ -51,7 +51,7 @@ public sealed class SyncApiTests : IntegrationTestBase
         var token = await LoginAsync();
         using var authed = AuthenticatedClient(token);
 
-        var response = await authed.GetAsync("/api/alexandria/sync/status");
+        var response = await authed.GetAsync("/api/alexandria/library-task/status");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -70,7 +70,7 @@ public sealed class SyncApiTests : IntegrationTestBase
     [TestMethod]
     public async Task SyncStatus_WithoutAuth_Returns401()
     {
-        var response = await Client.GetAsync("/api/alexandria/sync/status");
+        var response = await Client.GetAsync("/api/alexandria/library-task/status");
 
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -103,7 +103,7 @@ public sealed class SyncApiTests : IntegrationTestBase
         var response = await client.PostAsync("/api/alexandria/sync", content: null);
         await response.Content.ReadAsStringAsync(); // drain so EndRun finishes before we check state
 
-        var broker = factory.Services.GetRequiredService<IIndexingBroker>();
+        var broker = factory.Services.GetRequiredService<ILibraryTaskBroker>();
         Assert.IsFalse(broker.IsRunning, "broker should be idle after a failed run — EndRun clears the flag");
     }
 

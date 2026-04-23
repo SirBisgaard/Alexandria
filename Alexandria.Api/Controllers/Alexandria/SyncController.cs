@@ -5,23 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/sync")]
-public class SyncController(IIndexingBroker broker, ILogger<SyncController> logger) : AlexandriaControllerBase
+public class SyncController(ILibraryTaskBroker broker, ILogger<SyncController> logger) : AlexandriaControllerBase
 {
     /// <summary>
-    /// Lightweight status check used by the sync popover on open. The frontend uses this to
-    /// decide whether to show "Sync now" (idle) or "Syncing…" (running) and paints the current
-    /// snapshot before subscribing to the SSE stream.
-    /// </summary>
-    [HttpGet("status")]
-    public ActionResult<SyncStatusResponse> GetStatus()
-    {
-        return new SyncStatusResponse { Running = broker.IsRunning, Snapshot = broker.LastSnapshot };
-    }
-
-    /// <summary>
     /// Subscribes to the library-sync progress stream as SSE. If no run is in flight, enqueues
-    /// one; if one is already running, attaches to it. Either way the client receives the same
-    /// live event stream terminating in a <see cref="SyncCompleteEvent"/> or <see cref="SyncErrorEvent"/>.
+    /// a <see cref="SyncTask"/>; if one is already running, attaches to it. Either way the client
+    /// receives the same live event stream terminating in a <see cref="SyncCompleteEvent"/> or
+    /// <see cref="SyncErrorEvent"/>.
     /// </summary>
     [HttpPost]
     public async Task Sync()
@@ -31,7 +21,7 @@ public class SyncController(IIndexingBroker broker, ILogger<SyncController> logg
         Response.Headers.Connection = "keep-alive";
 
         using var subscription = broker.Subscribe();
-        broker.TryEnqueueRun();
+        broker.TryEnqueue(typeof(SyncTask));
 
         try
         {

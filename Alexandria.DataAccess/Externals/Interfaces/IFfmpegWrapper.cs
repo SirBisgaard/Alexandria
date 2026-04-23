@@ -11,4 +11,7 @@ public interface IFfmpegWrapper
     Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters);
     Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData);
     Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters);
+    Task WriteMp3Metadata(string inputPath, string outputPath, Dictionary<string, string> tags);
+    Task WriteMp3MetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, byte[] coverData);
+    Task WriteMp3MetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags);
 }

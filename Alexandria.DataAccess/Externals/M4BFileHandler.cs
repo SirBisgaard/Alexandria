@@ -209,40 +209,23 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
     {
         var tags = new Dictionary<string, string>();
 
-        if (!string.IsNullOrWhiteSpace(book.Title))
-        {
-            tags["title"] = book.Title;
-            tags["album"] = book.Subtitle is not null ? $"{book.Title}: {book.Subtitle}" : book.Title;
-        }
+        tags["title"] = book.Title ?? "";
+        tags["album"] = !string.IsNullOrEmpty(book.Title) && !string.IsNullOrEmpty(book.Subtitle)
+            ? $"{book.Title}: {book.Subtitle}"
+            : book.Title ?? "";
 
-        if (book.Authors.Count > 0)
-        {
-            var authorStr = string.Join(", ", book.Authors.Select(a => a.Name));
-            tags["artist"] = authorStr;
-            tags["album_artist"] = authorStr;
-        }
+        var authorStr = book.Authors.Count > 0 ? string.Join(", ", book.Authors.Select(a => a.Name)) : "";
+        tags["artist"] = authorStr;
+        tags["album_artist"] = authorStr;
 
         var narrators = book.Contributors.Where(c => c.Role == "Narrator").ToList();
-        if (narrators.Count > 0)
-            tags["composer"] = string.Join(", ", narrators.Select(n => n.Name));
-
-        if (book.Description is not null)
-        {
-            tags["comment"] = book.Description;
-            tags["description"] = book.Description;
-        }
-
-        if (book.PublicationDate is not null)
-            tags["date"] = book.PublicationDate;
-
-        if (book.Rights is not null)
-            tags["copyright"] = book.Rights;
-
-        if (book.Publisher is not null)
-            tags["publisher"] = book.Publisher;
-
-        if (book.Subjects.Count > 0)
-            tags["genre"] = string.Join("; ", book.Subjects);
+        tags["composer"] = narrators.Count > 0 ? string.Join(", ", narrators.Select(n => n.Name)) : "";
+        tags["comment"] = book.Description ?? "";
+        tags["description"] = book.Description ?? "";
+        tags["date"] = book.PublicationDate ?? "";
+        tags["copyright"] = book.Rights ?? "";
+        tags["publisher"] = book.Publisher ?? "";
+        tags["genre"] = book.Subjects.Count > 0 ? string.Join("; ", book.Subjects) : "";
 
         if (book.Series is not null)
         {
@@ -250,6 +233,10 @@ public class M4BFileHandler(IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService
             if (book.Series.Index is not null)
                 grouping += $" #{book.Series.Index.Value}";
             tags["grouping"] = grouping;
+        }
+        else
+        {
+            tags["grouping"] = "";
         }
 
         return tags;

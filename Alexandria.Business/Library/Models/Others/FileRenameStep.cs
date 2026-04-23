@@ -11,7 +11,7 @@ public sealed record FileRenameStep
     public string NewSourcePath { get; init; } = string.Empty;
     public IReadOnlyList<ChapterFileRename> ChapterRenames { get; init; } = [];
 
-    public bool IsNoOp => string.Equals(OldSourcePath, NewSourcePath, StringComparison.Ordinal) && ChapterRenames.Count == 0;
+    public bool IsNoOperation => string.Equals(OldSourcePath, NewSourcePath, StringComparison.Ordinal) && ChapterRenames.Count == 0;
 
     public FileRenameStep Invert()
     {

@@ -54,9 +54,9 @@ public class Mp3FolderFileRenamer : IFileRenamer
         };
     }
 
-    public void Execute(FileRenameStep step)
+    public void Execute(FileRenameStep step, IProgress<ProgressTask>? subProgress = null)
     {
-        if (step.IsNoOp)
+        if (step.IsNoOperation)
             return;
 
         var oldFolder = StripSuffix(step.OldSourcePath);
@@ -72,14 +72,18 @@ public class Mp3FolderFileRenamer : IFileRenamer
         var completed = new List<(string Source, string Destination)>();
         try
         {
+            var totalChapters = step.ChapterRenames.Count;
+            var chapterIndex = 0;
             foreach (var rename in step.ChapterRenames)
             {
+                chapterIndex++;
                 if (string.Equals(rename.OldFileName, rename.NewFileName, StringComparison.Ordinal))
                     continue;
                 var source = Path.Combine(newFolder, rename.OldFileName);
                 var destination = Path.Combine(newFolder, rename.NewFileName);
                 FileSystemSafeMove.File(source, destination);
                 completed.Add((source, destination));
+                subProgress?.Report(new ProgressTask { Title = "Renaming chapters", Count = chapterIndex, Total = totalChapters });
             }
         }
         catch

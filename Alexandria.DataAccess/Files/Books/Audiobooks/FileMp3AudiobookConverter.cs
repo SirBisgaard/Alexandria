@@ -15,7 +15,7 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 /// ("{Author} - {Series} #{Index} - {Title}"), then deletes the original M4B. The
 /// resulting folder is indexed by <see cref="FileMp3AudiobookIndexer"/> on the same run.
 /// </summary>
-public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IIndexingProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
+public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
     private const string SentinelFileName = ".converting";
     public const string FailedFolderName = "alexandria-conversion-failed";
@@ -92,7 +92,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
     {
         try
         {
-            progressService.ReportConverting(extracted.Title, bookNumber, totalBooks);
+            progressService.Report("Converting", bookNumber, totalBooks);
 
             var coverBytes = await m4BFileHandler.ExtractCoverBytes(sourcePath);
 

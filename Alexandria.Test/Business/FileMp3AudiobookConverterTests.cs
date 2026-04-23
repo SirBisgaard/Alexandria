@@ -198,7 +198,7 @@ public sealed class FileMp3AudiobookConverterTests
         await converter.Convert([first, second], CancellationToken.None);
 
         Assert.HasCount(2, progressService.ConvertingReports);
-        Assert.AreEqual(2, progressService.ConvertingReports[^1].Total);
+        Assert.AreEqual(2, progressService.ConvertingReports[^1].Task.Total);
     }
 
     // ---------- Identity preservation ----------
@@ -619,6 +619,9 @@ public sealed class FileMp3AudiobookConverterTests
         public Task WriteMetadata(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => Task.CompletedTask;
         public Task WriteMetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters, byte[] coverData) => Task.CompletedTask;
         public Task WriteMetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags, List<FfmpegChapter> chapters) => Task.CompletedTask;
+        public Task WriteMp3Metadata(string inputPath, string outputPath, Dictionary<string, string> tags) => Task.CompletedTask;
+        public Task WriteMp3MetadataWithCover(string inputPath, string outputPath, Dictionary<string, string> tags, byte[] coverData) => Task.CompletedTask;
+        public Task WriteMp3MetadataRemoveCover(string inputPath, string outputPath, Dictionary<string, string> tags) => Task.CompletedTask;
     }
 
     internal sealed class FakeCoverThumbnailService : ICoverThumbnailService
@@ -635,20 +638,22 @@ public sealed class FileMp3AudiobookConverterTests
         }
     }
 
-    internal sealed class FakeIndexingProgressService : IIndexingProgressService
+    internal sealed class FakeIndexingProgressService : IProgressService
     {
-        public List<(string Title, int Index, int Total)> ConvertingReports { get; } = [];
+        public List<ProgressReport> ConvertingReports { get; } = [];
 
-        public void Subscribe(IProgress<IndexingReport> sink) { }
+        public void Subscribe(IProgress<object> sink) { }
 
-        public void ReportConverting(string bookTitle, int index, int total)
+        public void Report(string title, int count, int total)
         {
+            if (title != "Converting")
+                return;
             lock (ConvertingReports)
-                ConvertingReports.Add((bookTitle, index, total));
+                ConvertingReports.Add(new ProgressReport { Task = new ProgressTask { Title = title, Count = count, Total = total } });
         }
 
-        public void ReportIndexing(string bookTitle, int index, int total) { }
-        public void ReportSubTask(string title, int progress, int total) { }
-        public void ReportDone() { }
+        public void ReportSubTask(string title, int count, int total) { }
+
+        public void ReportDone<T>(T doneObject) { }
     }
 }

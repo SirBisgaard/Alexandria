@@ -59,7 +59,6 @@ public sealed class IndexerServiceTests
         Assert.IsEmpty(bookRepository.All);
         Assert.AreEqual(1, settingsService.UpdateLastIndexedTimestampCount);
         Assert.AreEqual(1, databasePersistence.FlushCount);
-        Assert.AreEqual(1, progressService.DoneCount);
     }
 
     [TestMethod]
@@ -208,10 +207,11 @@ public sealed class IndexerServiceTests
 
         await service.Index();
 
-        Assert.HasCount(3, progressService.IndexingReports);
-        Assert.AreEqual("A", progressService.IndexingReports[0].Title);
-        Assert.AreEqual("C", progressService.IndexingReports[2].Title);
-        Assert.AreEqual(1, progressService.DoneCount);
+        Assert.HasCount(3, progressService.Reports);
+        Assert.AreEqual("Indexing", progressService.Reports[0].Task.Title);
+        Assert.AreEqual(1, progressService.Reports[0].Task.Count);
+        Assert.AreEqual(3, progressService.Reports[2].Task.Count);
+        Assert.AreEqual(3, progressService.Reports[0].Task.Total);
     }
 
     [TestMethod]
@@ -746,22 +746,19 @@ public sealed class IndexerServiceTests
         }
     }
 
-    internal sealed class FakeIndexingProgressService : IIndexingProgressService
+    internal sealed class FakeIndexingProgressService : IProgressService
     {
-        public List<IndexingReport> IndexingReports { get; } = [];
-        public int DoneCount { get; private set; }
+        public List<ProgressReport> Reports { get; } = [];
 
-        public void Subscribe(IProgress<IndexingReport> sink) { }
+        public void Subscribe(IProgress<object> sink) { }
 
-        public void ReportConverting(string bookTitle, int index, int total) { }
-
-        public void ReportIndexing(string bookTitle, int index, int total)
+        public void Report(string title, int count, int total)
         {
-            IndexingReports.Add(new IndexingReport { Title = bookTitle, Progress = index, Total = total });
+            Reports.Add(new ProgressReport { Task = new ProgressTask { Title = title, Count = count, Total = total } });
         }
 
-        public void ReportSubTask(string title, int progress, int total) { }
+        public void ReportSubTask(string title, int count, int total) { }
 
-        public void ReportDone() => DoneCount++;
+        public void ReportDone<T>(T doneObject) { }
     }
 }

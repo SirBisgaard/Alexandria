@@ -14,7 +14,6 @@ public sealed class FileManagementServiceTests
     private FakeBookRepository bookRepository = null!;
     private FakeSettingsService settingsService = null!;
     private FakeFileRenamer ebookRenamer = null!;
-    private FakeLibraryLock libraryLock = null!;
     private FakeFileManagementProgressService progressService = null!;
     private FakeDatabasePersistence databasePersistence = null!;
     private FileManagementService service = null!;
@@ -29,10 +28,9 @@ public sealed class FileManagementServiceTests
         bookRepository = new FakeBookRepository();
         settingsService = new FakeSettingsService();
         ebookRenamer = new FakeFileRenamer([".epub"]);
-        libraryLock = new FakeLibraryLock();
         progressService = new FakeFileManagementProgressService();
         databasePersistence = new FakeDatabasePersistence();
-        service = new FileManagementService(bookRepository, settingsService, [ebookRenamer], libraryLock, progressService, databasePersistence, NullLogger<FileManagementService>.Instance);
+        service = new FileManagementService(bookRepository, settingsService, [ebookRenamer], progressService, databasePersistence, NullLogger<FileManagementService>.Instance);
     }
 
     [TestCleanup]
@@ -133,18 +131,7 @@ public sealed class FileManagementServiceTests
     }
 
     [TestMethod]
-    public async Task Run_WithoutLockAvailable_Throws()
-    {
-        settingsService.Settings.FileRenameTemplate = "<Title>";
-        bookRepository.Seed(BuildBook(Path.Combine(tempDir, "a.epub"), "T", "A"));
-        libraryLock.ShouldAcquire = false;
-
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(
-            async () => await service.Run(CancellationToken.None));
-    }
-
-    [TestMethod]
-    public async Task Run_HappyPath_ExecutesRenameAndFlushesAndReleases()
+    public async Task Run_HappyPath_ExecutesRenameAndFlushes()
     {
         settingsService.Settings.FileRenameTemplate = "<Title>";
         bookRepository.Seed(BuildBook(Path.Combine(tempDir, "old.epub"), "Renamed", "A"));
@@ -153,7 +140,6 @@ public sealed class FileManagementServiceTests
 
         Assert.HasCount(1, ebookRenamer.Executed);
         Assert.AreEqual(Path.Combine(tempDir, "Renamed.epub"), ebookRenamer.Executed[0].NewSourcePath);
-        Assert.AreEqual(1, libraryLock.DisposeCount);
         Assert.AreEqual(1, databasePersistence.FlushCount);
         Assert.IsNotNull(progressService.Completion);
         Assert.AreEqual(1, progressService.Completion.Renamed);
@@ -176,19 +162,6 @@ public sealed class FileManagementServiceTests
         Assert.IsNotNull(progressService.Completion);
         Assert.AreEqual(0, progressService.Completion.Renamed);
         Assert.HasCount(1, progressService.Completion.Failed);
-        Assert.AreEqual(1, libraryLock.DisposeCount);
-    }
-
-    [TestMethod]
-    public async Task Run_ReleasesLockWhenProgressServiceTerminal()
-    {
-        settingsService.Settings.FileRenameTemplate = "<Title>";
-        bookRepository.Seed(BuildBook(Path.Combine(tempDir, "a.epub"), "b", "A"));
-
-        await service.Run(CancellationToken.None);
-
-        Assert.AreEqual(1, libraryLock.AcquireAttempts);
-        Assert.AreEqual(1, libraryLock.DisposeCount);
     }
 
     private static Book BuildBook(string sourcePath, string title, string author)
@@ -257,7 +230,7 @@ public sealed class FileManagementServiceTests
             };
         }
 
-        public void Execute(FileRenameStep step)
+        public void Execute(FileRenameStep step, IProgress<ProgressTask>? subProgress = null)
         {
             if (FailExecutionWhen is not null && FailExecutionWhen(step))
                 throw new IOException("Simulated IO failure.");
@@ -265,54 +238,30 @@ public sealed class FileManagementServiceTests
         }
     }
 
-    private sealed class FakeLibraryLock : ILibraryOperationLock
+    private sealed class FakeFileManagementProgressService : IProgressService
     {
-        private int outstanding;
-
-        public int AcquireAttempts { get; private set; }
-        public int DisposeCount { get; private set; }
-        public bool ShouldAcquire { get; set; } = true;
-
-        public bool IsBusy => outstanding > 0;
-
-        public bool TryBeginExclusive(out IDisposable lease)
-        {
-            AcquireAttempts++;
-            if (!ShouldAcquire)
-            {
-                lease = null!;
-                return false;
-            }
-            outstanding++;
-            lease = new Lease(this);
-            return true;
-        }
-
-        private sealed class Lease(FakeLibraryLock owner) : IDisposable
-        {
-            public void Dispose()
-            {
-                owner.DisposeCount++;
-                owner.outstanding--;
-            }
-        }
-    }
-
-    private sealed class FakeFileManagementProgressService : IFileManagementProgressService
-    {
-        public List<FileManagementReport> Progress { get; } = [];
+        public List<ProgressReport> Reports { get; } = [];
         public FileManagementCompletion? Completion { get; private set; }
 
-        public void Subscribe(IProgress<FileManagementReport> onProgress, IProgress<FileManagementCompletion> onCompletion) { }
+        public void Subscribe(IProgress<object> sink) { }
 
-        public void ReportRenaming(string bookTitle, int ordinal, int total)
+        public void Report(string title, int count, int total)
         {
-            Progress.Add(new FileManagementReport { Title = bookTitle, Ordinal = ordinal, Total = total });
+            Reports.Add(new ProgressReport { Task = new ProgressTask { Title = title, Count = count, Total = total } });
         }
 
-        public void ReportDone(int renamed, int skipped, IReadOnlyList<FileManagementFailure> failed)
+        public void ReportSubTask(string title, int count, int total)
         {
-            Completion = new FileManagementCompletion { Renamed = renamed, Skipped = skipped, Failed = failed };
+            if (Reports.Count == 0)
+                return;
+            var outer = Reports[^1].Task;
+            Reports.Add(new ProgressReport { Task = outer, SubTask = new ProgressTask { Title = title, Count = count, Total = total } });
+        }
+
+        public void ReportDone<T>(T doneObject)
+        {
+            if (doneObject is FileManagementCompletion c)
+                Completion = c;
         }
     }
 

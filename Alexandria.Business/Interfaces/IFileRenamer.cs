@@ -23,7 +23,9 @@ public interface IFileRenamer
     /// Executes <paramref name="step"/> on disk. Transactional: on any failure all completed
     /// moves within this step are rolled back so the filesystem is left at its prior state.
     /// Rollback of a successful Execute (e.g. because the subsequent DB write failed) is done
-    /// by the caller calling <c>Execute(step.Invert())</c>.
+    /// by the caller calling <c>Execute(step.Invert())</c>. <paramref name="subProgress"/>, when
+    /// provided, receives per-chapter-file progress ticks (only meaningful for folder-based
+    /// audiobook renamers).
     /// </summary>
-    void Execute(FileRenameStep step);
+    void Execute(FileRenameStep step, IProgress<ProgressTask>? subProgress = null);
 }

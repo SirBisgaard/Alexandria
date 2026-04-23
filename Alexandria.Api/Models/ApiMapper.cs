@@ -2,6 +2,7 @@ using System.Reflection;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Api.Models.Responses;
 using Alexandria.Business.Library.Models;
+using Alexandria.Business.Library.Models.Others;
 using Alexandria.Business.Library.Models.Settings;
 
 namespace Alexandria.Api.Models;
@@ -158,6 +159,27 @@ public static class ApiMapper
         SyncLibraryAtBoot = request.SyncLibraryAtBoot,
         M4BFileTreatment = request.M4BFileTreatment,
         FileRenameTemplate = request.FileRenameTemplate.Trim()
+    };
+
+    public static FileManagementPlanResponse ToFileManagementPlanResponse(FileManagementPlan plan) => new()
+    {
+        Template = plan.Template,
+        Operations = plan.Operations.Select(o => new FileManagementOperationResponse
+        {
+            BookUuid = o.BookUuid,
+            Title = o.Title,
+            MediaType = o.MediaType.ToString(),
+            CurrentPath = o.CurrentPath,
+            NewPath = o.NewPath,
+            ChapterRenameCount = o.ChapterRenames.Count
+        }).ToList(),
+        Skipped = plan.Skipped.Select(s => new FileManagementSkippedResponse
+        {
+            BookUuid = s.BookUuid,
+            Title = s.Title,
+            CurrentPath = s.CurrentPath
+        }).ToList(),
+        Conflicts = plan.Conflicts
     };
 
     /// <summary>

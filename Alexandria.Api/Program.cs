@@ -85,16 +85,17 @@ builder.Services.AddTransient<IFileRenamer, Mp3FolderFileRenamer>();
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();
 builder.Services.AddSingleton<ILibraryOperationLock, LibraryOperationLock>();
-builder.Services.AddSingleton<IIndexingBroker, IndexingBroker>();
-builder.Services.AddHostedService<IndexingBackgroundService>();
+builder.Services.AddSingleton<ILibraryTaskBroker, LibraryTaskBroker>();
+builder.Services.AddHostedService<LibraryTaskBackgroundService>();
+builder.Services.AddTransient<SyncTask>();
+builder.Services.AddTransient<FileManagementTask>();
 builder.Services.AddTransient<IKoboProxyService, KoboStoreProxyService>();
 builder.Services.AddTransient<IKoboLibrarySyncService, KoboLibrarySyncService>();
 builder.Services.AddTransient<IKoboContentDeliveryService, KoboContentDeliveryService>();
 builder.Services.AddTransient<IKoboReadingStateService, KoboReadingStateService>();
 builder.Services.AddTransient<IKoboAnalyticsService, KoboAnalyticsService>();
 builder.Services.AddTransient<IKoboProductService, KoboProductService>();
-builder.Services.AddScoped<IIndexingProgressService, IndexingProgressService>();
-builder.Services.AddScoped<IFileManagementProgressService, FileManagementProgressService>();
+builder.Services.AddScoped<IProgressService, ProgressService>();
 builder.Services.AddTransient<IIndexerService, IndexerService>();
 builder.Services.AddTransient<IBookService, BookService>();
 builder.Services.AddTransient<IAuthorService, AuthorService>();
@@ -147,13 +148,13 @@ var appSettings = await settingsRepo.Get();
 GuidExtensions.SetNamespace(appSettings.UuidSeed);
 authSecrets.Initialize(appSettings.UuidSeed);
 
-// Enqueue boot-time library index. The hosted IndexingBackgroundService picks it up after
-// app.Run() and streams progress through IIndexingBroker — so a user opening the sync popover
+// Enqueue boot-time library index. The hosted LibraryTaskBackgroundService picks it up after
+// app.Run() and streams progress through ILibraryTaskBroker — so a user opening the sync popover
 // during a boot index sees the live run just like a manually triggered one.
 if (appSettings.SyncLibraryAtBoot)
 {
-    var broker = app.Services.GetRequiredService<IIndexingBroker>();
-    broker.TryEnqueueRun();
+    var broker = app.Services.GetRequiredService<ILibraryTaskBroker>();
+    broker.TryEnqueue(typeof(SyncTask));
 }
 
 app.UseAuthentication();

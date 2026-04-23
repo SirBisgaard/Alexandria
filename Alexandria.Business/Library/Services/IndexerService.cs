@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, IEnumerable<IFileConverter> converters, IIndexingProgressService progressService, ILogger<IndexerService> logger) : IIndexerService
+public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, IEnumerable<IFileConverter> converters, IProgressService progressService, ILogger<IndexerService> logger) : IIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
@@ -17,7 +17,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
     /// path match (same location) → metadata match at different path (moved file) → new UUID.
     /// This preserves BookUuid across file moves, keeping reading state and device sync intact.
     /// Unchanged books (metadata + cover identical) take a fast path that skips reprocessing.
-    /// Progress is published through <see cref="IIndexingProgressService"/> — the scoped
+    /// Progress is published through <see cref="IProgressService"/> — the scoped
     /// consumer must call <c>Subscribe</c> before invoking this method to receive events.
     /// </summary>
     public async Task<int> Index()
@@ -49,7 +49,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
             await foreach (var (metadata, coverBytes) in contentManager.GetAllBooks())
             {
-                progressService.ReportIndexing(metadata.Title, ++fileCount, totalFiles);
+                progressService.Report("Indexing", ++fileCount, totalFiles);
                 discoveredPaths.Add(metadata.File.SourcePath);
 
                 var existingAtPath = existingByPath.GetValueOrDefault(metadata.File.SourcePath);
@@ -100,7 +100,6 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
             await databasePersistence.Flush();
             logger.LogInformation("Library indexing complete, {Count} files total", discoveredBooks.Count);
-            progressService.ReportDone();
             return discoveredBooks.Count;
         }
         finally
