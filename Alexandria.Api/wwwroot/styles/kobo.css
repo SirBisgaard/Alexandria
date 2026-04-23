@@ -785,6 +785,12 @@ a.series-list-item {
     max-width: 100%;
 }
 
+.book-modal-cover .book-cover {
+    position: relative;
+    min-height: 240px;
+    aspect-ratio: 2 / 3;
+}
+
 .book-modal-meta {
     flex: 1;
 }
