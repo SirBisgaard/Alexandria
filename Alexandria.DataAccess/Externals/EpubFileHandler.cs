@@ -469,23 +469,25 @@ public class EpubFileHandler : IEpubFileHandler
     private static void EnsureCoverPage(ZipArchive zip, XDocument opfDoc, XElement manifest, string opfDirectory, string coverImageHref)
     {
         var items = manifest.Elements(Opf + "item").ToList();
-
-        // If the first spine item already has "cover" or "title" in its href, kepubify is satisfied.
         var spine = opfDoc.Descendants(Opf + "spine").FirstOrDefault();
-        if (spine is not null)
+        if (spine is null)
+            return;
+
+        // Prefer reusing any spine XHTML that already renders the cover image — that page IS the cover,
+        // regardless of what it's named. Just ensure its itemref is first in spine; don't clobber its
+        // layout. This prevents stacking a new cover.xhtml on top of an existing cover renderer
+        // (titlepage.xhtml in publisher EPUBs, calibre-generated title pages, etc.).
+        var renderingPage = FindSpineXhtmlReferencingImage(zip, opfDoc, items, opfDirectory, coverImageHref);
+        if (renderingPage is not null)
         {
-            var firstRef = spine.Elements(Opf + "itemref").FirstOrDefault();
-            var firstIdRef = firstRef?.Attribute("idref")?.Value;
-            if (firstIdRef is not null)
-            {
-                var firstItem = items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, firstIdRef, StringComparison.OrdinalIgnoreCase));
-                var firstHref = firstItem?.Attribute("href")?.Value;
-                if (firstHref is not null && (firstHref.Contains("cover", StringComparison.OrdinalIgnoreCase) || firstHref.Contains("title", StringComparison.OrdinalIgnoreCase)))
-                    return;
-            }
+            var renderingId = renderingPage.Attribute("id")?.Value;
+            if (renderingId is not null)
+                MoveItemRefToFirst(spine, renderingId);
+            return;
         }
 
-        // Find existing cover page: look for id="cover-page" or an XHTML item whose href contains "cover".
+        // Fallback: an explicitly labelled cover page (id="cover-page" or an XHTML item whose href
+        // contains "cover"). We rewrite its content to our canonical template and move it first.
         var coverPageItem = items.FirstOrDefault(i => string.Equals(i.Attribute("id")?.Value, "cover-page", StringComparison.OrdinalIgnoreCase))
             ?? items.FirstOrDefault(i =>
                 (i.Attribute("media-type")?.Value ?? "").StartsWith("application/xhtml", StringComparison.OrdinalIgnoreCase) &&
@@ -499,7 +501,6 @@ public class EpubFileHandler : IEpubFileHandler
             coverPageId = coverPageItem.Attribute("id")?.Value ?? "cover-page";
             coverPageHref = coverPageItem.Attribute("href")?.Value ?? "cover.xhtml";
 
-            // Delete old cover page from ZIP and recreate with updated image reference.
             var oldPagePath = string.IsNullOrEmpty(opfDirectory) ? coverPageHref : $"{opfDirectory}/{coverPageHref}";
             zip.GetEntry(oldPagePath.Replace('\\', '/'))?.Delete();
         }
@@ -510,7 +511,6 @@ public class EpubFileHandler : IEpubFileHandler
             manifest.Add(new XElement(Opf + "item", new XAttribute("id", coverPageId), new XAttribute("href", coverPageHref), new XAttribute("media-type", "application/xhtml+xml")));
         }
 
-        // Write the cover XHTML page.
         var coverXhtml = $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n<head><title>Cover</title>\n<style>body{{margin:0;padding:0;text-align:center;}}img{{max-width:100%;max-height:100%;}}</style>\n</head>\n<body><img src=\"{coverImageHref}\" alt=\"Cover\"/></body>\n</html>";
         var coverPagePath = string.IsNullOrEmpty(opfDirectory) ? coverPageHref : $"{opfDirectory}/{coverPageHref}";
         var pageEntry = zip.CreateEntry(coverPagePath.Replace('\\', '/'));
@@ -520,26 +520,78 @@ public class EpubFileHandler : IEpubFileHandler
             writer.Write(coverXhtml);
         }
 
-        // Ensure cover page is the first item in the spine.
-        spine ??= opfDoc.Descendants(Opf + "spine").FirstOrDefault();
-        if (spine is null)
-        {
-            return;
-        }
+        MoveItemRefToFirst(spine, coverPageId);
+    }
 
-        var existingRef = spine.Elements(Opf + "itemref").FirstOrDefault(r => string.Equals(r.Attribute("idref")?.Value, coverPageId, StringComparison.OrdinalIgnoreCase));
+    private static void MoveItemRefToFirst(XElement spine, string idref)
+    {
+        var existingRef = spine.Elements(Opf + "itemref").FirstOrDefault(r => string.Equals(r.Attribute("idref")?.Value, idref, StringComparison.OrdinalIgnoreCase));
         if (existingRef is not null)
         {
-            if (existingRef != spine.Elements(Opf + "itemref").First())
-            {
-                existingRef.Remove();
-                spine.AddFirst(new XElement(Opf + "itemref", new XAttribute("idref", coverPageId)));
-            }
+            if (existingRef == spine.Elements(Opf + "itemref").First())
+                return;
+            existingRef.Remove();
+            spine.AddFirst(new XElement(Opf + "itemref", new XAttribute("idref", idref)));
         }
         else
         {
-            spine.AddFirst(new XElement(Opf + "itemref", new XAttribute("idref", coverPageId)));
+            spine.AddFirst(new XElement(Opf + "itemref", new XAttribute("idref", idref)));
         }
+    }
+
+    /// <summary>
+    /// Finds the first XHTML spine item whose file content already references the cover image.
+    /// Publisher-issued EPUBs often ship a page called "titlepage" (or similar) that is actually
+    /// the cover renderer; detecting by content lets us reuse that page instead of adding a duplicate.
+    /// The filename must appear in the content after a path or attribute boundary character
+    /// (<c>/</c>, quote, or <c>=</c>) to avoid matches like <c>mycover.jpg</c>.
+    /// </summary>
+    private static XElement? FindSpineXhtmlReferencingImage(ZipArchive zip, XDocument opfDoc, List<XElement> items, string opfDirectory, string imageHref)
+    {
+        var imageFileName = Path.GetFileName(imageHref);
+        if (string.IsNullOrEmpty(imageFileName))
+            return null;
+
+        var spine = opfDoc.Descendants(Opf + "spine").FirstOrDefault();
+        if (spine is null)
+            return null;
+
+        var itemsById = items.ToDictionary(i => i.Attribute("id")?.Value ?? "", i => i);
+        foreach (var itemref in spine.Elements(Opf + "itemref"))
+        {
+            var idref = itemref.Attribute("idref")?.Value;
+            if (idref is null || !itemsById.TryGetValue(idref, out var item))
+                continue;
+            if (!((item.Attribute("media-type")?.Value ?? "").StartsWith("application/xhtml", StringComparison.OrdinalIgnoreCase)))
+                continue;
+            var href = item.Attribute("href")?.Value ?? "";
+            var path = (string.IsNullOrEmpty(opfDirectory) ? href : $"{opfDirectory}/{href}").Replace('\\', '/');
+            var entry = zip.GetEntry(path);
+            if (entry is null)
+                continue;
+
+            string content;
+            using (var s = entry.Open())
+            using (var reader = new StreamReader(s))
+                content = reader.ReadToEnd();
+
+            if (ReferencesImage(content, imageFileName))
+                return item;
+        }
+        return null;
+    }
+
+    private static bool ReferencesImage(string content, string imageFileName)
+    {
+        var idx = content.IndexOf(imageFileName, StringComparison.OrdinalIgnoreCase);
+        while (idx >= 0)
+        {
+            var prev = idx == 0 ? '/' : content[idx - 1];
+            if (prev is '/' or '"' or '\'' or '=')
+                return true;
+            idx = content.IndexOf(imageFileName, idx + 1, StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
     }
 
     private static IEnumerable<XElement> MetaElements(XElement metadataEl)

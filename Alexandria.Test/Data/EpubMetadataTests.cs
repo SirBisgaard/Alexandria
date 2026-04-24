@@ -550,6 +550,91 @@ public sealed class EpubMetadataTests
         Assert.AreEqual(coverEntry.Length, coverEntry.CompressedLength);
     }
 
+    /// <summary>
+    /// Real-world public-domain EPUBs (e.g. the Forsyte Saga books) ship the cover image in
+    /// the manifest with <c>properties="cover-image"</c> but have no cover XHTML page — the
+    /// first spine item is a text title page. The embedder must still render the cover as
+    /// the first page; a title page is not a cover.
+    /// </summary>
+    [TestMethod]
+    public void EpubMetadata_EmbedCover_WhenFirstSpineItemIsTitlePage_InsertsCoverPageAsFirst()
+    {
+        RemoveCoverPageLeavingTitlePageFirst(epubPath);
+        var beforeHref = GetFirstSpineItemHref(epubPath);
+        Assert.IsNotNull(beforeHref);
+        Assert.IsTrue(
+            beforeHref.Contains("title", StringComparison.OrdinalIgnoreCase),
+            $"Precondition: fixture mutation should leave a title page first, was '{beforeHref}'.");
+
+        var coverPath = Fixtures.CopyCoverTo(tempDir);
+        handler.EmbedCover(epubPath, File.ReadAllBytes(coverPath), "image/jpeg");
+
+        var firstHref = GetFirstSpineItemHref(epubPath);
+        Assert.IsNotNull(firstHref);
+        Assert.IsTrue(
+            firstHref.Contains("cover", StringComparison.OrdinalIgnoreCase),
+            $"First spine item href '{firstHref}' should be a cover page — a title page is not a cover.");
+    }
+
+    /// <summary>
+    /// Stronger variant of the above: not just "href contains cover", but the actual first
+    /// rendered XHTML page must embed the cover image. This guards against future early-exits
+    /// that match on filename substrings without verifying the page renders the image.
+    /// </summary>
+    [TestMethod]
+    public void EpubMetadata_EmbedCover_WhenFirstSpineItemIsTitlePage_FirstPageRendersCoverImage()
+    {
+        RemoveCoverPageLeavingTitlePageFirst(epubPath);
+
+        var coverPath = Fixtures.CopyCoverTo(tempDir);
+        handler.EmbedCover(epubPath, File.ReadAllBytes(coverPath), "image/jpeg");
+
+        var coverHref = GetCoverHref(epubPath);
+        Assert.IsNotNull(coverHref);
+        var coverFileName = Path.GetFileName(coverHref);
+        var firstPageXhtml = ReadFirstSpineItemXhtml(epubPath);
+        Assert.IsTrue(
+            firstPageXhtml.Contains(coverFileName, StringComparison.OrdinalIgnoreCase),
+            $"First spine page should reference cover image '{coverFileName}', but XHTML was:\n{firstPageXhtml}");
+    }
+
+    /// <summary>
+    /// Real-world publisher EPUBs (Monte Cristo, Dracula, Pride and Prejudice, The Martian,
+    /// Fatherland, World War Z, War and Peace, Moveable Feast, Book of Five Rings ...) all
+    /// ship a first spine item named "titlepage" whose body is just an SVG/img rendering the
+    /// cover image. The embedder must detect and reuse that page — inserting a new cover
+    /// page on top would leave two consecutive pages showing the same cover.
+    /// </summary>
+    [TestMethod]
+    public void EpubMetadata_EmbedCover_WhenTitlePageRendersCoverImage_DoesNotCreateDuplicateCoverPage()
+    {
+        SimulateTitlePageRenderingCoverImage(epubPath);
+
+        var coverPath = Fixtures.CopyCoverTo(tempDir);
+        handler.EmbedCover(epubPath, File.ReadAllBytes(coverPath), "image/jpeg");
+
+        var coverHref = GetCoverHref(epubPath)!;
+        var coverFileName = Path.GetFileName(coverHref);
+        var pagesRenderingCover = CountSpineXhtmlPagesReferencingImage(epubPath, coverFileName);
+        Assert.AreEqual(1, pagesRenderingCover, $"Exactly one spine page should render '{coverFileName}' — found {pagesRenderingCover}.");
+    }
+
+    [TestMethod]
+    public void EpubMetadata_EmbedCover_WhenTitlePageRendersCoverImage_FirstSpineItemRendersCover()
+    {
+        SimulateTitlePageRenderingCoverImage(epubPath);
+
+        var coverPath = Fixtures.CopyCoverTo(tempDir);
+        handler.EmbedCover(epubPath, File.ReadAllBytes(coverPath), "image/jpeg");
+
+        var coverHref = GetCoverHref(epubPath)!;
+        var coverFileName = Path.GetFileName(coverHref);
+        var firstPageXhtml = ReadFirstSpineItemXhtml(epubPath);
+        Assert.IsTrue(
+            firstPageXhtml.Contains(coverFileName, StringComparison.OrdinalIgnoreCase),
+            $"First spine page should render cover image '{coverFileName}', but was:\n{firstPageXhtml}");
+    }
+
     [TestMethod]
     public void EpubMetadata_WordCount_SkipsScriptStyleAndHeadContent()
     {
@@ -602,6 +687,28 @@ public sealed class EpubMetadataTests
         var opfPath = GetOpfPath(zip);
         using var os = zip.GetEntry(opfPath)!.Open();
         return XDocument.Load(os).Descendants(opf + "metadata").Single();
+    }
+
+    private static string ReadFirstSpineItemXhtml(string epubPath)
+    {
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        using var stream = File.OpenRead(epubPath);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+        var opfPath = GetOpfPath(zip);
+        XDocument doc;
+        using (var os = zip.GetEntry(opfPath)!.Open())
+            doc = XDocument.Load(os);
+        var spine = doc.Descendants(opf + "spine").Single();
+        var firstIdRef = spine.Elements(opf + "itemref").First().Attribute("idref")!.Value;
+        var manifest = doc.Descendants(opf + "manifest").Single();
+        var firstHref = manifest.Elements(opf + "item")
+            .First(i => string.Equals((string?)i.Attribute("id"), firstIdRef, StringComparison.OrdinalIgnoreCase))
+            .Attribute("href")!.Value;
+        var opfDir = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
+        var entryPath = (string.IsNullOrEmpty(opfDir) ? firstHref : $"{opfDir}/{firstHref}").Replace('\\', '/');
+        using var es = zip.GetEntry(entryPath)!.Open();
+        using var reader = new StreamReader(es);
+        return reader.ReadToEnd();
     }
 
     private static string? GetFirstSpineItemHref(string epubPath)
@@ -680,6 +787,136 @@ public sealed class EpubMetadataTests
         metadataEl.Add(new XElement(opf + "meta", seriesIndex,
             new XAttribute("property", "group-position"),
             new XAttribute("refines", "#series02")));
+
+        opfEntry.Delete();
+        using var w = zip.CreateEntry(opfPath).Open();
+        opfDoc.Save(w);
+    }
+
+    /// <summary>
+    /// Mutates the fixture to mirror publisher-issued EPUBs (Monte Cristo, Dracula, The Martian,
+    /// Pride and Prejudice ...) where the first spine item is named "titlepage" but actually
+    /// renders the cover image. Drops cover.xhtml and rewrites titlepage.xhtml to be a pure
+    /// cover-image-rendering page.
+    /// </summary>
+    private static void SimulateTitlePageRenderingCoverImage(string epubPath)
+    {
+        RemoveCoverPageLeavingTitlePageFirst(epubPath);
+
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Update);
+        var opfPath = GetOpfPath(zip);
+        var opfDir = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
+
+        XDocument opfDoc;
+        using (var os = zip.GetEntry(opfPath)!.Open())
+            opfDoc = XDocument.Load(os);
+
+        var manifest = opfDoc.Descendants(opf + "manifest").Single();
+        var spine = opfDoc.Descendants(opf + "spine").Single();
+        var firstIdRef = spine.Elements(opf + "itemref").First().Attribute("idref")!.Value;
+        var firstItem = manifest.Elements(opf + "item")
+            .First(i => string.Equals((string?)i.Attribute("id"), firstIdRef, StringComparison.OrdinalIgnoreCase));
+        var firstHref = firstItem.Attribute("href")!.Value;
+        var firstZipPath = (string.IsNullOrEmpty(opfDir) ? firstHref : $"{opfDir}/{firstHref}").Replace('\\', '/');
+
+        var coverImageHref = manifest.Elements(opf + "item")
+            .First(i => ((string?)i.Attribute("properties") ?? "").Split(' ').Any(p => string.Equals(p, "cover-image", StringComparison.OrdinalIgnoreCase)))
+            .Attribute("href")!.Value;
+
+        var firstDir = Path.GetDirectoryName(firstHref)?.Replace('\\', '/') ?? string.Empty;
+        var coverRef = string.IsNullOrEmpty(firstDir)
+            ? coverImageHref
+            : Path.GetRelativePath(firstDir, coverImageHref).Replace('\\', '/');
+
+        var xhtml = $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n<head><title>Cover</title></head>\n<body><img src=\"{coverRef}\" alt=\"Cover\"/></body>\n</html>";
+
+        zip.GetEntry(firstZipPath)?.Delete();
+        using var w = zip.CreateEntry(firstZipPath).Open();
+        using var writer = new StreamWriter(w, System.Text.Encoding.UTF8);
+        writer.Write(xhtml);
+    }
+
+    private static int CountSpineXhtmlPagesReferencingImage(string epubPath, string imageFileName)
+    {
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        using var stream = File.OpenRead(epubPath);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+        var opfPath = GetOpfPath(zip);
+        var opfDir = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
+        XDocument doc;
+        using (var os = zip.GetEntry(opfPath)!.Open())
+            doc = XDocument.Load(os);
+        var manifest = doc.Descendants(opf + "manifest").Single();
+        var spine = doc.Descendants(opf + "spine").Single();
+        var itemsById = manifest.Elements(opf + "item")
+            .ToDictionary(i => i.Attribute("id")?.Value ?? "", i => i);
+
+        var count = 0;
+        foreach (var r in spine.Elements(opf + "itemref"))
+        {
+            var idref = r.Attribute("idref")?.Value;
+            if (idref is null || !itemsById.TryGetValue(idref, out var item))
+                continue;
+            var mediaType = (string?)item.Attribute("media-type") ?? "";
+            if (!mediaType.StartsWith("application/xhtml", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var href = (string?)item.Attribute("href") ?? "";
+            var path = (string.IsNullOrEmpty(opfDir) ? href : $"{opfDir}/{href}").Replace('\\', '/');
+            var entry = zip.GetEntry(path);
+            if (entry is null)
+                continue;
+            using var es = entry.Open();
+            using var reader = new StreamReader(es);
+            var content = reader.ReadToEnd();
+            if (content.Contains(imageFileName, StringComparison.OrdinalIgnoreCase))
+                count++;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Mutates the fixture to mirror real-world public-domain EPUBs (e.g. the Forsyte Saga books)
+    /// that ship the cover image in the manifest with <c>properties="cover-image"</c> but have
+    /// no cover XHTML page — the first spine item is a text title page. Removes the cover XHTML
+    /// item from the manifest, its itemref from the spine, and the XHTML file from the ZIP,
+    /// leaving the cover image itself in place.
+    /// </summary>
+    private static void RemoveCoverPageLeavingTitlePageFirst(string epubPath)
+    {
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        using var stream = new FileStream(epubPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Update);
+        var opfPath = GetOpfPath(zip);
+        var opfEntry = zip.GetEntry(opfPath)!;
+
+        XDocument opfDoc;
+        using (var os = opfEntry.Open())
+            opfDoc = XDocument.Load(os);
+
+        var manifest = opfDoc.Descendants(opf + "manifest").Single();
+        var spine = opfDoc.Descendants(opf + "spine").Single();
+
+        var coverPageItem = manifest.Elements(opf + "item")
+            .FirstOrDefault(i =>
+                ((string?)i.Attribute("media-type") ?? "").StartsWith("application/xhtml", StringComparison.OrdinalIgnoreCase) &&
+                ((string?)i.Attribute("href") ?? "").Contains("cover", StringComparison.OrdinalIgnoreCase));
+        if (coverPageItem is null)
+            throw new InvalidOperationException("Fixture has no XHTML cover page to remove.");
+
+        var coverPageId = (string?)coverPageItem.Attribute("id");
+        var coverPageHref = (string?)coverPageItem.Attribute("href");
+
+        spine.Elements(opf + "itemref")
+            .FirstOrDefault(r => string.Equals((string?)r.Attribute("idref"), coverPageId, StringComparison.OrdinalIgnoreCase))
+            ?.Remove();
+
+        coverPageItem.Remove();
+
+        var opfDir = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? string.Empty;
+        var pagePath = (string.IsNullOrEmpty(opfDir) ? coverPageHref : $"{opfDir}/{coverPageHref}")!.Replace('\\', '/');
+        zip.GetEntry(pagePath)?.Delete();
 
         opfEntry.Delete();
         using var w = zip.CreateEntry(opfPath).Open();
