@@ -599,11 +599,10 @@ public sealed class EpubMetadataTests
     }
 
     /// <summary>
-    /// Real-world publisher EPUBs (Monte Cristo, Dracula, Pride and Prejudice, The Martian,
-    /// Fatherland, World War Z, War and Peace, Moveable Feast, Book of Five Rings ...) all
-    /// ship a first spine item named "titlepage" whose body is just an SVG/img rendering the
-    /// cover image. The embedder must detect and reuse that page — inserting a new cover
-    /// page on top would leave two consecutive pages showing the same cover.
+    /// Many publisher EPUBs ship a first spine item named "titlepage" whose body is just an
+    /// SVG/img rendering the cover image. The embedder must detect and reuse that page —
+    /// inserting a new cover page on top would leave two consecutive pages showing the same
+    /// cover.
     /// </summary>
     [TestMethod]
     public void EpubMetadata_EmbedCover_WhenTitlePageRendersCoverImage_DoesNotCreateDuplicateCoverPage()
@@ -794,10 +793,9 @@ public sealed class EpubMetadataTests
     }
 
     /// <summary>
-    /// Mutates the fixture to mirror publisher-issued EPUBs (Monte Cristo, Dracula, The Martian,
-    /// Pride and Prejudice ...) where the first spine item is named "titlepage" but actually
-    /// renders the cover image. Drops cover.xhtml and rewrites titlepage.xhtml to be a pure
-    /// cover-image-rendering page.
+    /// Mutates the fixture to mirror publisher-issued EPUBs where the first spine item is
+    /// named "titlepage" but actually renders the cover image. Drops cover.xhtml and rewrites
+    /// titlepage.xhtml to be a pure cover-image-rendering page.
     /// </summary>
     private static void SimulateTitlePageRenderingCoverImage(string epubPath)
     {

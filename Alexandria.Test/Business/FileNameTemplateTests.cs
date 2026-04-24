@@ -9,61 +9,61 @@ public sealed class FileNameTemplateTests
     [TestMethod]
     public void Render_PlainTokens_Expand()
     {
-        var book = BuildBook(title: "Small Gods", authors: ["Terry Pratchett"]);
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"]);
 
         var result = FileNameTemplate.Render(book, "<Authors> - <Title>");
 
-        Assert.AreEqual("Terry Pratchett - Small Gods", result);
+        Assert.AreEqual("Sample Author - Sample Title", result);
     }
 
     [TestMethod]
     public void Render_MultipleAuthors_CommaJoined()
     {
-        var book = BuildBook(title: "Good Omens", authors: ["Terry Pratchett", "Neil Gaiman"]);
+        var book = BuildBook(title: "Sample Title", authors: ["First Author", "Second Author"]);
 
         var result = FileNameTemplate.Render(book, "<Authors> - <Title>");
 
-        Assert.AreEqual("Terry Pratchett, Neil Gaiman - Good Omens", result);
+        Assert.AreEqual("First Author, Second Author - Sample Title", result);
     }
 
     [TestMethod]
     public void Render_OptionalGroupWithAllTokensPresent_EmitsGroup()
     {
-        var book = BuildBook(title: "Small Gods", authors: ["Terry Pratchett"], seriesName: "Discworld", seriesIndex: 13m);
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"], seriesName: "Sample Series", seriesIndex: 13m);
 
         var result = FileNameTemplate.Render(book, "<Authors> - (<Serie> #<SerieIndex> - )<Title>");
 
-        Assert.AreEqual("Terry Pratchett - Discworld #13 - Small Gods", result);
+        Assert.AreEqual("Sample Author - Sample Series #13 - Sample Title", result);
     }
 
     [TestMethod]
     public void Render_OptionalGroupWithEmptyToken_GroupIsDropped()
     {
-        var book = BuildBook(title: "Small Gods", authors: ["Terry Pratchett"]);
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"]);
 
         var result = FileNameTemplate.Render(book, "<Authors> - (<Serie> #<SerieIndex> - )<Title>");
 
-        Assert.AreEqual("Terry Pratchett - Small Gods", result);
+        Assert.AreEqual("Sample Author - Sample Title", result);
     }
 
     [TestMethod]
     public void Render_OptionalGroupWithPartialEmpty_GroupIsDropped()
     {
-        var book = BuildBook(title: "Small Gods", authors: ["Terry Pratchett"], seriesName: "Discworld", seriesIndex: null);
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"], seriesName: "Sample Series", seriesIndex: null);
 
         var result = FileNameTemplate.Render(book, "(<Serie> #<SerieIndex> - )<Title>");
 
-        Assert.AreEqual("Small Gods", result);
+        Assert.AreEqual("Sample Title", result);
     }
 
     [TestMethod]
     public void Render_SerieIndexWithDecimal_TrimsTrailingZeros()
     {
-        var book = BuildBook(title: "Interesting Times", authors: ["Pratchett"], seriesName: "Discworld", seriesIndex: 17.5m);
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"], seriesName: "Sample Series", seriesIndex: 17.5m);
 
         var result = FileNameTemplate.Render(book, "<Serie> #<SerieIndex> - <Title>");
 
-        Assert.AreEqual("Discworld #17.5 - Interesting Times", result);
+        Assert.AreEqual("Sample Series #17.5 - Sample Title", result);
     }
 
     [TestMethod]

@@ -83,7 +83,7 @@ public sealed class SeriesRepositoryTests : DatabaseTestBase
     [TestMethod]
     public async Task SeriesRepository_SetBookSeries_PersistsIndex()
     {
-        var seriesUuid = await repository.GetOrCreate("Discworld");
+        var seriesUuid = await repository.GetOrCreate("Sample Series");
         var bookUuid = Guid.NewGuid();
         await InsertBookShell(bookUuid);
 
@@ -91,7 +91,7 @@ public sealed class SeriesRepositoryTests : DatabaseTestBase
 
         var fetched = await repository.GetSeriesByBookUuid(bookUuid);
         Assert.IsNotNull(fetched);
-        Assert.AreEqual("Discworld", fetched.Name);
+        Assert.AreEqual("Sample Series", fetched.Name);
         Assert.AreEqual(5m, fetched.Index);
     }
 

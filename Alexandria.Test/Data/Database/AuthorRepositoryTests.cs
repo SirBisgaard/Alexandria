@@ -17,18 +17,18 @@ public sealed class AuthorRepositoryTests : DatabaseTestBase
     [TestMethod]
     public async Task AuthorRepository_GetOrCreate_NewName_CreatesRow()
     {
-        var uuid = await repository.GetOrCreate("Stephen King");
+        var uuid = await repository.GetOrCreate("Sample Author");
 
         var fetched = await repository.FindByUuid(uuid);
         Assert.IsNotNull(fetched);
-        Assert.AreEqual("Stephen King", fetched.Name);
+        Assert.AreEqual("Sample Author", fetched.Name);
     }
 
     [TestMethod]
     public async Task AuthorRepository_GetOrCreate_ExistingName_ReturnsSameUuid()
     {
-        var first = await repository.GetOrCreate("George R. R. Martin");
-        var second = await repository.GetOrCreate("George R. R. Martin");
+        var first = await repository.GetOrCreate("Repeat Author");
+        var second = await repository.GetOrCreate("Repeat Author");
 
         Assert.AreEqual(first, second);
     }
@@ -36,8 +36,8 @@ public sealed class AuthorRepositoryTests : DatabaseTestBase
     [TestMethod]
     public async Task AuthorRepository_GetOrCreate_CaseInsensitiveNameMatch()
     {
-        var lower = await repository.GetOrCreate("terry pratchett");
-        var upper = await repository.GetOrCreate("Terry Pratchett");
+        var lower = await repository.GetOrCreate("mixed case author");
+        var upper = await repository.GetOrCreate("Mixed Case Author");
 
         Assert.AreEqual(lower, upper);
         Assert.HasCount(1, await repository.GetAll());
@@ -46,12 +46,12 @@ public sealed class AuthorRepositoryTests : DatabaseTestBase
     [TestMethod]
     public async Task AuthorRepository_FindByName_CaseInsensitiveMatch()
     {
-        await repository.GetOrCreate("Neil Gaiman");
+        await repository.GetOrCreate("Case Insensitive");
 
-        var fetched = await repository.FindByName("NEIL GAIMAN");
+        var fetched = await repository.FindByName("CASE INSENSITIVE");
 
         Assert.IsNotNull(fetched);
-        Assert.AreEqual("Neil Gaiman", fetched.Name);
+        Assert.AreEqual("Case Insensitive", fetched.Name);
     }
 
     [TestMethod]
@@ -63,15 +63,15 @@ public sealed class AuthorRepositoryTests : DatabaseTestBase
     [TestMethod]
     public async Task AuthorRepository_GetAll_ReturnsRowsSortedByName()
     {
-        await repository.GetOrCreate("Cormac McCarthy");
-        await repository.GetOrCreate("Alice Munro");
-        await repository.GetOrCreate("Brandon Sanderson");
+        await repository.GetOrCreate("Charlie Author");
+        await repository.GetOrCreate("Alpha Author");
+        await repository.GetOrCreate("Bravo Author");
 
         var names = (await repository.GetAll()).Select(a => a.Name).ToList();
 
-        Assert.AreEqual("Alice Munro", names[0]);
-        Assert.AreEqual("Brandon Sanderson", names[1]);
-        Assert.AreEqual("Cormac McCarthy", names[2]);
+        Assert.AreEqual("Alpha Author", names[0]);
+        Assert.AreEqual("Bravo Author", names[1]);
+        Assert.AreEqual("Charlie Author", names[2]);
     }
 
     [TestMethod]
