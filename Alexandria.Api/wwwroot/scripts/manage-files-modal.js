@@ -162,16 +162,17 @@ $(function () {
                     lines.forEach(function (line) {
                         if (!line.startsWith("data: ")) { return; }
                         var json = JSON.parse(line.substring(6));
-                        if (json.failed) {
-                            $("#mf-run-status").text(json.error || "Failed.");
-                            $("#mf-subtask-row").hide();
-                            $("#mf-dry-run").prop("disabled", false);
-                        } else if (json.done) {
-                            $("#mf-progress-bar").css("width", "100%");
-                            $("#mf-run-status").text("Done. " + json.renamed + " renamed, " + json.skipped + " skipped, " + json.failed.length + " failed.");
-                            $("#mf-subtask-row").hide();
-                            $("#mf-dry-run").prop("disabled", false);
-                            dryRun();
+                        if (json.done) {
+                            if (typeof json.failed === 'boolean') {
+                                $("#mf-run-status").text(json.error || "Failed.");
+                                $("#mf-subtask-row").hide();
+                                $("#mf-dry-run").prop("disabled", false);
+                            } else {
+                                $("#mf-progress-bar").css("width", "100%");
+                                $("#mf-run-status").text("Done. " + json.renamed + " renamed, " + json.skipped + " skipped, " + json.failed.length + " failed.");
+                                $("#mf-subtask-row").hide();
+                                $("#mf-dry-run").prop("disabled", false);
+                            }
                         } else {
                             renderProgress(json);
                         }
