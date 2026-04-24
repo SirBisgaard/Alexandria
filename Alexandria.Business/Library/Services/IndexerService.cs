@@ -16,7 +16,8 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
     /// derivatives (kepub, thumbnails), and cleans up stale entries. UUID resolution priority:
     /// path match (same location) → metadata match at different path (moved file) → new UUID.
     /// This preserves BookUuid across file moves, keeping reading state and device sync intact.
-    /// Unchanged books (metadata + cover identical) take a fast path that skips reprocessing.
+    /// Unchanged books (metadata + cover identical and file mtime not newer than the stored
+    /// ModifiedAt) take a fast path that skips reprocessing.
     /// Progress is published through <see cref="IProgressService"/> — the scoped
     /// consumer must call <c>Subscribe</c> before invoking this method to receive events.
     /// </summary>
@@ -54,8 +55,8 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
 
                 var existingAtPath = existingByPath.GetValueOrDefault(metadata.File.SourcePath);
 
-                // Unchanged — metadata + cover both match existing.
-                if (existingAtPath is not null && existingAtPath.MetadataEquals(metadata) && CoverUnchanged(existingAtPath, coverBytes))
+                // Unchanged — metadata + cover both match existing and file mtime hasn't advanced past ModifiedAt.
+                if (existingAtPath is not null && !FileChangedSince(metadata.File.SourcePath, existingAtPath.ModifiedAt) && existingAtPath.MetadataEquals(metadata) && CoverUnchanged(existingAtPath, coverBytes))
                 {
                     discoveredBooks.Add(existingAtPath);
                     await contentManager.CreateDerivativeFiles(existingAtPath);
@@ -213,6 +214,11 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             await seriesRepository.RemoveBookSeries(book.BookUuid);
             book.Series = null;
         }
+    }
+
+    private static bool FileChangedSince(string path, DateTimeOffset since)
+    {
+        return File.GetLastWriteTimeUtc(path) > since.UtcDateTime;
     }
 
     private static bool CoverUnchanged(Book existing, byte[]? freshCoverBytes)
