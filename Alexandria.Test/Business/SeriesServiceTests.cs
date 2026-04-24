@@ -324,6 +324,7 @@ public sealed class SeriesServiceTests
         public void Seed(params Book[] seed) => books.AddRange(seed);
 
         public Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null) => Task.FromResult(books.ToList());
+        public Task<List<BookCoverKey>> GetCoverLookupKeys() => Task.FromResult(books.Select(b => new BookCoverKey { BookUuid = b.BookUuid, EntitlementUuid = b.EntitlementUuid, ModifiedAt = b.ModifiedAt }).ToList());
 
         public Task<Book?> GetBookByUuid(Guid uuid) => throw new NotImplementedException();
         public Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid) => throw new NotImplementedException();

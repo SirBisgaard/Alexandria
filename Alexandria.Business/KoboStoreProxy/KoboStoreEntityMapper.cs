@@ -1,4 +1,5 @@
 using Alexandria.Business.KoboStoreProxy.Models.Store;
+using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Models;
 
 namespace Alexandria.Business.KoboStoreProxy;
@@ -10,6 +11,14 @@ namespace Alexandria.Business.KoboStoreProxy;
 public static class KoboStoreEntityMapper
 {
     private static string ToKoboTimestamp(DateTimeOffset dateTime) => dateTime.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+    /// <summary>
+    /// Builds the cover image identifier as a deterministic UUID v5 derived from BookUuid and
+    /// ModifiedAt — see <see cref="BookExtensions.GenerateCoverImageUuid"/>. The Kobo device
+    /// caches cover images by URL; recomputing this UUID on every reindex ensures the URL
+    /// changes whenever the book or cover is edited, forcing a refetch.
+    /// </summary>
+    private static string BuildCoverImageId(Book book) => book.GenerateCoverImageUuid().ToString();
 
     /// <summary>
     /// Creates a Kobo entitlement record. CrossRevisionId, Id, and RevisionId are all set to
@@ -32,8 +41,8 @@ public static class KoboStoreEntityMapper
     /// <summary>
     /// Creates Kobo metadata for a book. Download format is "MANIFEST" for audiobooks (two-step:
     /// manifest then chapters on demand) or "KEPUB" for ebooks (single-file download).
-    /// CoverImageId is the bare entitlement UUID — cache-busting for cover edits is deliberately
-    /// deferred to the next device re-init (when <c>image_url_template</c> rotates its token).
+    /// CoverImageId is a deterministic UUID v5 of BookUuid + ModifiedAt, so the cover URL changes
+    /// on every metadata/cover edit and the device refetches instead of serving a stale cached image.
     /// Series index uses "G29" format (no trailing zeros: 1.0→"1", 2.5→"2.5") to match Kobo's display.
     /// Timestamps must be ISO 8601 with "Z" suffix — Kobo rejects "+00:00" format.
     /// Download URLs use the device-scoped base URL (<c>/api/kobo/{devicekey}/…</c>) so the
@@ -51,7 +60,7 @@ public static class KoboStoreEntityMapper
 
         var metadata = new KoboStoreBookMetadata
         {
-            CoverImageId = entitlementUuid,
+            CoverImageId = BuildCoverImageId(book),
             CrossRevisionId = entitlementUuid,
             Description = book.Description,
             DownloadUrls =
@@ -176,7 +185,7 @@ public static class KoboStoreEntityMapper
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
         PublisherName = book.Publisher,
-        ImageId = book.EntitlementUuid.ToString(),
+        ImageId = BuildCoverImageId(book),
         SeriesName = book.Series?.Name,
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),
@@ -196,7 +205,7 @@ public static class KoboStoreEntityMapper
         PublicationDate = DateTimeOffset.TryParse(book.PublicationDate, out var pubDate) ? pubDate.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") : book.PublicationDate,
         Subtitle = book.Subtitle,
         PublisherName = book.Publisher,
-        ImageId = book.EntitlementUuid.ToString(),
+        ImageId = BuildCoverImageId(book),
         SeriesName = book.Series?.Name,
         SeriesNumber = book.Series?.Index is not null ? ((int)book.Series.Index.Value).ToString() : null,
         SeriesId = book.Series?.SeriesUuid.ToString(),

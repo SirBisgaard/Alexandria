@@ -5,6 +5,7 @@ namespace Alexandria.Business.Interfaces;
 public interface IBookRepository
 {
     Task<List<Book>> GetAll();
+    Task<List<BookCoverKey>> GetCoverLookupKeys();
     Task<Book?> FindByUuid(Guid uuid);
     Task<Book?> FindByEntitlementUuid(Guid entitlementUuid);
     Task<Book?> FindByPath(string sourcePath);

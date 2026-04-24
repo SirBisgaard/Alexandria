@@ -1,4 +1,5 @@
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Library.Extensions;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
@@ -45,11 +46,13 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
     /// <summary>
     /// Serves cover images for local books. Unknown books get a 307 redirect to Kobo's CDN.
     /// 307 (not 302) preserves the HTTP method — Kobo devices make HEAD requests for cover
-    /// probing and 302 would downgrade them to GET.
+    /// probing and 302 would downgrade them to GET. The incoming UUID is the cache-busting
+    /// cover UUID v5 (BookUuid + ModifiedAt); BookUuid / EntitlementUuid are tried as fallbacks
+    /// so legacy URLs cached on the device keep resolving.
     /// </summary>
     public async Task<KoboProxyResponse> CoverImage(KoboProxyRequest request, Guid uuid, int width, int height, string? quality = null, string? greyscale = null)
     {
-        var book = await bookService.GetBookByEntitlementUuid(uuid);
+        var book = await ResolveBookForCover(uuid);
         if (book is null)
         {
             logger.LogInformation("CoverImage: book {Uuid} not local, redirecting to Kobo CDN", uuid);
@@ -101,6 +104,22 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
     public async Task<Book?> ResolveLocalAudiobook(Guid uuid)
     {
         return await bookService.GetBookByEntitlementUuid(uuid);
+    }
+
+    /// <summary>
+    /// Maps an incoming cover image UUID back to a book. The primary path scans a narrow
+    /// (BookUuid, ModifiedAt) projection and recomputes the deterministic cover UUID
+    /// (<see cref="BookExtensions.CoverImageUuid"/>) for each row — cheap enough to run per request.
+    /// BookUuid and EntitlementUuid are tried as fallbacks so legacy URLs still resolve.
+    /// </summary>
+    private async Task<Book?> ResolveBookForCover(Guid uuid)
+    {
+        var keys = await bookService.GetCoverLookupKeys();
+        var match = keys.FirstOrDefault(k => BookExtensions.CoverImageUuid(k.BookUuid, k.ModifiedAt) == uuid);
+        if (match is not null)
+            return await bookService.GetBookByUuid(match.BookUuid);
+
+        return await bookService.GetBookByUuid(uuid) ?? await bookService.GetBookByEntitlementUuid(uuid);
     }
 
     public async Task StreamAudiobookChapter(Book book, int partId, Stream outputStream, CancellationToken cancellationToken)

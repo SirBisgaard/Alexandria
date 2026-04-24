@@ -106,6 +106,8 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
 
     /// <summary>
     /// Serves cover images for local books. Unknown books are redirected (307) to Kobo's CDN.
+    /// The incoming UUID is the cache-busting cover UUID v5 derived from BookUuid + ModifiedAt;
+    /// legacy URLs still work because the service also falls back to BookUuid / EntitlementUuid.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("{uuid:guid}/{width:int}/{height:int}/{greyscale}/image.jpg")]

@@ -543,6 +543,7 @@ public sealed class BookServiceTests
         public Book? Find(Guid uuid) => byUuid.GetValueOrDefault(uuid);
 
         public Task<List<Book>> GetAll() => Task.FromResult(byUuid.Values.ToList());
+        public Task<List<BookCoverKey>> GetCoverLookupKeys() => Task.FromResult(byUuid.Values.Select(b => new BookCoverKey { BookUuid = b.BookUuid, EntitlementUuid = b.EntitlementUuid, ModifiedAt = b.ModifiedAt }).ToList());
         public Task<Book?> FindByUuid(Guid uuid) => Task.FromResult(byUuid.GetValueOrDefault(uuid));
         public Task<Book?> FindByEntitlementUuid(Guid entitlementUuid) => Task.FromResult(byUuid.Values.FirstOrDefault(b => b.EntitlementUuid == entitlementUuid));
         public Task<Book?> FindByPath(string sourcePath) => Task.FromResult(byUuid.Values.FirstOrDefault(b => string.Equals(b.File.SourcePath, sourcePath, StringComparison.OrdinalIgnoreCase)));

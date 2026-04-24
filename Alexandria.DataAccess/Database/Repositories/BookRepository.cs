@@ -43,6 +43,27 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         return books;
     }
 
+    public async Task<List<BookCoverKey>> GetCoverLookupKeys()
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT BookUuid, EntitlementUuid, ModifiedAt FROM Books";
+            using var reader = cmd.ExecuteReader();
+            var result = new List<BookCoverKey>();
+            while (reader.Read())
+            {
+                result.Add(new BookCoverKey
+                {
+                    BookUuid = Guid.Parse(reader.GetString(0)),
+                    EntitlementUuid = Guid.Parse(reader.GetString(1)),
+                    ModifiedAt = DateTimeOffset.Parse(reader.GetString(2))
+                });
+            }
+            return result;
+        });
+    }
+
     public async Task<Book?> FindByUuid(Guid uuid)
     {
         var book = await connectionProvider.Read(connection =>

@@ -30,7 +30,9 @@ public sealed class ProductTests : KoboProtocolTestBase
         var body = await ReadJsonAsync(response);
         Assert.AreEqual(entitlementUuid.ToString(), body.GetProperty("Id").GetString());
         Assert.AreEqual("Test Ebook", body.GetProperty("Title").GetString());
-        Assert.AreEqual(entitlementUuid.ToString(), body.GetProperty("ImageId").GetString());
+        var imageId = body.GetProperty("ImageId").GetString()!;
+        Assert.IsTrue(Guid.TryParse(imageId, out var coverUuid));
+        Assert.AreNotEqual(entitlementUuid, coverUuid);
     }
 
     [TestMethod]

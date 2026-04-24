@@ -185,6 +185,7 @@ public sealed class FileManagementServiceTests
         public void Seed(Book book) => books.Add(book);
 
         public Task<List<Book>> GetAll() => Task.FromResult(books.ToList());
+        public Task<List<BookCoverKey>> GetCoverLookupKeys() => Task.FromResult(books.Select(b => new BookCoverKey { BookUuid = b.BookUuid, EntitlementUuid = b.EntitlementUuid, ModifiedAt = b.ModifiedAt }).ToList());
         public Task<Book?> FindByUuid(Guid uuid) => Task.FromResult(books.FirstOrDefault(b => b.BookUuid == uuid));
         public Task<Book?> FindByEntitlementUuid(Guid uuid) => throw new NotSupportedException();
         public Task<Book?> FindByPath(string sourcePath) => throw new NotSupportedException();

@@ -19,6 +19,8 @@ public class BookService(IBookRepository bookRepository, IReadingStateRepository
         return AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions());
     }
 
+    public Task<List<BookCoverKey>> GetCoverLookupKeys() => bookRepository.GetCoverLookupKeys();
+
     public async Task<Book?> GetBookByUuid(Guid uuid)
     {
         var book = await bookRepository.FindByUuid(uuid);

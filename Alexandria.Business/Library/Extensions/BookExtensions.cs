@@ -27,6 +27,13 @@ public static class BookExtensions
             return Guid.GenerateUuidV5($"book:{title}:{authors}:{mediaType}");
         }
 
+        /// <summary>
+        /// Deterministic UUID v5 for the current cover image, derived from BookUuid plus
+        /// ModifiedAt unix seconds. Rotates on every reindex so the Kobo device can't serve
+        /// a stale URL-cached cover after the user edits the book or cover.
+        /// </summary>
+        public Guid GenerateCoverImageUuid() => BookExtensions.CoverImageUuid(book.BookUuid, book.ModifiedAt);
+
         /// <summary>Compares managed (editable) metadata fields. Pass-through DC elements are excluded.</summary>
         public bool MetadataEquals(Book other)
         {
@@ -48,4 +55,7 @@ public static class BookExtensions
     }
 
     private static string? Normalize(string? value) => string.IsNullOrEmpty(value) ? null : value;
+
+    /// <summary>Shared formula for the deterministic cover image UUID — keeps the Book-based and key-based paths in lockstep.</summary>
+    public static Guid CoverImageUuid(Guid bookUuid, DateTimeOffset modifiedAt) => Guid.GenerateUuidV5($"cover:{bookUuid}:{modifiedAt.ToUnixTimeSeconds()}");
 }

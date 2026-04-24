@@ -6,6 +6,7 @@ namespace Alexandria.Business.Library.Interfaces;
 public interface IBookService
 {
     Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null);
+    Task<List<BookCoverKey>> GetCoverLookupKeys();
     Task<Book?> GetBookByUuid(Guid uuid);
     Task<Book?> GetBookByEntitlementUuid(Guid entitlementUuid);
     Task<byte[]?> GetBookCover(Guid uuid, int? width = null, int? height = null);
