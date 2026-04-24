@@ -12,7 +12,7 @@ $(function () {
                         '</div>' +
                         '<div class="manage-files-table-wrap">' +
                             '<table class="manage-files-table" id="mf-table-preview">' +
-                                '<thead><tr><th>Current</th><th>New</th></tr></thead>' +
+                                '<thead><tr><th>Current</th><th>New</th><th>Type</th></tr></thead>' +
                                 '<tbody></tbody>' +
                             '</table>' +
                         '</div>' +
@@ -57,31 +57,43 @@ $(function () {
 
         var $body = $("#mf-table-preview tbody").empty();
 
-        plan.operations.forEach(function (op) {
+        var operations = plan.operations.slice().sort(function (a, b) {
+            return sortKey(a.newPath).localeCompare(sortKey(b.newPath));
+        });
+        operations.forEach(function (op) {
             $body.append(
                 '<tr class="mf-row-rename">' +
                     '<td>' + escapeHtml(basename(op.currentPath)) + '</td>' +
                     '<td>' + escapeHtml(basename(op.newPath)) + '</td>' +
+                    '<td>' + escapeHtml(fileType(op.newPath)) + '</td>' +
                 '</tr>'
             );
         });
 
-        plan.conflicts.forEach(function (c) {
+        var conflicts = plan.conflicts.slice().sort(function (a, b) {
+            return sortKey(a.path).localeCompare(sortKey(b.path));
+        });
+        conflicts.forEach(function (c) {
             var label = c.kind === "Duplicate" ? "Duplicate target" : "Target exists";
             $body.append(
                 '<tr class="mf-row-conflict">' +
                     '<td><em>' + escapeHtml(label) + '</em></td>' +
                     '<td>' + escapeHtml(basename(c.path)) + '</td>' +
+                    '<td>' + escapeHtml(fileType(c.path)) + '</td>' +
                 '</tr>'
             );
         });
 
-        plan.skipped.forEach(function (s) {
+        var skipped = plan.skipped.slice().sort(function (a, b) {
+            return sortKey(a.currentPath).localeCompare(sortKey(b.currentPath));
+        });
+        skipped.forEach(function (s) {
             var name = escapeHtml(basename(s.currentPath));
             $body.append(
                 '<tr class="mf-row-skip">' +
                     '<td>' + name + '</td>' +
                     '<td>' + name + '</td>' +
+                    '<td>' + escapeHtml(fileType(s.currentPath)) + '</td>' +
                 '</tr>'
             );
         });
@@ -97,6 +109,18 @@ $(function () {
         var name = idx >= 0 ? path.substring(idx + 1) : path;
         var isFolder = !/\.(epub|m4b)$/i.test(name);
         return isFolder ? "/" + name + "/" : "/" + name;
+    }
+
+    function fileType(path) {
+        if (!path) return "";
+        var lower = path.toLowerCase();
+        if (lower.endsWith(".epub")) return "EPUB";
+        if (lower.endsWith(".m4b")) return "M4B";
+        return "MP3";
+    }
+
+    function sortKey(path) {
+        return basename(path).toLowerCase();
     }
 
     function escapeHtml(s) {
