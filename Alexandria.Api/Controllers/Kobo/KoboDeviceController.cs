@@ -236,7 +236,7 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     /// Returns ebook product details. Local ebooks return metadata from Alexandria.
     /// Store-purchased ebooks are proxied to Kobo.
     /// </summary>
-    [HttpGet("v1/products/books/{uuid}")]
+    [HttpGet("v1/products/books/{uuid:guid}")]
     public async Task EbookProduct(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: requesting ebook product {Uuid}", uuid);
