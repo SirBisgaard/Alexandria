@@ -153,8 +153,9 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
             logger.LogInformation("AnalyticsEvent: BookProgress for '{Title}' missing or unparseable 'progress' attribute, skipping", book.Title);
             return;
         }
-        logger.LogInformation("AnalyticsEvent: handling BookProgress for '{Title}' ({Uuid}) at {Progress}%", book.Title, book.EntitlementUuid, progress);
-        await UpsertProgress(book, progress.Value, analyticsEvent.Timestamp);
+        var progressPercent = progress.Value * 100m;
+        logger.LogInformation("AnalyticsEvent: handling BookProgress for '{Title}' ({Uuid}) at {Progress}%", book.Title, book.EntitlementUuid, progressPercent);
+        await UpsertProgress(book, progressPercent, analyticsEvent.Timestamp);
     }
 
     private async Task HandlePlayback(Book book, KoboStoreAnalyticsEvent analyticsEvent)
@@ -170,8 +171,9 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
             logger.LogInformation("AnalyticsEvent: Playback for '{Title}' missing or unparseable 'ProgressPercent' attribute, skipping", book.Title);
             return;
         }
-        logger.LogInformation("AnalyticsEvent: handling Playback for '{Title}' ({Uuid}) at {Progress}%", book.Title, book.EntitlementUuid, progress);
-        await UpsertProgress(book, progress.Value, analyticsEvent.Timestamp);
+        var progressPercent = progress.Value * 100m;
+        logger.LogInformation("AnalyticsEvent: handling Playback for '{Title}' ({Uuid}) at {Progress}%", book.Title, book.EntitlementUuid, progressPercent);
+        await UpsertProgress(book, progressPercent, analyticsEvent.Timestamp);
     }
 
     /// <summary>
