@@ -224,7 +224,7 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
 
         using var response = await SendSyntheticEvent("BookProgress", entitlementUuid, new Dictionary<string, string>
         {
-            ["progress"] = "50"
+            ["progress"] = "0.5"
         });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -259,7 +259,7 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
 
         using var response = await SendSyntheticEvent("BookProgress", entitlementUuid, new Dictionary<string, string>
         {
-            ["progress"] = "75"
+            ["progress"] = "0.75"
         });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -279,7 +279,7 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
 
         using var response = await SendSyntheticEvent("Playback", entitlementUuid, new Dictionary<string, string>
         {
-            ["ProgressPercent"] = "25",
+            ["ProgressPercent"] = "0.25",
             ["SecondsListened"] = "120",
             ["PlaybackSpeed"] = "1",
             ["Description"] = "Start",
@@ -303,7 +303,7 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
 
         using var response = await SendSyntheticEvent("Playback", entitlementUuid, new Dictionary<string, string>
         {
-            ["ProgressPercent"] = "25",
+            ["ProgressPercent"] = "0.25",
             ["Description"] = "Start"
         });
 
