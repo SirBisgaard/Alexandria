@@ -15,16 +15,20 @@ public static class BookExtensions
         }
 
         /// <summary>
-        /// Generates a deterministic UUID v5 from all stable metadata fields: title, subtitle, authors,
-        /// language, ISBN, identifiers, publisher, publication date, contributors, and media type.
-        /// Two books only collide if every field matches exactly.
+        /// Generates a deterministic UUID v5 from title, authors, media type, and narrators.
+        /// Narrators are included so two audiobook editions of the same work (e.g. Andy Serkis vs
+        /// Rob Inglis reading LOTR) get distinct UUIDs instead of collapsing onto a single row.
+        /// Books without narrators keep the historical <c>book:title:authors:mediaType</c> seed,
+        /// so their UUIDs are unchanged.
         /// </summary>
         public Guid GenerateBookUuid()
         {
             var title = book.Title.ToLowerInvariant().Trim();
             var authors = string.Join(',', book.Authors.Select(a => a.Name.ToLowerInvariant().Trim()).Order());
             var mediaType = book.File.MediaType.ToString().ToLowerInvariant();
-            return Guid.GenerateUuidV5($"book:{title}:{authors}:{mediaType}");
+            var narrators = string.Join(',', book.Contributors.Where(c => c.Role == "Narrator").Select(c => c.Name.ToLowerInvariant().Trim()).Where(n => n.Length > 0).Order());
+            var seed = narrators.Length == 0 ? $"book:{title}:{authors}:{mediaType}" : $"book:{title}:{authors}:{mediaType}:{narrators}";
+            return Guid.GenerateUuidV5(seed);
         }
 
         /// <summary>

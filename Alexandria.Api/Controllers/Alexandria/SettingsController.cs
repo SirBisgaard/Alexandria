@@ -32,7 +32,12 @@ public class SettingsController(ISettingsService settingsService, ILogger<Settin
         {
             Title = "The Great Gatsby",
             Authors = [new Author { Name = "F. Scott Fitzgerald" }],
-            Series = new Series { Name = "Modern Classics", Index = 1 }
+            Series = new Series { Name = "Modern Classics", Index = 1 },
+            Contributors =
+            [
+                new Contributor { Name = "Jake Gyllenhaal", Role = "Narrator" },
+                new Contributor { Name = "Tobey Maguire", Role = "Narrator" }
+            ]
         };
 
         try

@@ -182,6 +182,56 @@ public sealed class FileNameTemplateTests
     }
 
     [TestMethod]
+    public void Render_OptionalNarratorAtEnd_WithNarrator_EmitsGroup()
+    {
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"], narrators: ["Sample Narrator"]);
+
+        var result = FileNameTemplate.Render(book, "<Authors> - <Title>( - read by <Narrator>)");
+
+        Assert.AreEqual("Sample Author - Sample Title - read by Sample Narrator", result);
+    }
+
+    [TestMethod]
+    public void Render_OptionalNarratorAtEnd_WithoutNarrator_GroupIsDropped()
+    {
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"]);
+
+        var result = FileNameTemplate.Render(book, "<Authors> - <Title>( - read by <Narrator>)");
+
+        Assert.AreEqual("Sample Author - Sample Title", result);
+    }
+
+    [TestMethod]
+    public void Render_NarratorToken_WithMultiple_TakesFirstOnly()
+    {
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"], narrators: ["First Narrator", "Second Narrator"]);
+
+        var result = FileNameTemplate.Render(book, "<Title> - read by <Narrator>");
+
+        Assert.AreEqual("Sample Title - read by First Narrator", result);
+    }
+
+    [TestMethod]
+    public void Render_NarratorsToken_WithMultiple_CommaJoined()
+    {
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"], narrators: ["First Narrator", "Second Narrator"]);
+
+        var result = FileNameTemplate.Render(book, "<Title> - read by <Narrators>");
+
+        Assert.AreEqual("Sample Title - read by First Narrator, Second Narrator", result);
+    }
+
+    [TestMethod]
+    public void Render_OptionalNarratorsAtEnd_WithoutNarrators_GroupIsDropped()
+    {
+        var book = BuildBook(title: "Sample Title", authors: ["Sample Author"]);
+
+        var result = FileNameTemplate.Render(book, "<Authors> - <Title>( - read by <Narrators>)");
+
+        Assert.AreEqual("Sample Author - Sample Title", result);
+    }
+
+    [TestMethod]
     public void Render_LongTitleWithoutFixedContext_TruncatesToBudget()
     {
         var longTitle = new string('a', 500);
@@ -239,13 +289,14 @@ public sealed class FileNameTemplateTests
         Assert.IsFalse(result.IsValid);
     }
 
-    private static Book BuildBook(string title = "Title", List<string>? authors = null, string? seriesName = null, decimal? seriesIndex = null)
+    private static Book BuildBook(string title = "Title", List<string>? authors = null, string? seriesName = null, decimal? seriesIndex = null, List<string>? narrators = null)
     {
         return new Book
         {
             Title = title,
             Authors = (authors ?? ["Author"]).Select(n => new Author { Name = n }).ToList(),
-            Series = seriesName is null ? null : new Series { Name = seriesName, Index = seriesIndex }
+            Series = seriesName is null ? null : new Series { Name = seriesName, Index = seriesIndex },
+            Contributors = (narrators ?? []).Select(n => new Contributor { Name = n, Role = "Narrator" }).ToList()
         };
     }
 }

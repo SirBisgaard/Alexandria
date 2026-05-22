@@ -5,9 +5,11 @@ using Alexandria.Business.Library.Models;
 namespace Alexandria.Business.Library.Services;
 
 /// <summary>
-/// Pure template renderer for book filenames. Supports tokens <c>&lt;Author&gt;</c>,
-/// <c>&lt;Title&gt;</c>, <c>&lt;Series&gt;</c>, <c>&lt;SeriesIndex&gt;</c> and optional groups
-/// in parentheses that drop out when any inner token resolves empty.
+/// Pure template renderer for book filenames. Supports tokens <c>&lt;Authors&gt;</c>,
+/// <c>&lt;Title&gt;</c>, <c>&lt;Serie&gt;</c>, <c>&lt;SerieIndex&gt;</c>, <c>&lt;Narrator&gt;</c>,
+/// <c>&lt;Narrators&gt;</c> and optional groups in parentheses that drop out when any inner
+/// token resolves empty. <c>&lt;Narrator&gt;</c> resolves to the first narrator only;
+/// <c>&lt;Narrators&gt;</c> comma-joins all narrators.
 /// </summary>
 public static class FileNameTemplate
 {
@@ -25,7 +27,9 @@ public static class FileNameTemplate
         "Authors",
         "Title",
         "Serie",
-        "SerieIndex"
+        "SerieIndex",
+        "Narrator",
+        "Narrators"
     };
 
     /// <summary>
@@ -207,6 +211,8 @@ public static class FileNameTemplate
             "Title" => book.Title ?? string.Empty,
             "Serie" => book.Series?.Name ?? string.Empty,
             "SerieIndex" => FormatSerieIndex(book.Series?.Index),
+            "Narrator" => book.Contributors.Where(c => c.Role == "Narrator").Select(c => c.Name).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? string.Empty,
+            "Narrators" => string.Join(", ", book.Contributors.Where(c => c.Role == "Narrator").Select(c => c.Name).Where(n => !string.IsNullOrWhiteSpace(n))),
             _ => throw new TemplateException($"Unknown token <{name}>.")
         };
     }
