@@ -9,13 +9,14 @@ using Alexandria.Tests.KoboProtocol.Fixtures;
 namespace Alexandria.Tests.KoboProtocol;
 
 /// <summary>
-/// /v1/analytics/event receives a bag of device telemetry events. Alexandria only actually cares
-/// about <c>MarkAsFinished</c> for local books — it updates reading state to Finished. All other
-/// local event types (BookOpened, Playback, StartReadingBook, etc.) are dropped as cosmetic.
-/// Events for books Alexandria doesn't own, and events with no volume id at all, are forwarded
-/// to Kobo so the store can keep its own analytics. A mixed batch triggers a filtered-forward:
-/// the proxied request body contains only the non-local events, with <c>Content-Length</c>
-/// stripped so the HttpClient recomputes it.
+/// /v1/analytics/event receives a bag of device telemetry events. Alexandria handles the
+/// user-driven state transitions — <c>MarkAsFinished</c> and <c>MarkAsUnread</c> — for local books.
+/// All other local event types (BookOpened, BookProgress, Playback, StartReadingBook, etc.) are
+/// observational telemetry and are dropped; progress is authoritatively carried by
+/// <c>PUT /v1/library/{uuid}/state</c> instead. Events for books Alexandria doesn't own, and events
+/// with no volume id at all, are forwarded to Kobo so the store can keep its own analytics. A
+/// mixed batch triggers a filtered-forward: the proxied request body contains only the non-local
+/// events, with <c>Content-Length</c> stripped so the HttpClient recomputes it.
 /// </summary>
 [TestClass]
 public sealed class AnalyticsEventTests : KoboProtocolTestBase
@@ -216,11 +217,11 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
     }
 
     [TestMethod]
-    public async Task AnalyticsEvent_BookProgressForLocalEbook_UpdatesProgressAndTransitionsToReading()
+    public async Task AnalyticsEvent_BookProgressForLocalBook_DropsEventWithoutChangingState()
     {
         var entitlementUuid = Guid.NewGuid();
         await SeedRecordedDevice();
-        var book = await SeedLocalBook(entitlementUuid);
+        var book = await SeedLocalBook(entitlementUuid, MediaType.Ebook);
 
         using var response = await SendSyntheticEvent("BookProgress", entitlementUuid, new Dictionary<string, string>
         {
@@ -229,49 +230,11 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var stored = await GetService<IReadingStateRepository>().GetByBookUuid(book.BookUuid);
-        Assert.IsNotNull(stored);
-        Assert.AreEqual("Reading", stored.StatusInfo.Status);
-        Assert.AreEqual(50m, AsDecimal(stored.CurrentBookmark.ProgressPercent));
-        Assert.AreEqual(50m, AsDecimal(stored.CurrentBookmark.ContentSourceProgressPercent));
-        Assert.AreEqual(1, stored.StatusInfo.TimesStartedReading);
-        Assert.IsNotNull(stored.StatusInfo.LastTimeStartedReading);
+        Assert.IsNull(stored, "BookProgress is observational telemetry — PUT /state owns reading state, not analytics");
     }
 
     [TestMethod]
-    public async Task AnalyticsEvent_BookProgressWhileAlreadyReading_DoesNotIncrementTimesStartedReading()
-    {
-        var entitlementUuid = Guid.NewGuid();
-        await SeedRecordedDevice();
-        var book = await SeedLocalBook(entitlementUuid);
-        var readingStateRepo = GetService<IReadingStateRepository>();
-
-        var seedTime = DateTimeOffset.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ssZ");
-        await readingStateRepo.Upsert(book.BookUuid, new KoboStoreReadingState
-        {
-            EntitlementId = entitlementUuid.ToString(),
-            Created = seedTime,
-            LastModified = seedTime,
-            PriorityTimestamp = seedTime,
-            StatusInfo = new KoboStoreStatusInfo { LastModified = seedTime, Status = "Reading", TimesStartedReading = 1, LastTimeStartedReading = seedTime },
-            Statistics = new KoboStoreStatistics { LastModified = seedTime },
-            CurrentBookmark = new KoboStoreBookmark { LastModified = seedTime, ProgressPercent = 25, ContentSourceProgressPercent = 25 }
-        });
-
-        using var response = await SendSyntheticEvent("BookProgress", entitlementUuid, new Dictionary<string, string>
-        {
-            ["progress"] = "0.75"
-        });
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var stored = await readingStateRepo.GetByBookUuid(book.BookUuid);
-        Assert.IsNotNull(stored);
-        Assert.AreEqual("Reading", stored.StatusInfo.Status);
-        Assert.AreEqual(75m, AsDecimal(stored.CurrentBookmark.ProgressPercent));
-        Assert.AreEqual(1, stored.StatusInfo.TimesStartedReading);
-    }
-
-    [TestMethod]
-    public async Task AnalyticsEvent_PlaybackForLocalAudiobook_UpdatesProgressPercent()
+    public async Task AnalyticsEvent_PlaybackForLocalAudiobook_DropsEventWithoutChangingState()
     {
         var entitlementUuid = Guid.NewGuid();
         await SeedRecordedDevice();
@@ -288,27 +251,6 @@ public sealed class AnalyticsEventTests : KoboProtocolTestBase
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var stored = await GetService<IReadingStateRepository>().GetByBookUuid(book.BookUuid);
-        Assert.IsNotNull(stored);
-        Assert.AreEqual("Reading", stored.StatusInfo.Status);
-        Assert.AreEqual(25m, AsDecimal(stored.CurrentBookmark.ProgressPercent));
-        Assert.AreEqual(1, stored.StatusInfo.TimesStartedReading);
-    }
-
-    [TestMethod]
-    public async Task AnalyticsEvent_PlaybackForLocalEbook_DropsEventWithoutChangingState()
-    {
-        var entitlementUuid = Guid.NewGuid();
-        await SeedRecordedDevice();
-        var book = await SeedLocalBook(entitlementUuid, MediaType.Ebook);
-
-        using var response = await SendSyntheticEvent("Playback", entitlementUuid, new Dictionary<string, string>
-        {
-            ["ProgressPercent"] = "0.25",
-            ["Description"] = "Start"
-        });
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var stored = await GetService<IReadingStateRepository>().GetByBookUuid(book.BookUuid);
-        Assert.IsNull(stored, "Playback for an ebook must not write reading state");
+        Assert.IsNull(stored, "Playback is observational telemetry — PUT /state owns reading state, not analytics");
     }
 }
