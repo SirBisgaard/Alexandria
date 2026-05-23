@@ -4,6 +4,7 @@ using Alexandria.Api.Middleware;
 using Alexandria.Api.Sync;
 using Alexandria.Business.Authentication;
 using Alexandria.Business.Authentication.Interfaces;
+using Alexandria.Business.Integrations;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Services;
@@ -18,6 +19,7 @@ using Alexandria.DataAccess.Database.Repositories;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files;
+using Alexandria.DataAccess.Integrations;
 using Alexandria.DataAccess.Files.Books.Audiobooks;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -39,6 +41,7 @@ builder.Logging.AddProvider(new ExceptionFileLoggerProvider(Path.Combine(alexand
 
 // Http client for KoboStoreApi
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<IAudioBookShelfSyncIntegration, AudioBookShelfSyncIntegration>();
 
 // In-memory SQLite with periodic flush to disk.
 builder.Services.AddSingleton<SqliteConnectionProvider>();
@@ -53,6 +56,7 @@ builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepositor
 builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepository>();
 builder.Services.AddTransient<IKoboDeviceRepository, KoboDeviceRepository>();
 builder.Services.AddTransient<IUserRepository, UserRepository>();
+builder.Services.AddTransient<IAudioBookShelfSyncIntegrationRepository, AudioBookShelfSyncIntegrationRepository>();
 builder.Services.AddTransient<ISettingsRepository, SettingsRepository>();
 builder.Services.AddTransient<IFileRepository, FileRepository>();
 builder.Services.AddSingleton<IBookRepository, BookRepository>();
@@ -103,6 +107,8 @@ builder.Services.AddTransient<ISeriesService, SeriesService>();
 builder.Services.AddTransient<ICollectionService, CollectionService>();
 builder.Services.AddTransient<ISettingsService, SettingsService>();
 builder.Services.AddTransient<IFileManagementService, FileManagementService>();
+builder.Services.AddTransient<IIntegrationService, IntegrationService>();
+builder.Services.AddHostedService<IntegrationRunnerService>();
 
 // Authentication
 var authSecrets = new AuthSecretProvider();

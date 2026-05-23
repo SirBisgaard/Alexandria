@@ -22,7 +22,8 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             var migrations = new (int Version, Action<SqliteConnection> Apply)[]
             {
                 (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher, alexandriaSettings, logger)),
-                (2, conn => MigrateV2_FileRenameTemplate(conn, logger))
+                (2, conn => MigrateV2_FileRenameTemplate(conn, logger)),
+                (3, conn => MigrateV3_AudioBookShelfIntegration(conn, logger))
             };
 
             foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -393,5 +394,24 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         stripSuffixCmd.CommandText = "UPDATE BookFiles SET SourcePath = SUBSTR(SourcePath, 1, LENGTH(SourcePath) - LENGTH('.mp3audiobook')) WHERE SourcePath LIKE '%.mp3audiobook'";
         var rowsUpdated = stripSuffixCmd.ExecuteNonQuery();
         logger.LogInformation("V2: stripped .mp3audiobook suffix from {Rows} BookFiles.SourcePath row(s)", rowsUpdated);
+    }
+
+    private static void MigrateV3_AudioBookShelfIntegration(SqliteConnection connection, ILogger logger)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS UserIntegrations_AudioBookShelf (
+                UserUuid TEXT PRIMARY KEY,
+                Enabled INTEGER NOT NULL DEFAULT 0,
+                ServerUrl TEXT NOT NULL DEFAULT '',
+                ApiToken TEXT NOT NULL DEFAULT '',
+                CreatedAt TEXT NOT NULL,
+                ModifiedAt TEXT NOT NULL,
+                LastSyncedAt TEXT NULL,
+                FOREIGN KEY (UserUuid) REFERENCES Users(UserUuid) ON DELETE CASCADE
+            )
+            """;
+        cmd.ExecuteNonQuery();
+        logger.LogInformation("V3: created UserIntegrations_AudioBookShelf table");
     }
 }

@@ -900,6 +900,7 @@ a.series-list-item {
 }
 
 #settings-modal,
+#integrations-modal,
 #device-modal {
     max-width: 550px;
     min-height: auto;
@@ -1191,6 +1192,39 @@ a.series-list-item {
     display: none;
 }
 
+.integration-tile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.integration-tile-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--bs-body-color);
+}
+
+.integration-tile-enable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.integration-tile-enable-label {
+    font-size: 14px;
+    color: var(--bs-body-color);
+}
+
+.integration-tile-field {
+    margin-top: 10px;
+}
+
+.integration-tile-field .settings-tile-label {
+    margin-bottom: 6px;
+}
+
 .about-modal-content {
     font-size: 15px;
     line-height: 1.6;
@@ -1338,7 +1372,7 @@ a.series-list-item {
     font-weight: bold;
 }
 
-.bm-edit-input-invalid {
+.bm-edit-input.bm-edit-input-invalid {
     border-color: #c0392b;
 }
 
