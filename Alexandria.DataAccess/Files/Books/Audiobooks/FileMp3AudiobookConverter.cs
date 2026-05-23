@@ -2,6 +2,7 @@ using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Settings;
+using Alexandria.Business.Library.Services;
 using Alexandria.DataAccess.Externals;
 using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files.Interfaces;
@@ -12,8 +13,9 @@ namespace Alexandria.DataAccess.Files.Books.Audiobooks;
 /// <summary>
 /// Pre-index converter for <see cref="M4BFileTreatment.ConvertAtIndex"/>. Turns each
 /// <c>.m4b</c> in <see cref="AlexandriaSettings.AudiobookFolder"/> into an MP3 folder
-/// ("{Author} - {Series} #{Index} - {Title}"), then deletes the original M4B. The
-/// resulting folder is indexed by <see cref="FileMp3AudiobookIndexer"/> on the same run.
+/// named via the active <c>FileRenameTemplate</c> (same renderer as Manage Files),
+/// then deletes the original M4B. The resulting folder is indexed by
+/// <see cref="FileMp3AudiobookIndexer"/> on the same run.
 /// </summary>
 public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsService settingsService, IM4BFileHandler m4BFileHandler, IFfmpegWrapper ffmpegWrapper, ICoverThumbnailService coverThumbnailService, IProgressService progressService, ILogger<FileMp3AudiobookConverter> logger) : IFileConverter
 {
@@ -56,7 +58,7 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
                 var canonical = existing ?? extracted;
                 canonical.Chapters = extracted.Chapters;
 
-                var candidateDir = Path.Combine(settings.AudiobookFolder, BuildFolderName(canonical));
+                var candidateDir = Path.Combine(settings.AudiobookFolder, FileNameTemplate.Render(canonical, appSettings.FileRenameTemplate));
 
                 if (!claimedTargets.Add(candidateDir))
                 {
@@ -228,17 +230,6 @@ public class FileMp3AudiobookConverter(AlexandriaSettings settings, ISettingsSer
         if (File.Exists(Path.Combine(dir, SentinelFileName)))
             return true;
         return Directory.GetFileSystemEntries(dir).Length == 0;
-    }
-
-    private static string BuildFolderName(Book book)
-    {
-        var author = book.Authors.Count > 0 ? string.Join(", ", book.Authors.Select(a => a.Name)) : "Unknown Author";
-        string? series = null;
-        if (book.Series is not null)
-            series = book.Series.Index is not null ? $"{book.Series.Name} #{book.Series.Index.Value}" : book.Series.Name;
-
-        var raw = series is not null ? $"{author} - {series} - {book.Title}" : $"{author} - {book.Title}";
-        return SanitizeFsName(raw);
     }
 
     /// <summary>
