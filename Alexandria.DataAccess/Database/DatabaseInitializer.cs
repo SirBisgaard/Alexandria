@@ -413,5 +413,19 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         cmd.ExecuteNonQuery();
         logger.LogInformation("V3: created UserIntegrations_AudioBookShelf table");
+
+        using var bookStateCmd = connection.CreateCommand();
+        bookStateCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS UserIntegrations_AudioBookShelf_BookSyncedState (
+                UserUuid TEXT NOT NULL,
+                BookUuid TEXT NOT NULL,
+                AbsLastUpdate TEXT NOT NULL,
+                PRIMARY KEY (UserUuid, BookUuid),
+                FOREIGN KEY (UserUuid) REFERENCES Users(UserUuid) ON DELETE CASCADE,
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid) ON DELETE CASCADE
+            )
+            """;
+        bookStateCmd.ExecuteNonQuery();
+        logger.LogInformation("V3: created UserIntegrations_AudioBookShelf_BookSyncedState table");
     }
 }

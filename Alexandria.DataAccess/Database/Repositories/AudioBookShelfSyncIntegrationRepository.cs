@@ -93,4 +93,49 @@ public class AudioBookShelfSyncIntegrationRepository(ISqliteConnectionProvider c
             cmd.ExecuteNonQuery();
         });
     }
+
+    public async Task<Dictionary<Guid, DateTimeOffset>> GetBookSyncedStates(Guid userUuid)
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT BookUuid, AbsLastUpdate FROM UserIntegrations_AudioBookShelf_BookSyncedState WHERE UserUuid = @userUuid";
+            cmd.Parameters.AddWithValue("@userUuid", userUuid.ToString());
+
+            using var reader = cmd.ExecuteReader();
+            var result = new Dictionary<Guid, DateTimeOffset>();
+            while (reader.Read())
+                result[Guid.Parse(reader.GetString(0))] = DateTimeOffset.Parse(reader.GetString(1));
+            return result;
+        });
+    }
+
+    public async Task UpsertBookSyncedState(Guid userUuid, Guid bookUuid, DateTimeOffset absLastUpdate)
+    {
+        await connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO UserIntegrations_AudioBookShelf_BookSyncedState (UserUuid, BookUuid, AbsLastUpdate)
+                VALUES (@userUuid, @bookUuid, @absLastUpdate)
+                ON CONFLICT(UserUuid, BookUuid) DO UPDATE SET AbsLastUpdate = excluded.AbsLastUpdate
+                """;
+            cmd.Parameters.AddWithValue("@userUuid", userUuid.ToString());
+            cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+            cmd.Parameters.AddWithValue("@absLastUpdate", absLastUpdate.ToString("O"));
+            cmd.ExecuteNonQuery();
+        });
+    }
+
+    public async Task DeleteBookSyncedState(Guid userUuid, Guid bookUuid)
+    {
+        await connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM UserIntegrations_AudioBookShelf_BookSyncedState WHERE UserUuid = @userUuid AND BookUuid = @bookUuid";
+            cmd.Parameters.AddWithValue("@userUuid", userUuid.ToString());
+            cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+            cmd.ExecuteNonQuery();
+        });
+    }
 }

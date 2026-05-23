@@ -8,4 +8,5 @@ public interface IReadingStateRepository
     Task<KoboStoreReadingState?> GetByBookUuid(Guid bookUuid);
     Task<ReadingProgress?> GetReadingProgress(Guid bookUuid);
     Task Upsert(Guid bookUuid, KoboStoreReadingState state);
+    Task DeleteByBookUuid(Guid bookUuid);
 }

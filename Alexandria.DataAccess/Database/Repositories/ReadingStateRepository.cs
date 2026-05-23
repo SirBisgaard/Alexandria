@@ -88,6 +88,17 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
         });
     }
 
+    public async Task DeleteByBookUuid(Guid bookUuid)
+    {
+        await connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM KoboReadingStates WHERE BookUuid = @bookUuid";
+            cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+            cmd.ExecuteNonQuery();
+        });
+    }
+
     private static KoboStoreReadingState MapReadingState(SqliteDataReader reader)
     {
         KoboStoreBookmarkLocation? location = null;

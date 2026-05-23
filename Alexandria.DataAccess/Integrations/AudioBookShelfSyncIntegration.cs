@@ -91,12 +91,18 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
         {
             var absItems = await FetchAllAbsItems(integration.ServerUrl, integration.ApiToken, cancellationToken);
             var absProgressByItemId = await FetchMediaProgress(integration.ServerUrl, integration.ApiToken, cancellationToken);
+            var bookSyncedStates = await repository.GetBookSyncedStates(integration.UserUuid);
             var matches = MatchByFilename(localAudiobooks, absItems, absProgressByItemId);
 
             var cutoff = ignoreCutoff ? null : integration.LastSyncedAt;
+            // Tombstone-detect: a match with no current ABS progress but a previously-recorded
+            // synced state means ABS lost the entry → deletion event. Include those even when
+            // their LastUpdatedAt sits below the cutoff (otherwise background ticks would never
+            // observe the deletion because absTimestamp is MinValue).
             var changedMatches = cutoff is null
                 ? matches
-                : matches.Where(m => m.LastUpdatedAt > cutoff.Value).ToList();
+                : matches.Where(m => m.LastUpdatedAt > cutoff.Value
+                    || (m.AbsProgress is null && bookSyncedStates.ContainsKey(m.LocalBook.BookUuid))).ToList();
 
             logger.LogInformation("AudioBookShelf: user {UserTag} — {Local} local audiobook(s), {AbsItems} ABS item(s), matched {Matched}, {Changed} to reconcile{Mode}",
                 userTag, localAudiobooks.Count, absItems.Count, matches.Count, changedMatches.Count, ignoreCutoff ? " (manual sync — cutoff ignored)" : "");
@@ -111,10 +117,33 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
 
                 try
                 {
-                    if (absTimestamp > localTimestamp)
-                        await PullFromAbs(match);
-                    else if (localTimestamp > absTimestamp)
-                        await PushToAbs(match, integration, cancellationToken);
+                    if (match.AbsProgress is null)
+                    {
+                        if (bookSyncedStates.ContainsKey(match.LocalBook.BookUuid))
+                        {
+                            // ABS used to have a progress record for this book; now it's gone.
+                            // Treat as user-initiated deletion and clear the local side to match.
+                            await readingStateRepository.DeleteByBookUuid(match.LocalBook.BookUuid);
+                            await repository.DeleteBookSyncedState(integration.UserUuid, match.LocalBook.BookUuid);
+                            logger.LogInformation("AudioBookShelf: cleared local progress for \"{Title}\" — ABS dropped the entry", match.LocalBook.Title);
+                        }
+                        else if (localTimestamp > DateTimeOffset.MinValue)
+                        {
+                            // Never observed on ABS, local has something to push.
+                            await PushToAbs(match, integration, cancellationToken);
+                            await repository.UpsertBookSyncedState(integration.UserUuid, match.LocalBook.BookUuid, DateTimeOffset.UtcNow);
+                        }
+                    }
+                    else
+                    {
+                        if (absTimestamp > localTimestamp)
+                            await PullFromAbs(match);
+                        else if (localTimestamp > absTimestamp)
+                            await PushToAbs(match, integration, cancellationToken);
+                        // Record what we observed on ABS so a future deletion is detectable, even
+                        // if neither side moved this tick.
+                        await repository.UpsertBookSyncedState(integration.UserUuid, match.LocalBook.BookUuid, match.AbsProgress.LastUpdateUtc);
+                    }
                 }
                 catch (Exception ex)
                 {

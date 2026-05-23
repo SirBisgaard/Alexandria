@@ -590,6 +590,13 @@ public sealed class BookServiceTests
             states[bookUuid] = state;
             return Task.CompletedTask;
         }
+
+        public Task DeleteByBookUuid(Guid bookUuid)
+        {
+            states.Remove(bookUuid);
+            progress.Remove(bookUuid);
+            return Task.CompletedTask;
+        }
     }
 
     internal sealed class FakeFileContentManager : IFileContentManager

@@ -8,4 +8,8 @@ public interface IAudioBookShelfSyncIntegrationRepository
     Task<AudioBookShelfIntegration?> GetByUserUuid(Guid userUuid);
     Task<List<AudioBookShelfIntegration>> GetAllEnabled();
     Task UpdateLastSynced(Guid userUuid, DateTimeOffset timestamp);
+
+    Task<Dictionary<Guid, DateTimeOffset>> GetBookSyncedStates(Guid userUuid);
+    Task UpsertBookSyncedState(Guid userUuid, Guid bookUuid, DateTimeOffset absLastUpdate);
+    Task DeleteBookSyncedState(Guid userUuid, Guid bookUuid);
 }
