@@ -52,4 +52,13 @@ public class IntegrationsController(IIntegrationService integrationService, ILog
 
         return NoContent();
     }
+
+    [HttpPost("audiobookshelf/sync")]
+    public async Task<IActionResult> SyncAudioBookShelfNow(CancellationToken cancellationToken)
+    {
+        var userUuid = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        logger.LogInformation("Manual AudioBookShelf sync requested by user {UserUuid}", userUuid);
+        await integrationService.SyncAudioBookShelfNow(userUuid, cancellationToken);
+        return NoContent();
+    }
 }

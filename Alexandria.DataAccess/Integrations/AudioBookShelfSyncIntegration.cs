@@ -45,14 +45,7 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
 
         logger.LogInformation("AudioBookShelf: starting sync ({Count} {Users})", integrations.Count, integrations.Count == 1 ? "user" : "users");
 
-        var localAudiobooks = (await bookRepository.GetAll())
-            .Where(b => b.File.MediaType == MediaType.Audiobook && !b.IsArchived)
-            .ToList();
-
-        // BookRepository.GetAll() does not hydrate ReadingProgress, so the timestamp comparison would
-        // always see local as MinValue. Fetch it per audiobook so localTimestamp reflects reality.
-        foreach (var book in localAudiobooks)
-            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
+        var localAudiobooks = await LoadLocalAudiobooks();
 
         foreach (var integration in integrations)
         {
@@ -63,7 +56,35 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
         }
     }
 
-    private async Task SyncOne(AudioBookShelfIntegration integration, List<Book> localAudiobooks, CancellationToken cancellationToken)
+    public async Task SyncForUser(Guid userUuid, CancellationToken cancellationToken)
+    {
+        var integration = await repository.GetByUserUuid(userUuid);
+        if (integration is null || !integration.Enabled)
+        {
+            logger.LogInformation("AudioBookShelf: manual sync for {UserTag} skipped — no enabled integration", userUuid.ToString()[..8]);
+            return;
+        }
+
+        logger.LogInformation("AudioBookShelf: manual sync requested for user {UserTag}", userUuid.ToString()[..8]);
+        var localAudiobooks = await LoadLocalAudiobooks();
+        await SyncOne(integration, localAudiobooks, cancellationToken, ignoreCutoff: true);
+    }
+
+    private async Task<List<Book>> LoadLocalAudiobooks()
+    {
+        var localAudiobooks = (await bookRepository.GetAll())
+            .Where(b => b.File.MediaType == MediaType.Audiobook && !b.IsArchived)
+            .ToList();
+
+        // BookRepository.GetAll() does not hydrate ReadingProgress, so the timestamp comparison would
+        // always see local as MinValue. Fetch it per audiobook so localTimestamp reflects reality.
+        foreach (var book in localAudiobooks)
+            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
+
+        return localAudiobooks;
+    }
+
+    private async Task SyncOne(AudioBookShelfIntegration integration, List<Book> localAudiobooks, CancellationToken cancellationToken, bool ignoreCutoff = false)
     {
         var userTag = integration.UserUuid.ToString()[..8];
         try
@@ -72,13 +93,13 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
             var absProgressByItemId = await FetchMediaProgress(integration.ServerUrl, integration.ApiToken, cancellationToken);
             var matches = MatchByFilename(localAudiobooks, absItems, absProgressByItemId);
 
-            var cutoff = integration.LastSyncedAt;
+            var cutoff = ignoreCutoff ? null : integration.LastSyncedAt;
             var changedMatches = cutoff is null
                 ? matches
                 : matches.Where(m => m.LastUpdatedAt > cutoff.Value).ToList();
 
-            logger.LogInformation("AudioBookShelf: user {UserTag} — {Local} local audiobook(s), {AbsItems} ABS item(s), matched {Matched}, {Changed} to reconcile",
-                userTag, localAudiobooks.Count, absItems.Count, matches.Count, changedMatches.Count);
+            logger.LogInformation("AudioBookShelf: user {UserTag} — {Local} local audiobook(s), {AbsItems} ABS item(s), matched {Matched}, {Changed} to reconcile{Mode}",
+                userTag, localAudiobooks.Count, absItems.Count, matches.Count, changedMatches.Count, ignoreCutoff ? " (manual sync — cutoff ignored)" : "");
 
             foreach (var match in changedMatches)
             {

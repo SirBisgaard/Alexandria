@@ -7,4 +7,5 @@ public interface IIntegrationService
     Task UpsertAudioBookShelf(AudioBookShelfIntegration integration);
     Task<AudioBookShelfIntegration?> GetAudioBookShelf(Guid userUuid);
     Task<bool> VerifyAudioBookShelfConnection(string serverUrl, string apiToken);
+    Task SyncAudioBookShelfNow(Guid userUuid, CancellationToken cancellationToken);
 }

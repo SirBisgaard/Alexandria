@@ -19,4 +19,9 @@ public class IntegrationService(IAudioBookShelfSyncIntegration audioBookShelf, I
     {
         return audioBookShelf.VerifyConnection(serverUrl, apiToken);
     }
+
+    public Task SyncAudioBookShelfNow(Guid userUuid, CancellationToken cancellationToken)
+    {
+        return audioBookShelf.SyncForUser(userUuid, cancellationToken);
+    }
 }

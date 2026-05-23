@@ -31,6 +31,7 @@ $(function () {
                     '<div class="settings-footer">' +
                         '<span class="settings-footer-right">' +
                             '<span class="settings-save-status"></span>' +
+                            '<button class="bm-edit-btn integrations-sync-btn">Sync now</button>' +
                             '<button class="bm-edit-btn bm-edit-btn-primary integrations-save-btn">Save</button>' +
                         '</span>' +
                     '</div>' +
@@ -80,6 +81,34 @@ $(function () {
 
     $(document).on("input change", "#integrations-modal [data-integration-field='serverUrl'], #integrations-modal [data-integration-field='apiToken']", function () {
         $(this).removeClass("bm-edit-input-invalid");
+    });
+
+    $(document).on("click", ".integrations-sync-btn", function () {
+        var $btn = $(this);
+        var $saveBtn = $("#integrations-modal .integrations-save-btn");
+        var $status = $("#integrations-modal .settings-save-status");
+
+        setBanner("");
+        $btn.prop("disabled", true).text("Syncing…");
+        $saveBtn.prop("disabled", true);
+        $status.hide();
+
+        $.ajax({
+            url: "/api/alexandria/integrations/audiobookshelf/sync",
+            type: "POST",
+            success: function () {
+                $status.text("Synced").show();
+                setTimeout(function () { $status.fadeOut(); }, 2000);
+            },
+            error: function (jqXHR) {
+                var msg = (jqXHR.responseJSON && jqXHR.responseJSON.error) || "Sync failed.";
+                setBanner(msg);
+            },
+            complete: function () {
+                $btn.prop("disabled", false).text("Sync now");
+                $saveBtn.prop("disabled", false);
+            }
+        });
     });
 
     $(document).on("click", ".integrations-save-btn", function () {
