@@ -91,6 +91,24 @@ public sealed class ReadingStateRepositoryTests : DatabaseTestBase
         Assert.AreEqual("Tolino", fetched.CurrentBookmark.Location.Source);
     }
 
+    [TestMethod]
+    public async Task ReadingStateRepository_DeleteByBookUuid_RemovesTheRow()
+    {
+        var bookUuid = Guid.NewGuid();
+        await repository.Upsert(bookUuid, BuildState(status: "Reading", progress: 50));
+        Assert.IsNotNull(await repository.GetByBookUuid(bookUuid));
+
+        await repository.DeleteByBookUuid(bookUuid);
+
+        Assert.IsNull(await repository.GetByBookUuid(bookUuid));
+    }
+
+    [TestMethod]
+    public async Task ReadingStateRepository_DeleteByBookUuid_MissingRow_NoThrow()
+    {
+        await repository.DeleteByBookUuid(Guid.NewGuid());
+    }
+
     private static KoboStoreReadingState BuildState(string status = "ReadyToRead", int progress = 0, int? spentMinutes = null)
     {
         var now = DateTimeOffset.UtcNow.ToString("O");
