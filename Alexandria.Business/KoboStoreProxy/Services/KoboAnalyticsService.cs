@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Text.Json;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Interfaces;
+using Alexandria.Business.Library.Models;
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
@@ -14,13 +16,21 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
     /// <summary>
     /// Intercepts analytics events to handle local book state changes. Events are split: local book
     /// events are handled here; store-purchased book events are collected and proxied to Kobo.
-    /// Handled local event types: MarkAsFinished and MarkAsUnread — the user-driven state transitions
-    /// the device doesn't express through the PUT-state channel. All other local event types
-    /// (BookOpened, BookProgress, Playback, etc.) are observational telemetry and are dropped;
-    /// progress is authoritatively carried by PUT /v1/library/{uuid}/state instead. When all events
-    /// are local, returns 200 OK with empty body (device expects success and doesn't inspect
-    /// content). Mixed batches are rebuilt with only store events before proxying — Content-Length
-    /// header removed so it recalculates for the new body size.
+    /// Handled local event types:
+    ///   - <c>MarkAsFinished</c>/<c>MarkAsUnread</c>: user-driven status transitions the device only
+    ///     expresses through analytics (no PUT-state equivalent).
+    ///   - <c>Playback</c> (audiobooks): <c>ProgressPercent</c> attribute (decimal 0–1) scaled to 0–100.
+    ///     Fills the offline-listening gap PUT-state leaves because state PUTs only fire on book close.
+    ///   - <c>OpenContent</c>/<c>LeaveContent</c> (ebooks): <c>progress</c> attribute (integer 0–100),
+    ///     used as-is. <c>BookProgress</c> looks similar but its <c>progress</c> is chapter-relative
+    ///     (every observed prod event reports exactly 50) so it's deliberately not handled here.
+    /// Other local event types (TableOfContents, OpenPlayerScreen, etc.) are observational and dropped.
+    /// All progress writes go through <see cref="ReadingStateRepository.Upsert"/>, which silently no-ops
+    /// when the incoming <c>LastModified</c> is older than the stored value — that's the newest-wins
+    /// guard preventing analytics from clobbering a fresher PUT and vice versa.
+    /// When all events are local, returns 200 OK with empty body (device expects success and doesn't
+    /// inspect content). Mixed batches are rebuilt with only store events before proxying —
+    /// <c>Content-Length</c> header removed so it recalculates for the new body size.
     /// </summary>
     public async Task<KoboProxyResponse> AnalyticsEvent(KoboProxyRequest request)
     {
@@ -67,6 +77,13 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
                 case "MarkAsUnread":
                     logger.LogInformation("AnalyticsEvent: handling MarkAsUnread for '{Title}' ({Uuid})", book.Title, book.EntitlementUuid);
                     await HandleMarkAsUnread(book.BookUuid, book.EntitlementUuid.ToString(), analyticsEvent.Timestamp);
+                    break;
+                case "Playback":
+                    await HandleAudiobookPlayback(book, analyticsEvent);
+                    break;
+                case "OpenContent":
+                case "LeaveContent":
+                    await HandleEbookProgress(book, analyticsEvent);
                     break;
                 default:
                     logger.LogInformation("AnalyticsEvent: dropping {EventType} for local book '{Title}'", analyticsEvent.EventType, book.Title);
@@ -137,6 +154,93 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
         };
 
         await readingStateRepository.Upsert(bookUuid, state);
+    }
+
+    private async Task HandleAudiobookPlayback(Book book, KoboStoreAnalyticsEvent analyticsEvent)
+    {
+        if (book.File.MediaType != MediaType.Audiobook)
+        {
+            logger.LogInformation("AnalyticsEvent: dropping Playback for non-audiobook '{Title}'", book.Title);
+            return;
+        }
+        var fraction = ParseDecimalAttribute(analyticsEvent, "ProgressPercent");
+        if (fraction is null)
+        {
+            logger.LogInformation("AnalyticsEvent: Playback for '{Title}' missing or unparseable ProgressPercent, skipping", book.Title);
+            return;
+        }
+        var progressPercent = fraction.Value * 100m;
+        logger.LogInformation("AnalyticsEvent: Playback for '{Title}' ({Uuid}) → {Progress}%", book.Title, book.EntitlementUuid, progressPercent);
+        await UpsertProgressFromAnalytics(book, progressPercent, analyticsEvent.Timestamp);
+    }
+
+    private async Task HandleEbookProgress(Book book, KoboStoreAnalyticsEvent analyticsEvent)
+    {
+        if (book.File.MediaType != MediaType.Ebook)
+        {
+            logger.LogInformation("AnalyticsEvent: dropping {EventType} for non-ebook '{Title}'", analyticsEvent.EventType, book.Title);
+            return;
+        }
+        var integerPercent = ParseDecimalAttribute(analyticsEvent, "progress");
+        if (integerPercent is null)
+        {
+            logger.LogInformation("AnalyticsEvent: {EventType} for '{Title}' missing or unparseable progress, skipping", analyticsEvent.EventType, book.Title);
+            return;
+        }
+        logger.LogInformation("AnalyticsEvent: {EventType} for '{Title}' ({Uuid}) → {Progress}%", analyticsEvent.EventType, book.Title, book.EntitlementUuid, integerPercent.Value);
+        await UpsertProgressFromAnalytics(book, integerPercent.Value, analyticsEvent.Timestamp);
+    }
+
+    /// <summary>
+    /// Shared upsert path for analytics-derived progress. Preserves fields analytics doesn't carry
+    /// (Location, RemainingTimeMinutes, SpentReadingMinutes) by reading the existing row first and
+    /// only swapping in the new ProgressPercent + timestamps. Status is bumped to Reading on the
+    /// first non-Reading→Reading transition (and TimesStartedReading incremented). For audiobooks
+    /// ContentSourceProgressPercent is preserved because it's chapter-relative and analytics carries
+    /// only book-level percent; for ebooks the two are equal so we mirror ProgressPercent. The
+    /// newest-wins guard inside the repository's Upsert prevents this write from clobbering a
+    /// fresher PUT-state row.
+    /// </summary>
+    private async Task UpsertProgressFromAnalytics(Book book, decimal progressPercent, string? timestamp)
+    {
+        var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var eventTime = timestamp ?? now;
+        var existing = await readingStateRepository.GetByBookUuid(book.BookUuid);
+
+        var newStatus = existing?.StatusInfo.Status == "Finished" ? "Finished" : "Reading";
+        var timesStarted = existing?.StatusInfo.TimesStartedReading ?? 0;
+        var lastTimeStarted = existing?.StatusInfo.LastTimeStartedReading;
+        if (newStatus == "Reading" && existing?.StatusInfo.Status != "Reading")
+        {
+            timesStarted++;
+            lastTimeStarted = eventTime;
+        }
+
+        var contentSourcePercent = book.File.MediaType == MediaType.Audiobook
+            ? existing?.CurrentBookmark.ContentSourceProgressPercent
+            : progressPercent;
+
+        var state = new KoboStoreReadingState
+        {
+            EntitlementId = book.EntitlementUuid.ToString(),
+            Created = existing?.Created ?? eventTime,
+            LastModified = eventTime,
+            PriorityTimestamp = now,
+            StatusInfo = new KoboStoreStatusInfo { LastModified = eventTime, Status = newStatus, TimesStartedReading = timesStarted, LastTimeStartedReading = lastTimeStarted },
+            Statistics = new KoboStoreStatistics { LastModified = existing?.Statistics.LastModified ?? eventTime, SpentReadingMinutes = existing?.Statistics.SpentReadingMinutes, RemainingTimeMinutes = existing?.Statistics.RemainingTimeMinutes },
+            CurrentBookmark = new KoboStoreBookmark { LastModified = eventTime, ProgressPercent = progressPercent, ContentSourceProgressPercent = contentSourcePercent, Location = existing?.CurrentBookmark.Location }
+        };
+
+        await readingStateRepository.Upsert(book.BookUuid, state);
+    }
+
+    private static decimal? ParseDecimalAttribute(KoboStoreAnalyticsEvent analyticsEvent, string key)
+    {
+        if (analyticsEvent.Attributes is null)
+            return null;
+        if (!analyticsEvent.Attributes.TryGetValue(key, out var raw) || raw is null)
+            return null;
+        return decimal.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : null;
     }
 
     private static Guid? GetVolumeId(KoboStoreAnalyticsEvent analyticsEvent)
