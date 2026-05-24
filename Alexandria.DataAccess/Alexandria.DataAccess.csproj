@@ -17,8 +17,22 @@
         <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
     </ItemGroup>
 
-    <ItemGroup>
+    <!-- kepubify is a Go binary that has to match the host OS at runtime. The default copy is the
+         Linux x86_64 build used by the production container; the OSX condition swaps in the Darwin
+         x86_64 build for local Mac dev. Both land at the same output name so KepubifyWrapper.cs can
+         stay platform-agnostic. -->
+    <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('OSX'))">
         <None Include="Externals/kepubify">
+            <Pack>true</Pack>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishSingleFile>Always</CopyToPublishSingleFile>
+            <Link>kepubify</Link>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <None Include="Externals/kepubify-darwin">
             <Pack>true</Pack>
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <CopyToPublishDirectory>Always</CopyToPublishDirectory>
