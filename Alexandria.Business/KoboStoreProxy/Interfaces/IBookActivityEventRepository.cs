@@ -6,4 +6,5 @@ public interface IBookActivityEventRepository
 {
     Task Insert(BookActivityEvent activityEvent);
     Task<List<BookActivityEvent>> GetByBookUuid(Guid bookUuid);
+    Task<int> DeleteAll();
 }

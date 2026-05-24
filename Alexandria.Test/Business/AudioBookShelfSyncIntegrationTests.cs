@@ -447,5 +447,12 @@ public sealed class AudioBookShelfSyncIntegrationTests
 
         public Task<List<BookActivityEvent>> GetByBookUuid(Guid bookUuid) =>
             Task.FromResult(events.Where(e => e.BookUuid == bookUuid).OrderByDescending(e => e.EventTimestamp).ToList());
+
+        public Task<int> DeleteAll()
+        {
+            var removed = events.Count;
+            events.Clear();
+            return Task.FromResult(removed);
+        }
     }
 }

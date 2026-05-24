@@ -110,6 +110,25 @@ $(function () {
         updateM4bDescription(container);
     });
 
+    $(document).on("click", "[data-clear-activity-events]", function () {
+        if (!confirm("Clear all per-book activity events? This cannot be undone.")) { return; }
+        var $btn = $(this);
+        var original = $btn.text();
+        $btn.prop("disabled", true).text("Clearing…");
+        $.ajax({
+            url: "/api/alexandria/books/events",
+            type: "DELETE",
+            success: function (data) {
+                $btn.text("Cleared " + (data && data.removed != null ? data.removed : "0"));
+                setTimeout(function () { $btn.prop("disabled", false).text(original); }, 4000);
+            },
+            error: function () {
+                $btn.text("Failed");
+                setTimeout(function () { $btn.prop("disabled", false).text(original); }, 4000);
+            }
+        });
+    });
+
     $(document).on("click", "[data-validate-template]", function () {
         var $tile = $(this).closest(".settings-tile");
         var $result = $tile.find("[data-validate-result]");

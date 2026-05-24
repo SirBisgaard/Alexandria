@@ -58,4 +58,14 @@ public class BookActivityEventRepository(ISqliteConnectionProvider connectionPro
             return result;
         });
     }
+
+    public async Task<int> DeleteAll()
+    {
+        return await connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM BookActivityEvents";
+            return cmd.ExecuteNonQuery();
+        });
+    }
 }

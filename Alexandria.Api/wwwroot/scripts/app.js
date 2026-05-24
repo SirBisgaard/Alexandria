@@ -107,6 +107,15 @@ $(function () {
                             '<div class="settings-tile-desc">Log all Kobo proxy traffic to the database for debugging.</div>' +
                         '</div>' +
                         '<div class="settings-tile">' +
+                            '<div class="d-flex align-items-center gap-3">' +
+                                '<div class="flex-grow-1">' +
+                                    '<div class="settings-tile-label">Kobo Book Analytics + Other</div>' +
+                                    '<div class="settings-tile-desc">Per-book activity log: Kobo analytics events (playback start/pause, page turns, marks as finished/unread, etc.) and AudioBookShelf sync push/pull/clear messages. Shown on each book\'s Events tab.</div>' +
+                                '</div>' +
+                                '<button class="bm-edit-btn" data-clear-activity-events>Clear</button>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="settings-tile">' +
                             '<div class="settings-tile-toggle-row">' +
                                 '<div class="settings-tile-label">Sync library at boot</div>' +
                                 '<label class="settings-toggle"><input type="checkbox" data-setting="syncLibraryAtBoot"><span class="settings-toggle-slider"></span></label>' +

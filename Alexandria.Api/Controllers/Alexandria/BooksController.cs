@@ -30,6 +30,14 @@ public class BooksController(IBookService bookService, IBookActivityEventReposit
         return Ok(ApiMapper.ToBookResponse(book));
     }
 
+    [HttpDelete("events")]
+    public async Task<IActionResult> ClearAllBookEvents()
+    {
+        var removed = await activityEventRepository.DeleteAll();
+        logger.LogInformation("Cleared {Count} book activity event(s)", removed);
+        return Ok(new { removed });
+    }
+
     [HttpGet("{uuid:guid}/events")]
     public async Task<IActionResult> GetBookEvents(Guid uuid)
     {
