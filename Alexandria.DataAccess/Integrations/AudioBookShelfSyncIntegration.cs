@@ -5,14 +5,18 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Alexandria.Business.Integrations.Models;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Alexandria.DataAccess.Integrations;
 
-public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShelfSyncIntegrationRepository repository, IBookRepository bookRepository, IReadingStateRepository readingStateRepository, ILogger<AudioBookShelfSyncIntegration> logger) : IAudioBookShelfSyncIntegration
+public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShelfSyncIntegrationRepository repository, IBookRepository bookRepository, IReadingStateRepository readingStateRepository, IBookActivityEventRepository activityEventRepository, ILogger<AudioBookShelfSyncIntegration> logger) : IAudioBookShelfSyncIntegration
 {
+    private const string AbsDeviceUuid = "AudioBookShelfIntegration";
+
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>
@@ -125,7 +129,9 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
                             // Treat as user-initiated deletion and clear the local side to match.
                             await readingStateRepository.DeleteByBookUuid(match.LocalBook.BookUuid);
                             await repository.DeleteBookSyncedState(integration.UserUuid, match.LocalBook.BookUuid);
-                            logger.LogInformation("AudioBookShelf: cleared local progress for \"{Title}\" — ABS dropped the entry", match.LocalBook.Title);
+                            var clearedMessage = $"Cleared local progress for \"{match.LocalBook.Title}\" — ABS dropped the entry";
+                            logger.LogInformation(clearedMessage);
+                            await RecordActivity(match.LocalBook.BookUuid, "AbsProgressCleared", clearedMessage);
                         }
                         else if (localTimestamp > DateTimeOffset.MinValue)
                         {
@@ -253,12 +259,30 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
             }
         };
 
-        await readingStateRepository.Upsert(book.BookUuid, state);
+        var applied = await readingStateRepository.Upsert(book.BookUuid, state);
+        if (!applied)
+            return;
 
-        logger.LogInformation("AudioBookShelf: pulled \"{Title}\" ← ABS at {Percent:F1}% ({Status}, {Position})\n  Alexandria: {LocalTs:yyyy-MM-dd HH:mm:ss zzz}\n  ABS:        {AbsTs:yyyy-MM-dd HH:mm:ss zzz}",
-            book.Title, abs.Progress * 100, status, FormatDuration(abs.CurrentTime),
-            book.ReadingProgress?.ModifiedAt ?? DateTimeOffset.MinValue,
-            abs.LastUpdateUtc);
+        var pullMessage = string.Format(
+            "Pulled \"{0}\" ← ABS at {1:F1}% ({2}, {3})",
+            book.Title, abs.Progress * 100, status, FormatDuration(abs.CurrentTime));
+        logger.LogInformation(pullMessage);
+        await RecordActivity(book.BookUuid, "AbsProgressUpdated", pullMessage);
+    }
+
+    private async Task RecordActivity(Guid bookUuid, string eventType, string message)
+    {
+        var now = DateTimeOffset.UtcNow;
+        await activityEventRepository.Insert(new BookActivityEvent
+        {
+            EventId = Guid.NewGuid().ToString(),
+            BookUuid = bookUuid,
+            DeviceUuid = AbsDeviceUuid,
+            EventType = eventType,
+            EventTimestamp = now,
+            Body = message,
+            ReceivedAt = now
+        });
     }
 
     private static string FormatDuration(double seconds)
@@ -307,10 +331,11 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
         if (progress.Status == ReadingStatus.Finished)
             await PatchIsFinished(integration.ServerUrl, integration.ApiToken, match.AbsItem.Id, cancellationToken);
 
-        logger.LogInformation("AudioBookShelf: pushed \"{Title}\" → ABS at {Percent:F1}% ({Position}{Finished})\n  Alexandria: {LocalTs:yyyy-MM-dd HH:mm:ss zzz}\n  ABS:        {AbsTs:yyyy-MM-dd HH:mm:ss zzz}",
-            book.Title, progressFraction * 100, FormatDuration(currentTime), progress.Status == ReadingStatus.Finished ? ", finished" : "",
-            progress.ModifiedAt,
-            match.AbsProgress?.LastUpdateUtc ?? DateTimeOffset.MinValue);
+        var pushMessage = string.Format(
+            "Pushed \"{0}\" → ABS at {1:F1}% ({2}{3})",
+            book.Title, progressFraction * 100, FormatDuration(currentTime), progress.Status == ReadingStatus.Finished ? ", finished" : "");
+        logger.LogInformation(pushMessage);
+        await RecordActivity(book.BookUuid, "AbsProgressUpdated", pushMessage);
     }
 
     private List<MatchedAudiobook> MatchByFilename(List<Book> localAudiobooks, List<AbsItem> absItems, Dictionary<string, AbsMediaProgress> absProgressByItemId)

@@ -10,6 +10,10 @@ public static class BookActivityEventExtensions
     {
         public string Describe()
         {
+            // ABS sync writes plain-text log lines as Body — no JSON to parse, just render verbatim.
+            if (activityEvent.EventType is "AbsProgressUpdated" or "AbsProgressCleared")
+                return activityEvent.Body;
+
             JsonElement attrs;
             JsonElement metrics;
             try

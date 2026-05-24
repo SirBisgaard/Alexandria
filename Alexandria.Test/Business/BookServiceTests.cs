@@ -585,10 +585,10 @@ public sealed class BookServiceTests
 
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult(progress.GetValueOrDefault(bookUuid));
 
-        public Task Upsert(Guid bookUuid, KoboStoreReadingState state)
+        public Task<bool> Upsert(Guid bookUuid, KoboStoreReadingState state)
         {
             states[bookUuid] = state;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public Task DeleteByBookUuid(Guid bookUuid)

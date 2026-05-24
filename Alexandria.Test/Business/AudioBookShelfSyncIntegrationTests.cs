@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using Alexandria.Business.Integrations.Models;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Integrations;
@@ -21,6 +23,7 @@ public sealed class AudioBookShelfSyncIntegrationTests
     private FakeAudioBookShelfSyncIntegrationRepository absRepository = null!;
     private FakeBookRepository bookRepository = null!;
     private FakeReadingStateRepository readingStateRepository = null!;
+    private FakeBookActivityEventRepository activityEventRepository = null!;
     private AudioBookShelfSyncIntegration sut = null!;
 
     [TestInitialize]
@@ -31,7 +34,8 @@ public sealed class AudioBookShelfSyncIntegrationTests
         absRepository = new FakeAudioBookShelfSyncIntegrationRepository();
         bookRepository = new FakeBookRepository();
         readingStateRepository = new FakeReadingStateRepository();
-        sut = new AudioBookShelfSyncIntegration(httpClient, absRepository, bookRepository, readingStateRepository, NullLogger<AudioBookShelfSyncIntegration>.Instance);
+        activityEventRepository = new FakeBookActivityEventRepository();
+        sut = new AudioBookShelfSyncIntegration(httpClient, absRepository, bookRepository, readingStateRepository, activityEventRepository, NullLogger<AudioBookShelfSyncIntegration>.Instance);
     }
 
     [TestCleanup]
@@ -425,7 +429,23 @@ public sealed class AudioBookShelfSyncIntegrationTests
             Task.FromResult(states.GetValueOrDefault(bookUuid));
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) =>
             Task.FromResult(progress.GetValueOrDefault(bookUuid));
-        public Task Upsert(Guid bookUuid, KoboStoreReadingState state) { states[bookUuid] = state; return Task.CompletedTask; }
+        public Task<bool> Upsert(Guid bookUuid, KoboStoreReadingState state) { states[bookUuid] = state; return Task.FromResult(true); }
         public Task DeleteByBookUuid(Guid bookUuid) { states.Remove(bookUuid); progress.Remove(bookUuid); return Task.CompletedTask; }
+    }
+
+    private sealed class FakeBookActivityEventRepository : IBookActivityEventRepository
+    {
+        private readonly List<BookActivityEvent> events = [];
+
+        public IReadOnlyList<BookActivityEvent> Events => events;
+
+        public Task Insert(BookActivityEvent activityEvent)
+        {
+            events.Add(activityEvent);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<BookActivityEvent>> GetByBookUuid(Guid bookUuid) =>
+            Task.FromResult(events.Where(e => e.BookUuid == bookUuid).OrderByDescending(e => e.EventTimestamp).ToList());
     }
 }

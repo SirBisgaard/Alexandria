@@ -52,9 +52,9 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
         });
     }
 
-    public async Task Upsert(Guid bookUuid, KoboStoreReadingState state)
+    public async Task<bool> Upsert(Guid bookUuid, KoboStoreReadingState state)
     {
-        await connectionProvider.Write(connection =>
+        return await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
             cmd.CommandText = """
@@ -85,7 +85,7 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
             cmd.Parameters.AddWithValue("@createdAt", now);
             cmd.Parameters.AddWithValue("@modifiedAt", now);
 
-            cmd.ExecuteNonQuery();
+            return cmd.ExecuteNonQuery() > 0;
         });
     }
 
