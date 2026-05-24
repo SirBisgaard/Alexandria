@@ -78,6 +78,7 @@ $(function () {
         var $grid = $("#home-grid");
 
         // Currently reading — up to 5 books sorted by last read
+        // TODO: comment says 5 but slice below uses 6 — reconcile so the index shows the intended number of books
         var readingBooks = [];
         for (var i = 0; i < books.length; i++) {
             var p = books[i].readingProgress;
