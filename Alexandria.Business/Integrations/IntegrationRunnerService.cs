@@ -11,8 +11,6 @@ public sealed class IntegrationRunnerService(IServiceScopeFactory scopeFactory, 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RunAudioBookShelfJob(stoppingToken);
-
         using var timer = new PeriodicTimer(Interval);
 
         while (!stoppingToken.IsCancellationRequested)
