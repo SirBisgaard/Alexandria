@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookService bookService, IReadingStateRepository readingStateRepository, ILogger<KoboAnalyticsService> logger) : IKoboAnalyticsService
+public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookService bookService, IReadingStateRepository readingStateRepository, IBookActivityEventRepository activityEventRepository, ILogger<KoboAnalyticsService> logger) : IKoboAnalyticsService
 {
     /// <summary>
     /// Intercepts analytics events to handle local book state changes. Events are split: local book
@@ -55,6 +55,8 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
                 eventsToProxy.Add(analyticsEvent);
                 continue;
             }
+
+            await PersistActivityEvent(analyticsEvent, book.BookUuid, request.DeviceKey);
 
             switch (analyticsEvent.EventType)
             {
@@ -146,5 +148,34 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
         if (Guid.TryParse(volumeIdStr, out var volumeId))
             return volumeId;
         return null;
+    }
+
+    /// <summary>
+    /// Persists a single analytics event scoped to a local book. EventId is the Kobo-assigned guid
+    /// — devices retry buffered analytics batches when coming back online, so the same event id
+    /// can arrive multiple times. The repository uses INSERT OR IGNORE on the EventId PK to dedupe.
+    /// Missing id/timestamp fall back to fresh values rather than dropping the event, so a partial
+    /// payload still produces a row.
+    /// </summary>
+    private async Task PersistActivityEvent(KoboStoreAnalyticsEvent analyticsEvent, Guid bookUuid, string? deviceKey)
+    {
+        if (string.IsNullOrEmpty(analyticsEvent.EventType))
+            return;
+
+        var receivedAt = DateTimeOffset.UtcNow;
+        var eventId = string.IsNullOrEmpty(analyticsEvent.Id) ? Guid.NewGuid().ToString() : analyticsEvent.Id;
+        var eventTimestamp = DateTimeOffset.TryParse(analyticsEvent.Timestamp, out var parsed) ? parsed : receivedAt;
+        var body = JsonSerializer.Serialize(analyticsEvent);
+
+        await activityEventRepository.Insert(new BookActivityEvent
+        {
+            EventId = eventId,
+            BookUuid = bookUuid,
+            DeviceUuid = deviceKey ?? "",
+            EventType = analyticsEvent.EventType,
+            EventTimestamp = eventTimestamp,
+            Body = body,
+            ReceivedAt = receivedAt
+        });
     }
 }

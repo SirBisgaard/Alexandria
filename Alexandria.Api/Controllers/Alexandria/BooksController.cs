@@ -1,5 +1,7 @@
 using Alexandria.Api.Models;
 using Alexandria.Api.Models.Requests;
+using Alexandria.Business.KoboStoreProxy.Extensions;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
@@ -9,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/books")]
-public class BooksController(IBookService bookService, ILogger<BooksController> logger) : AlexandriaControllerBase
+public class BooksController(IBookService bookService, IBookActivityEventRepository activityEventRepository, ILogger<BooksController> logger) : AlexandriaControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetBooks([FromQuery] BookSortField? sort, [FromQuery] SortOrder? order)
@@ -26,6 +28,21 @@ public class BooksController(IBookService bookService, ILogger<BooksController> 
         if (book is null)
             return NotFound();
         return Ok(ApiMapper.ToBookResponse(book));
+    }
+
+    [HttpGet("{uuid:guid}/events")]
+    public async Task<IActionResult> GetBookEvents(Guid uuid)
+    {
+        var events = await activityEventRepository.GetByBookUuid(uuid);
+        var response = events.Select(e => new
+        {
+            eventId = e.EventId,
+            eventType = e.EventType,
+            eventTimestamp = e.EventTimestamp,
+            receivedAt = e.ReceivedAt,
+            description = e.Describe()
+        });
+        return Ok(response);
     }
 
     [HttpPut("{uuid:guid}/status")]

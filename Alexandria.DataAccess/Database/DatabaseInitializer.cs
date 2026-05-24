@@ -23,7 +23,8 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             {
                 (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher, alexandriaSettings, logger)),
                 (2, conn => MigrateV2_FileRenameTemplate(conn, logger)),
-                (3, conn => MigrateV3_AudioBookShelfIntegration(conn, logger))
+                (3, conn => MigrateV3_AudioBookShelfIntegration(conn, logger)),
+                (4, conn => MigrateV4_BookActivityEvents(conn, logger))
             };
 
             foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -427,5 +428,33 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         bookStateCmd.ExecuteNonQuery();
         logger.LogInformation("V3: created UserIntegrations_AudioBookShelf_BookSyncedState table");
+    }
+
+    private static void MigrateV4_BookActivityEvents(SqliteConnection connection, ILogger logger)
+    {
+        using var tableCmd = connection.CreateCommand();
+        tableCmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS BookActivityEvents (
+                EventId TEXT PRIMARY KEY,
+                BookUuid TEXT NOT NULL,
+                DeviceUuid TEXT NOT NULL,
+                EventType TEXT NOT NULL,
+                EventTimestamp TEXT NOT NULL,
+                Body TEXT NOT NULL,
+                ReceivedAt TEXT NOT NULL,
+                FOREIGN KEY (BookUuid) REFERENCES Books(BookUuid) ON DELETE CASCADE
+            )
+            """;
+        tableCmd.ExecuteNonQuery();
+
+        using var bookIdx = connection.CreateCommand();
+        bookIdx.CommandText = "CREATE INDEX IF NOT EXISTS IX_BookActivityEvents_BookUuid_EventTimestamp ON BookActivityEvents (BookUuid, EventTimestamp DESC)";
+        bookIdx.ExecuteNonQuery();
+
+        using var deviceIdx = connection.CreateCommand();
+        deviceIdx.CommandText = "CREATE INDEX IF NOT EXISTS IX_BookActivityEvents_DeviceUuid_EventTimestamp ON BookActivityEvents (DeviceUuid, EventTimestamp DESC)";
+        deviceIdx.ExecuteNonQuery();
+
+        logger.LogInformation("V4: created BookActivityEvents table");
     }
 }

@@ -54,6 +54,7 @@ builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
 
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepository>();
+builder.Services.AddTransient<IBookActivityEventRepository, BookActivityEventRepository>();
 builder.Services.AddTransient<IKoboDeviceRepository, KoboDeviceRepository>();
 builder.Services.AddTransient<IUserRepository, UserRepository>();
 builder.Services.AddTransient<IAudioBookShelfSyncIntegrationRepository, AudioBookShelfSyncIntegrationRepository>();

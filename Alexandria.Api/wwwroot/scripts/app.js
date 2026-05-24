@@ -23,11 +23,13 @@ $(function () {
                 '<ul class="nav nav-underline book-modal-tabs">' +
                     '<li class="nav-item"><a class="nav-link active" id="bm-tab-synopsis" href="#">Synopsis</a></li>' +
                     '<li class="nav-item"><a class="nav-link" id="bm-tab-details" href="#">Details</a></li>' +
-                    '<li class="nav-item ms-auto"><a class="nav-link" id="bm-tab-data" href="#">Data</a></li>' +
+                    '<li class="nav-item ms-auto"><a class="nav-link" id="bm-tab-events" href="#">Events</a></li>' +
+                    '<li class="nav-item"><a class="nav-link" id="bm-tab-data" href="#">Data</a></li>' +
                 '</ul>' +
                 '<div class="book-modal-tab-content">' +
                     '<div id="bm-synopsis"></div>' +
                     '<div id="bm-details" style="display:none;"></div>' +
+                    '<div id="bm-events" style="display:none;"><div id="bm-events-list"></div></div>' +
                     '<div id="bm-data" style="display:none;"><p class="bm-data-info">Raw book metadata as returned by the Alexandria API.</p><pre><code id="bm-data-code"></code></pre></div>' +
                 '</div>' +
             '</div>' +
@@ -185,25 +187,34 @@ $(function () {
     $(document).on("click", "#bm-tab-synopsis", function (e) {
         e.preventDefault();
         $(this).addClass("active");
-        $("#bm-tab-details, #bm-tab-data").removeClass("active");
+        $("#bm-tab-details, #bm-tab-events, #bm-tab-data").removeClass("active");
         $("#bm-synopsis").show();
-        $("#bm-details, #bm-data").hide();
+        $("#bm-details, #bm-events, #bm-data").hide();
     });
 
     $(document).on("click", "#bm-tab-details", function (e) {
         e.preventDefault();
         $(this).addClass("active");
-        $("#bm-tab-synopsis, #bm-tab-data").removeClass("active");
+        $("#bm-tab-synopsis, #bm-tab-events, #bm-tab-data").removeClass("active");
         $("#bm-details").show();
-        $("#bm-synopsis, #bm-data").hide();
+        $("#bm-synopsis, #bm-events, #bm-data").hide();
+    });
+
+    $(document).on("click", "#bm-tab-events", function (e) {
+        e.preventDefault();
+        $(this).addClass("active");
+        $("#bm-tab-synopsis, #bm-tab-details, #bm-tab-data").removeClass("active");
+        $("#bm-events").show();
+        $("#bm-synopsis, #bm-details, #bm-data").hide();
+        if (currentModalUuid) { loadBookEvents(currentModalUuid); }
     });
 
     $(document).on("click", "#bm-tab-data", function (e) {
         e.preventDefault();
         $(this).addClass("active");
-        $("#bm-tab-synopsis, #bm-tab-details").removeClass("active");
+        $("#bm-tab-synopsis, #bm-tab-details, #bm-tab-events").removeClass("active");
         $("#bm-data").show();
-        $("#bm-synopsis, #bm-details").hide();
+        $("#bm-synopsis, #bm-details, #bm-events").hide();
     });
 
     // ===== Book Card / List Item Click → Open Modal =====

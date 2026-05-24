@@ -1289,6 +1289,60 @@ a.series-list-item {
 #bm-data .json-bool { color: #F34EF3; }
 #bm-data .json-null { color: #4E4E4E; }
 
+#bm-events {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.bm-events-empty {
+    font-size: 13px;
+    color: var(--bs-secondary-color);
+    margin: 0;
+    padding: 12px 0;
+}
+
+.bm-events-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.bm-events-table th,
+.bm-events-table td {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.bm-events-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    position: sticky;
+    top: 0;
+}
+
+.bm-events-table tr:last-child td {
+    border-bottom: none;
+}
+
+.bm-events-time,
+.bm-events-type {
+    white-space: nowrap;
+    width: 1%;
+}
+
+.bm-events-time {
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.bm-events-info {
+    color: var(--bs-secondary-color);
+}
+
 /* ===== Edit Book Modal ===== */
 .bm-edit-form {
     display: flex;

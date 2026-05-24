@@ -84,15 +84,46 @@ function openBookModal(uuid) {
         // Data
         $("#bm-data-code").html(highlightJson(book));
 
+        // Events tab lazy-loads on click — reset to placeholder so a new modal doesn't show
+        // the prior book's events while the next fetch is in flight.
+        $("#bm-events-list").html('<p class="bm-events-empty">Open this tab to load events.</p>');
+
         // Show synopsis tab by default
         $("#bm-tab-synopsis").addClass("active");
         $("#bm-tab-details").removeClass("active");
+        $("#bm-tab-events").removeClass("active");
         $("#bm-tab-data").removeClass("active");
         $("#bm-synopsis").show();
         $("#bm-details").hide();
+        $("#bm-events").hide();
         $("#bm-data").hide();
 
         $("#book-modal-backdrop").addClass("open");
+    });
+}
+
+function loadBookEvents(uuid) {
+    $("#bm-events-list").html('<p class="bm-events-empty">Loading…</p>');
+    $.get("/api/alexandria/books/" + uuid + "/events", function (events) {
+        if (uuid !== currentModalUuid) { return; }
+        if (!events || events.length === 0) {
+            $("#bm-events-list").html('<p class="bm-events-empty">No events recorded for this book.</p>');
+            return;
+        }
+        var rows = events.map(function (e) {
+            var when = e.eventTimestamp ? new Date(e.eventTimestamp).toLocaleString() : "";
+            return '<tr>' +
+                '<td class="bm-events-time">' + escapeHtml(when) + '</td>' +
+                '<td class="bm-events-type">' + escapeHtml(e.eventType || "") + '</td>' +
+                '<td class="bm-events-info">' + escapeHtml(e.description || "") + '</td>' +
+                '</tr>';
+        }).join("");
+        $("#bm-events-list").html(
+            '<table class="bm-events-table">' +
+                '<thead><tr><th>Time</th><th>Type</th><th>Info</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+            '</table>'
+        );
     });
 }
 
