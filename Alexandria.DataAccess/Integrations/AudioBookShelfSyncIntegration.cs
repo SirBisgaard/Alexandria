@@ -265,10 +265,17 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
 
         var pullMessage = string.Format(
             "Pulled \"{0}\" ← ABS at {1:F1}% ({2}, {3})",
-            book.Title, abs.Progress * 100, status, FormatDuration(abs.CurrentTime));
+            book.Title, abs.Progress * 100, FormatAudiobookStatus(status), FormatDuration(abs.CurrentTime));
         logger.LogInformation(pullMessage);
         await RecordActivity(book.BookUuid, "AbsProgressUpdated", pullMessage);
     }
+
+    private static string FormatAudiobookStatus(ReadingStatus status) => status switch
+    {
+        ReadingStatus.Reading => "Listening",
+        ReadingStatus.ReadyToRead => "Unplayed",
+        _ => status.ToString()
+    };
 
     private async Task RecordActivity(Guid bookUuid, string eventType, string message)
     {
