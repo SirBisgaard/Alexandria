@@ -7,6 +7,12 @@ public class KoboProxyRequest
     public required string Method { get; init; }
     public required string Path { get; init; }
     public required string QueryString { get; init; }
+    /// <summary>
+    /// Case-insensitive. Devices send mixed-case header names (e.g. <c>X-Kobo-Synctoken</c>),
+    /// proxy/business code looks them up lowercase — without OrdinalIgnoreCase the lookup misses
+    /// and the device's sync watermark gets silently replaced with <see cref="DateTimeOffset.MinValue"/>,
+    /// turning every sync into a full library re-send.
+    /// </summary>
     public required Dictionary<string, string?[]> Headers { get; init; }
     public required byte[] Body { get; init; }
     public string? DeviceKey { get; init; }
@@ -19,7 +25,7 @@ public class KoboProxyRequest
         await request.Body.CopyToAsync(ms);
         request.Body.Position = 0;
 
-        var headers = request.Headers.ToDictionary(h => h.Key, h => h.Value.ToArray());
+        var headers = request.Headers.ToDictionary(h => h.Key, h => h.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
         StripAlexandriaCookies(headers);
 
         var prefix = deviceKey is not null

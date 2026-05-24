@@ -1,6 +1,9 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Interfaces;
+using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.Library.Models;
 using Alexandria.Tests.KoboProtocol.Fixtures;
 using Alexandria.Tests.KoboProtocol.Shape;
@@ -112,12 +115,13 @@ public sealed class SyncResponseTests : KoboProtocolTestBase
         Assert.AreEqual(expectedUrl, downloadUrl.GetProperty("Url").GetString());
     }
 
-    private async Task<Book> SeedLocalAudiobook()
+    private async Task<Book> SeedLocalAudiobook(DateTimeOffset? modifiedAt = null)
     {
         var bookRepo = GetService<IBookRepository>();
         var authorRepo = GetService<IAuthorRepository>();
         var authorUuid = await authorRepo.GetOrCreate("Test Author");
         var uuid = Guid.NewGuid();
+        var timestamp = modifiedAt ?? DateTimeOffset.UtcNow;
         var book = new Book
         {
             BookUuid = uuid,
@@ -129,8 +133,8 @@ public sealed class SyncResponseTests : KoboProtocolTestBase
             Description = "Test description",
             Publisher = "Test Publisher",
             PublicationDate = "2026",
-            CreatedAt = DateTimeOffset.UtcNow,
-            ModifiedAt = DateTimeOffset.UtcNow,
+            CreatedAt = timestamp,
+            ModifiedAt = timestamp,
             Authors = [new Author { AuthorUuid = authorUuid, Name = "Test Author" }],
             File = new BookFile
             {
@@ -145,6 +149,66 @@ public sealed class SyncResponseTests : KoboProtocolTestBase
         await bookRepo.Add(book);
         await authorRepo.SetBookAuthors(uuid, ["Test Author"]);
         return book;
+    }
+
+    /// <summary>
+    /// Regression test for the case-sensitive header lookup bug that made every device sync
+    /// behave like a fresh full sync: the device sends <c>X-Kobo-Synctoken</c> (Pascal-cased),
+    /// the proxy's headers dictionary preserves that casing, and a lower-cased
+    /// <c>TryGetValue("x-kobo-synctoken", ...)</c> missed it — so the parsed watermark always
+    /// fell back to <see cref="DateTimeOffset.MinValue"/> and every local book passed the
+    /// <c>ModifiedAt &gt; lastSync</c> filter regardless of prior sync state. Seeing the full
+    /// library on every sync was the user-visible symptom.
+    /// </summary>
+    [TestMethod]
+    public async Task Sync_PascalCasedSyncTokenHeader_SkipsAlreadySyncedUnchangedBook()
+    {
+        await SeedRecordedDevice();
+        var bookModifiedAt = new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero);
+        var book = await SeedLocalAudiobook(bookModifiedAt);
+        var syncRepo = GetService<IKoboDeviceSyncRepository>();
+        await syncRepo.UpsertSyncedFile(RecordedDeviceUuid.ToString(), book.BookUuid, book.ModifiedAt);
+
+        Upstream.RegisterEmptyJsonArray(HttpMethod.Get, "/v1/library/sync");
+
+        var tokenService = GetService<IKoboDeviceSyncTokenService>();
+        var watermark = bookModifiedAt.AddDays(1);
+        var syncToken = tokenService.GenerateToken(new KoboDeviceSyncToken { LastSync = watermark });
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, DeviceUrl("/v1/library/sync?Filter=ALL&DownloadUrlFilter=Generic,Android&PrioritizeRecentReads=true"));
+        request.Headers.TryAddWithoutValidation("x-kobo-deviceid", DeviceSerial);
+        request.Headers.TryAddWithoutValidation("User-Agent", DeviceUserAgent);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.TryAddWithoutValidation("X-Kobo-Synctoken", syncToken);
+
+        using var response = await Client.SendAsync(request);
+        await AssertStatusAsync(response, HttpStatusCode.OK, "Pascal-cased synctoken sync");
+
+        var body = await ReadJsonAsync(response);
+        var entitlementId = book.EntitlementUuid.ToString();
+        var leakedItems = body.EnumerateArray()
+            .Where(item => ItemReferencesEntitlement(item, entitlementId))
+            .ToList();
+        Assert.IsEmpty(leakedItems, $"device's sync watermark (sent via Pascal-cased X-Kobo-Synctoken) must suppress re-sending a previously-synced unchanged book — got {leakedItems.Count} item(s) referencing entitlement {entitlementId}");
+    }
+
+    private static bool ItemReferencesEntitlement(JsonElement item, string entitlementId)
+    {
+        foreach (var slot in new[] { "NewEntitlement", "ChangedEntitlement", "ChangedReadingState" })
+        {
+            if (!item.TryGetProperty(slot, out var slotValue))
+                continue;
+            foreach (var inner in slotValue.EnumerateObject())
+            {
+                if (inner.Value.ValueKind != JsonValueKind.Object)
+                    continue;
+                if (inner.Value.TryGetProperty("Id", out var id) && id.GetString() == entitlementId)
+                    return true;
+                if (inner.Value.TryGetProperty("EntitlementId", out var eid) && eid.GetString() == entitlementId)
+                    return true;
+            }
+        }
+        return false;
     }
 
     private static JsonElement FindAudiobookTemplate(RecordedFixture fixture)
