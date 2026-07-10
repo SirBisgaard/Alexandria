@@ -51,16 +51,13 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     /// 1. Forward request to Kobo store with the original (unwrapped) sync token.
     /// 2. If Kobo is still paginating (x-kobo-sync: continue), pass through without merging — mixing
     ///    partial Kobo results with local books confuses the device's sync state machine.
-    /// 3. Otherwise, check for local books modified since last sync. If none, return store results + collections.
+    /// 3. Otherwise, check for local books with metadata or reading-state changes since last sync.
+    ///    If none, return store results + collections.
     /// 4. If local books need syncing, start a batched session (keyed by device ID, 5-minute timeout)
     ///    and drain it across multiple requests using configurable batch size.
     ///
-    /// Book sync states:
-    /// - New: device has never seen this book → NewEntitlement (archived books skipped entirely).
-    /// - Archived: send ChangedEntitlement with IsRemoved=true, delete sync record for clean un-archive.
-    /// - Changed: send Remove + New (two items) — Kobo ignores metadata updates on existing entitlements.
-    ///   Reading state sent as separate ChangedReadingState because device ignores it in entitlements.
-    /// - Unchanged: re-send as ChangedEntitlement to confirm device still has it.
+    /// Each batched book is classified into a <see cref="BookSyncAction"/> and dispatched to the
+    /// matching flow method — the enum members and flow methods carry the per-case protocol rules.
     ///
     /// Collections are only sent in the final batch — sending earlier creates empty shelves before books arrive.
     /// </summary>
@@ -95,7 +92,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
             {
                 storeCount = storeResults.Count;
                 syncResults.AddRange(storeResults);
-                await PersistStoreCollections(storeResults);
+                await SyncStoreCollectionsToAlexandria(storeResults);
             }
         }
 
@@ -105,7 +102,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         if (!koboDeviceSyncTokenService.IsActive(deviceKey))
         {
             var lastSync = alexandriaToken.LastSync;
-            var books = allBooks.Where(b => b.ModifiedAt > lastSync || !syncedDates.ContainsKey(b.BookUuid)).ToList();
+            var books = allBooks.Where(b => b.ModifiedAt > lastSync || !syncedDates.ContainsKey(b.BookUuid) || b.ReadingProgress?.ModifiedAt > lastSync).ToList();
             if (books.Count == 0)
             {
                 var collections = await GetCollectionSyncItems(lastSync, allBooks);
@@ -135,54 +132,18 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
                 continue;
 
             var previouslySynced = syncedDates.TryGetValue(book.BookUuid, out var storedModifiedAt);
+            var readingState = await GetDeviceReadingState(book);
 
-            if (!previouslySynced)
+            List<KoboStoreSyncResultItem> items = Classify(book, previouslySynced, storedModifiedAt, alexandriaToken.LastSync) switch
             {
-                if (book.IsArchived)
-                    continue;
-
-                var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
-                if (readingState is not null)
-                    readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
-
-                var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, readingState, relatedGroupId);
-                syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement });
-                await koboDeviceSyncRepository.UpsertSyncedFile(deviceKey, book.BookUuid, book.ModifiedAt);
-            }
-            else if (book.IsArchived)
-            {
-                var entitlement = KoboStoreEntityMapper.WithRemoved(KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl));
-                syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
-                await koboDeviceSyncRepository.RemoveSyncedFile(deviceKey, book.BookUuid);
-            }
-            else if (storedModifiedAt != book.ModifiedAt)
-            {
-                var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
-                if (readingState is not null)
-                    readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
-
-                var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: relatedGroupId);
-                var removedEntitlement = KoboStoreEntityMapper.WithRemoved(entitlement);
-                syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = removedEntitlement });
-                syncResults.Add(new KoboStoreSyncResultItem { NewEntitlement = entitlement with { ReadingState = null } });
-                if (readingState is not null)
-                    syncResults.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
-                await koboDeviceSyncRepository.UpsertSyncedFile(deviceKey, book.BookUuid, book.ModifiedAt);
-            }
-            else
-            {
-                var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
-                if (readingState is not null)
-                    readingState = readingState with { EntitlementId = book.EntitlementUuid.ToString() };
-
-                var relatedGroupId = GetRelatedGroupId(book, workGroupIds);
-                var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: relatedGroupId);
-                syncResults.Add(new KoboStoreSyncResultItem { ChangedEntitlement = entitlement });
-                if (readingState is not null)
-                    syncResults.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
-            }
+                BookSyncAction.AddToDevice => await AddBookToDevice(deviceKey, book, deviceBaseUrl, readingState, workGroupIds),
+                BookSyncAction.RemoveFromDevice => await RemoveBookFromDevice(deviceKey, book, deviceBaseUrl),
+                BookSyncAction.ReplaceOnDevice => await ReplaceBookOnDevice(deviceKey, book, deviceBaseUrl, readingState, workGroupIds),
+                BookSyncAction.ReadingStateOnly => SyncReadingStateToDevice(readingState),
+                BookSyncAction.ConfirmOnDevice => ConfirmBookOnDevice(book, deviceBaseUrl, readingState, workGroupIds),
+                _ => []
+            };
+            syncResults.AddRange(items);
         }
 
         var responseHeaders = new Dictionary<string, string[]>(koboResponse.Headers);
@@ -255,6 +216,87 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     private static bool HasKoboContinuation(KoboProxyResponse response) => response.Headers.TryGetValue("x-kobo-sync", out var values) && values.Any(v => string.Equals(v, "continue", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
+    /// Determines which sync flow a book enters for this device. Evaluation order matters:
+    /// device presence first, then archival, then metadata changes, and only then reading-state-only
+    /// changes — progress written by another device or an external integration such as AudioBookShelf,
+    /// which bumps the reading state's ModifiedAt without touching the book's.
+    /// </summary>
+    private static BookSyncAction Classify(Book book, bool previouslySynced, DateTimeOffset storedModifiedAt, DateTimeOffset lastSync)
+    {
+        if (!previouslySynced)
+            return book.IsArchived ? BookSyncAction.None : BookSyncAction.AddToDevice;
+        if (book.IsArchived)
+            return BookSyncAction.RemoveFromDevice;
+        if (storedModifiedAt != book.ModifiedAt)
+            return BookSyncAction.ReplaceOnDevice;
+        if (book.ReadingProgress?.ModifiedAt > lastSync)
+            return BookSyncAction.ReadingStateOnly;
+        return BookSyncAction.ConfirmOnDevice;
+    }
+
+    /// <summary>Loads the book's reading state re-keyed to the EntitlementUuid the device knows the book by.</summary>
+    private async Task<KoboStoreReadingState?> GetDeviceReadingState(Book book)
+    {
+        var readingState = await readingStateRepository.GetByBookUuid(book.BookUuid);
+        return readingState is null ? null : readingState with { EntitlementId = book.EntitlementUuid.ToString() };
+    }
+
+    private async Task<List<KoboStoreSyncResultItem>> AddBookToDevice(string deviceKey, Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds)
+    {
+        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, readingState, GetRelatedGroupId(book, workGroupIds));
+        await koboDeviceSyncRepository.UpsertSyncedFile(deviceKey, book.BookUuid, book.ModifiedAt);
+        return [new KoboStoreSyncResultItem { NewEntitlement = entitlement }];
+    }
+
+    /// <summary>The sync record is deleted (not kept) so a later un-archive re-enters the AddToDevice flow cleanly.</summary>
+    private async Task<List<KoboStoreSyncResultItem>> RemoveBookFromDevice(string deviceKey, Book book, string deviceBaseUrl)
+    {
+        var entitlement = KoboStoreEntityMapper.WithRemoved(KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl));
+        await koboDeviceSyncRepository.RemoveSyncedFile(deviceKey, book.BookUuid);
+        return [new KoboStoreSyncResultItem { ChangedEntitlement = entitlement }];
+    }
+
+    /// <summary>
+    /// Kobo ignores metadata updates on entitlements the device already holds, so a changed book is
+    /// sent as Remove + New. The reading state rides along as a separate ChangedReadingState item
+    /// because the device ignores it inside entitlements.
+    /// </summary>
+    private async Task<List<KoboStoreSyncResultItem>> ReplaceBookOnDevice(string deviceKey, Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds)
+    {
+        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: GetRelatedGroupId(book, workGroupIds));
+        var items = new List<KoboStoreSyncResultItem>
+        {
+            new() { ChangedEntitlement = KoboStoreEntityMapper.WithRemoved(entitlement) },
+            new() { NewEntitlement = entitlement with { ReadingState = null } }
+        };
+        if (readingState is not null)
+            items.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
+        await koboDeviceSyncRepository.UpsertSyncedFile(deviceKey, book.BookUuid, book.ModifiedAt);
+        return items;
+    }
+
+    /// <summary>
+    /// Pushes progress made outside this device (another Kobo, AudioBookShelf, MarkAsFinished) without
+    /// re-sending the entitlement. The device's sync record is left untouched — it tracks the metadata
+    /// version the device holds, which hasn't changed.
+    /// </summary>
+    private static List<KoboStoreSyncResultItem> SyncReadingStateToDevice(KoboStoreReadingState? readingState)
+    {
+        if (readingState is null)
+            return [];
+        return [new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } }];
+    }
+
+    private static List<KoboStoreSyncResultItem> ConfirmBookOnDevice(Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds)
+    {
+        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: GetRelatedGroupId(book, workGroupIds));
+        var items = new List<KoboStoreSyncResultItem> { new() { ChangedEntitlement = entitlement } };
+        if (readingState is not null)
+            items.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });
+        return items;
+    }
+
+    /// <summary>
     /// Builds collection sync items for the Kobo device. Collections reference books by EntitlementUuid
     /// in the Kobo protocol, but Alexandria stores them by BookUuid — the entitlementLookup translates
     /// between these ID spaces. Falls back to the raw BookUuid if no entitlement mapping exists.
@@ -282,7 +324,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         }).ToList();
     }
 
-    private async Task PersistStoreCollections(List<KoboStoreSyncResultItem> storeResults)
+    private async Task SyncStoreCollectionsToAlexandria(List<KoboStoreSyncResultItem> storeResults)
     {
         foreach (var item in storeResults)
         {
