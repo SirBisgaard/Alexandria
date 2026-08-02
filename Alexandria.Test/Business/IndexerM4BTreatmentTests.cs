@@ -24,7 +24,6 @@ public sealed class IndexerM4BTreatmentTests
     private FakeSettingsService settingsService = null!;
     private FakeAuthorRepository authorRepository = null!;
     private FakeSeriesRepository seriesRepository = null!;
-    private FakeDatabasePersistence databasePersistence = null!;
     private TreatmentAwareFileConverter converter = null!;
     private FakeIndexingProgressService progressService = null!;
     private IndexerService service = null!;
@@ -40,7 +39,6 @@ public sealed class IndexerM4BTreatmentTests
         settingsService = new FakeSettingsService();
         authorRepository = new FakeAuthorRepository();
         seriesRepository = new FakeSeriesRepository();
-        databasePersistence = new FakeDatabasePersistence();
         converter = new TreatmentAwareFileConverter(callLog, settingsService, contentManager);
         progressService = new FakeIndexingProgressService();
         service = new IndexerService(
@@ -49,7 +47,6 @@ public sealed class IndexerM4BTreatmentTests
             settingsService,
             authorRepository,
             seriesRepository,
-            databasePersistence,
             [converter],
             progressService,
             NullLogger<IndexerService>.Instance);
@@ -309,11 +306,6 @@ public sealed class IndexerM4BTreatmentTests
         public Task RemoveOrphanedSeries() => Task.CompletedTask;
         public Task Update(Series series) => Task.CompletedTask;
         public Task ReassignBooks(Guid sourceUuid, Guid targetUuid) => Task.CompletedTask;
-    }
-
-    internal sealed class FakeDatabasePersistence : IDatabasePersistence
-    {
-        public Task<bool> Flush() => Task.FromResult(true);
     }
 
     internal sealed class FakeIndexingProgressService : IProgressService

@@ -4,25 +4,25 @@ using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database;
 
+/// <summary>
+/// Owns the single SQLite connection to the database file at <see cref="AlexandriaSettings.Database"/>.
+/// The file is opened in WAL mode with synchronous=NORMAL, so every commit is durable on its own —
+/// there is no separate flush step. Opening a database created by an older release converts it to
+/// WAL mode in place. All access is serialized through one semaphore.
+/// </summary>
 public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
 {
-    private bool isLastWriteFlush;
-    private readonly string diskPath;
     private readonly SqliteConnection connection;
     private readonly SemaphoreSlim dbLock = new(1, 1);
 
     public SqliteConnectionProvider(AlexandriaSettings settings)
     {
-        diskPath = settings.Database;
-        connection = new SqliteConnection("Data Source=:memory:");
+        connection = new SqliteConnection($"Data Source={settings.Database};Pooling=False");
         connection.Open();
 
-        if (!File.Exists(diskPath))
-            return;
-
-        using var diskConn = new SqliteConnection($"Data Source={diskPath}");
-        diskConn.Open();
-        diskConn.BackupDatabase(connection);
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;";
+        cmd.ExecuteNonQuery();
     }
 
     public async Task<T> Read<T>(Func<SqliteConnection, T> operation)
@@ -30,7 +30,6 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         await dbLock.WaitAsync();
         try
         {
-            isLastWriteFlush = false;
             return operation(connection);
         }
         finally
@@ -44,7 +43,6 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         await dbLock.WaitAsync();
         try
         {
-            isLastWriteFlush = false;
             operation(connection);
         }
         finally
@@ -58,32 +56,10 @@ public class SqliteConnectionProvider : ISqliteConnectionProvider, IDisposable
         await dbLock.WaitAsync();
         try
         {
-            isLastWriteFlush = false;
             return operation(connection);
         }
         finally
         {
-            dbLock.Release();
-        }
-    }
-
-    public async Task<bool> Flush()
-    {
-        await dbLock.WaitAsync();
-        try
-        {
-            if (isLastWriteFlush)
-                return false;
-
-            Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
-            await using var diskConn = new SqliteConnection($"Data Source={diskPath}");
-            diskConn.Open();
-            connection.BackupDatabase(diskConn);
-            return true;
-        }
-        finally
-        {
-            isLastWriteFlush = true;
             dbLock.Release();
         }
     }

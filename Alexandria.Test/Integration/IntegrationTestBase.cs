@@ -64,14 +64,6 @@ public abstract class IntegrationTestBase
                     });
 
                     services.AddSingleton<IPasswordHasher, FakePasswordHasher>();
-                    // DatabaseFlushService races with test teardown — it fires Flush on StopAsync,
-                    // which opens a second SqliteConnection to the same file and calls BackupDatabase
-                    // while the connection can still have in-flight controller work. Tests don't need
-                    // durable persistence, so remove the hosted service entirely.
-                    var flushHost = services.SingleOrDefault(s => s.ImplementationType == typeof(DatabaseFlushService));
-                    if (flushHost is not null)
-                        services.Remove(flushHost);
-
                     ExtendTestServices(services);
                 });
             });

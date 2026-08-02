@@ -1,3 +1,4 @@
+using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Database;
 using Microsoft.Data.Sqlite;
 
@@ -7,45 +8,20 @@ namespace Alexandria.Tests.Data.Database;
 public sealed class SqliteConnectionProviderTests : DatabaseTestBase
 {
     [TestMethod]
-    public async Task Flush_WritesInMemoryStateToDiskFile()
+    public async Task ConnectionProvider_OpensDatabaseInWalMode()
     {
-        Assert.IsFalse(File.Exists(Settings.Database), "Disk file should not exist before the first Flush.");
+        var journalMode = await ConnectionProvider.Read(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "PRAGMA journal_mode";
+            return (string)cmd.ExecuteScalar()!;
+        });
 
-        var result = await ConnectionProvider.Flush();
-
-        Assert.IsTrue(result);
-        Assert.IsTrue(File.Exists(Settings.Database));
-
-        using var diskConn = new SqliteConnection($"Data Source={Settings.Database}");
-        diskConn.Open();
-        using var cmd = diskConn.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM Users WHERE Username = 'alexander'";
-        Assert.AreEqual(1, Convert.ToInt32(cmd.ExecuteScalar()));
+        Assert.AreEqual("wal", journalMode);
     }
 
     [TestMethod]
-    public async Task Flush_ConsecutiveCallsWithoutActivity_SecondReturnsFalse()
-    {
-        var first = await ConnectionProvider.Flush();
-        var second = await ConnectionProvider.Flush();
-
-        Assert.IsTrue(first, "First flush after initialization must perform the backup.");
-        Assert.IsFalse(second, "Second consecutive flush must short-circuit because nothing happened in between.");
-    }
-
-    [TestMethod]
-    public async Task Flush_AfterReadSinceLastFlush_RunsAgain()
-    {
-        await ConnectionProvider.Flush();
-        await ConnectionProvider.Read(_ => 0);
-
-        var result = await ConnectionProvider.Flush();
-
-        Assert.IsTrue(result, "A Read between flushes resets the short-circuit flag, so the next Flush runs.");
-    }
-
-    [TestMethod]
-    public async Task ConnectionProvider_Constructor_WithExistingDiskFile_RestoresState()
+    public async Task Write_IsImmediatelyVisibleToASecondConnection()
     {
         var probeUsername = $"probe-{Guid.NewGuid():N}";
         await ConnectionProvider.Write(conn =>
@@ -58,10 +34,9 @@ public sealed class SqliteConnectionProviderTests : DatabaseTestBase
             cmd.Parameters.AddWithValue("@t", now);
             cmd.ExecuteNonQuery();
         });
-        await ConnectionProvider.Flush();
 
-        using var restored = new SqliteConnectionProvider(Settings);
-        var fetched = await restored.Read(conn =>
+        using var second = new SqliteConnectionProvider(Settings);
+        var fetched = await second.Read(conn =>
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT Username FROM Users WHERE Username = @n";
@@ -70,6 +45,43 @@ public sealed class SqliteConnectionProviderTests : DatabaseTestBase
         });
 
         Assert.AreEqual(probeUsername, fetched);
+    }
+
+    [TestMethod]
+    public async Task ConnectionProvider_ExistingRollbackJournalDatabase_ConvertsToWalKeepingData()
+    {
+        var legacyDir = Path.Combine(TempDir, "legacy");
+        Directory.CreateDirectory(legacyDir);
+        var legacySettings = new AlexandriaSettings
+        {
+            PublicUrl = "http://localhost",
+            DataFolder = legacyDir,
+            EbookFolder = Path.Combine(legacyDir, "ebooks"),
+            AudiobookFolder = Path.Combine(legacyDir, "audiobooks")
+        };
+
+        using (var legacyConn = new SqliteConnection($"Data Source={legacySettings.Database};Pooling=False"))
+        {
+            legacyConn.Open();
+            using var cmd = legacyConn.CreateCommand();
+            cmd.CommandText = "CREATE TABLE Probe (Value TEXT); INSERT INTO Probe (Value) VALUES ('kept')";
+            cmd.ExecuteNonQuery();
+        }
+
+        using var provider = new SqliteConnectionProvider(legacySettings);
+        var (journalMode, value) = await provider.Read(conn =>
+        {
+            using var journalCmd = conn.CreateCommand();
+            journalCmd.CommandText = "PRAGMA journal_mode";
+            var mode = (string)journalCmd.ExecuteScalar()!;
+
+            using var valueCmd = conn.CreateCommand();
+            valueCmd.CommandText = "SELECT Value FROM Probe";
+            return (mode, (string?)valueCmd.ExecuteScalar());
+        });
+
+        Assert.AreEqual("wal", journalMode);
+        Assert.AreEqual("kept", value);
     }
 
     /// <summary>

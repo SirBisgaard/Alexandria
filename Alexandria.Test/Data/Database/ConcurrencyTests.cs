@@ -6,7 +6,7 @@ namespace Alexandria.Tests.Data.Database;
 
 /// <summary>
 /// <see cref="Alexandria.DataAccess.Database.SqliteConnectionProvider"/> serializes every Read
-/// and Write through a single <c>SemaphoreSlim</c> guarding an in-memory connection. These tests
+/// and Write through a single <c>SemaphoreSlim</c> guarding a single connection. These tests
 /// validate the observable contract: parallel callers don't corrupt state, don't deadlock, and
 /// all their operations eventually complete.
 /// </summary>

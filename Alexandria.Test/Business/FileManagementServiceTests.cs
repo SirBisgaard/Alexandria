@@ -15,7 +15,6 @@ public sealed class FileManagementServiceTests
     private FakeSettingsService settingsService = null!;
     private FakeFileRenamer ebookRenamer = null!;
     private FakeFileManagementProgressService progressService = null!;
-    private FakeDatabasePersistence databasePersistence = null!;
     private FileManagementService service = null!;
     private string tempDir = null!;
 
@@ -29,8 +28,7 @@ public sealed class FileManagementServiceTests
         settingsService = new FakeSettingsService();
         ebookRenamer = new FakeFileRenamer([".epub"]);
         progressService = new FakeFileManagementProgressService();
-        databasePersistence = new FakeDatabasePersistence();
-        service = new FileManagementService(bookRepository, settingsService, [ebookRenamer], progressService, databasePersistence, NullLogger<FileManagementService>.Instance);
+        service = new FileManagementService(bookRepository, settingsService, [ebookRenamer], progressService, NullLogger<FileManagementService>.Instance);
     }
 
     [TestCleanup]
@@ -131,7 +129,7 @@ public sealed class FileManagementServiceTests
     }
 
     [TestMethod]
-    public async Task Run_HappyPath_ExecutesRenameAndFlushes()
+    public async Task Run_HappyPath_ExecutesRename()
     {
         settingsService.Settings.FileRenameTemplate = "<Title>";
         bookRepository.Seed(BuildBook(Path.Combine(tempDir, "old.epub"), "Renamed", "A"));
@@ -140,7 +138,6 @@ public sealed class FileManagementServiceTests
 
         Assert.HasCount(1, ebookRenamer.Executed);
         Assert.AreEqual(Path.Combine(tempDir, "Renamed.epub"), ebookRenamer.Executed[0].NewSourcePath);
-        Assert.AreEqual(1, databasePersistence.FlushCount);
         Assert.IsNotNull(progressService.Completion);
         Assert.AreEqual(1, progressService.Completion.Renamed);
         Assert.IsEmpty(progressService.Completion.Failed);
@@ -264,11 +261,5 @@ public sealed class FileManagementServiceTests
             if (doneObject is FileManagementCompletion c)
                 Completion = c;
         }
-    }
-
-    private sealed class FakeDatabasePersistence : IDatabasePersistence
-    {
-        public int FlushCount { get; private set; }
-        public Task<bool> Flush() { FlushCount++; return Task.FromResult(true); }
     }
 }

@@ -17,7 +17,6 @@ public sealed class IndexerServiceTests
     private FakeSettingsService settingsService = null!;
     private FakeAuthorRepository authorRepository = null!;
     private FakeSeriesRepository seriesRepository = null!;
-    private FakeDatabasePersistence databasePersistence = null!;
     private RecordingFileConverter converter = null!;
     private FakeIndexingProgressService progressService = null!;
     private IndexerService service = null!;
@@ -33,7 +32,6 @@ public sealed class IndexerServiceTests
         settingsService = new FakeSettingsService();
         authorRepository = new FakeAuthorRepository();
         seriesRepository = new FakeSeriesRepository();
-        databasePersistence = new FakeDatabasePersistence();
         converter = new RecordingFileConverter(callLog);
         progressService = new FakeIndexingProgressService();
         service = new IndexerService(
@@ -42,7 +40,6 @@ public sealed class IndexerServiceTests
             settingsService,
             authorRepository,
             seriesRepository,
-            databasePersistence,
             [converter],
             progressService,
             NullLogger<IndexerService>.Instance);
@@ -58,7 +55,6 @@ public sealed class IndexerServiceTests
         Assert.AreEqual(0, count);
         Assert.IsEmpty(bookRepository.All);
         Assert.AreEqual(1, settingsService.UpdateLastIndexedTimestampCount);
-        Assert.AreEqual(1, databasePersistence.FlushCount);
     }
 
     [TestMethod]
@@ -188,12 +184,11 @@ public sealed class IndexerServiceTests
     }
 
     [TestMethod]
-    public async Task Index_UpdatesLastIndexedTimestampAndFlushesDatabase()
+    public async Task Index_UpdatesLastIndexedTimestamp()
     {
         await service.Index();
 
         Assert.AreEqual(1, settingsService.UpdateLastIndexedTimestampCount);
-        Assert.AreEqual(1, databasePersistence.FlushCount);
         Assert.IsNotNull(settingsService.Settings.LastIndexedTimestamp);
     }
 
@@ -253,7 +248,6 @@ public sealed class IndexerServiceTests
         Assert.IsEmpty(contentManager.UpdateBookCalls);
         Assert.AreEqual(1, contentManager.GetBookCallCount);
         Assert.AreEqual(1, bookRepository.UpdateCallCount);
-        Assert.AreEqual(1, databasePersistence.FlushCount);
     }
 
     [TestMethod]
@@ -722,17 +716,6 @@ public sealed class IndexerServiceTests
 
         public Task Update(Series series) => Task.CompletedTask;
         public Task ReassignBooks(Guid sourceUuid, Guid targetUuid) => Task.CompletedTask;
-    }
-
-    internal sealed class FakeDatabasePersistence : IDatabasePersistence
-    {
-        public int FlushCount { get; private set; }
-
-        public Task<bool> Flush()
-        {
-            FlushCount++;
-            return Task.FromResult(true);
-        }
     }
 
     internal sealed class RecordingFileConverter(List<string> log) : IFileConverter

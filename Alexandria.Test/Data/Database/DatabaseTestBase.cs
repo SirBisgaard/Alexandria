@@ -8,8 +8,8 @@ namespace Alexandria.Tests.Data.Database;
 
 /// <summary>
 /// Shared setup for database tests. Owns the temp directory, the <see cref="SqliteConnectionProvider"/>,
-/// and a freshly-initialized schema. Each subclass test gets its own isolated in-memory SQLite database
-/// (the connection provider uses <c>Data Source=:memory:</c> internally) with the V1 schema already
+/// and a freshly-initialized schema. Each subclass test gets its own isolated SQLite database file
+/// inside its temp directory (opened in WAL mode by the provider) with the V1 schema already
 /// applied and default settings + user rows seeded.
 /// </summary>
 public abstract class DatabaseTestBase

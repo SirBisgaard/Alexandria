@@ -10,7 +10,6 @@ public class FileManagementService(
     ISettingsService settingsService,
     IEnumerable<IFileRenamer> renamers,
     IProgressService progressService,
-    IDatabasePersistence databasePersistence,
     ILogger<FileManagementService> logger) : IFileManagementService
 {
     public async Task<FileManagementPlan> ComputePlan()
@@ -134,7 +133,6 @@ public class FileManagementService(
             }
         }
 
-        await databasePersistence.Flush();
         progressService.ReportDone(new FileManagementCompletion { Renamed = renamed, Skipped = plan.Skipped.Count, Failed = failed });
     }
 

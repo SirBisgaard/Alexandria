@@ -43,11 +43,9 @@ builder.Logging.AddProvider(new ExceptionFileLoggerProvider(Path.Combine(alexand
 builder.Services.AddHttpClient<KoboStoreProxyService>(_ => { }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<IAudioBookShelfSyncIntegration, AudioBookShelfSyncIntegration>();
 
-// In-memory SQLite with periodic flush to disk.
+// File-backed SQLite in WAL mode; every commit is durable on its own.
 builder.Services.AddSingleton<SqliteConnectionProvider>();
 builder.Services.AddSingleton<ISqliteConnectionProvider>(sp => sp.GetRequiredService<SqliteConnectionProvider>());
-builder.Services.AddSingleton<IDatabasePersistence>(sp => sp.GetRequiredService<SqliteConnectionProvider>());
-builder.Services.AddHostedService<DatabaseFlushService>();
 
 // Add repositories to the container.
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();

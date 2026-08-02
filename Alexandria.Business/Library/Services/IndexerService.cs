@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.Library.Services;
 
-public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IDatabasePersistence databasePersistence, IEnumerable<IFileConverter> converters, IProgressService progressService, ILogger<IndexerService> logger) : IIndexerService
+public class IndexerService(IFileContentManager contentManager, IBookRepository bookRepository, ISettingsService settingsService, IAuthorRepository authorRepository, ISeriesRepository seriesRepository, IEnumerable<IFileConverter> converters, IProgressService progressService, ILogger<IndexerService> logger) : IIndexerService
 {
     private static readonly SemaphoreSlim IndexLock = new(1, 1);
 
@@ -99,7 +99,6 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             contentManager.CleanupStaleDerivatives(discoveredBooks, existingBooks);
             await HandleStaleBooks(existingBooks, claimedUuids);
             await settingsService.UpdateLastIndexedTimestamp(DateTimeOffset.UtcNow);
-            await databasePersistence.Flush();
             logger.LogInformation("Library indexing complete, {Count} files total", discoveredBooks.Count);
             return discoveredBooks.Count;
         }
@@ -138,7 +137,6 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
             ComputePageCount(refreshed, wordsPerPage);
 
             await PersistBook(refreshed, false);
-            await databasePersistence.Flush();
 
             logger.LogInformation("Reindexing book: {mediaType}:{Title} from {filePath}", refreshed.File.MediaType, refreshed.Title, refreshed.File.SourcePath);
         }
