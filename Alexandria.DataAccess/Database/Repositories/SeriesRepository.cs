@@ -130,6 +130,37 @@ public class SeriesRepository(ISqliteConnectionProvider connectionProvider) : IS
         });
     }
 
+    public async Task<Dictionary<Guid, Series>> GetSeriesForAllBooks()
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT bs.BookUuid, s.SeriesUuid, s.Name, bs.[Index], s.CreatedAt, s.ModifiedAt
+                FROM Series s
+                JOIN BookSeries bs ON s.SeriesUuid = bs.SeriesUuid
+                ORDER BY bs.BookUuid
+                """;
+
+            using var reader = cmd.ExecuteReader();
+            var result = new Dictionary<Guid, Series>();
+            while (reader.Read())
+            {
+                var bookUuid = Guid.Parse(reader.GetString(0));
+                result.TryAdd(bookUuid, new Series
+                {
+                    SeriesUuid = Guid.Parse(reader.GetString(1)),
+                    Name = reader.GetString(2),
+                    Index = reader.IsDBNull(3) ? null : reader.GetDecimal(3),
+                    CreatedAt = DateTimeOffset.Parse(reader.GetString(4)),
+                    ModifiedAt = DateTimeOffset.Parse(reader.GetString(5))
+                });
+            }
+
+            return result;
+        });
+    }
+
     public async Task RemoveOrphanedSeries()
     {
         await connectionProvider.Write(connection =>

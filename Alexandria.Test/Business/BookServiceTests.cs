@@ -585,6 +585,8 @@ public sealed class BookServiceTests
 
         public Task<ReadingProgress?> GetReadingProgress(Guid bookUuid) => Task.FromResult(progress.GetValueOrDefault(bookUuid));
 
+        public Task<Dictionary<Guid, ReadingProgress>> GetAllReadingProgress() => Task.FromResult(new Dictionary<Guid, ReadingProgress>(progress));
+
         public Task<bool> Upsert(Guid bookUuid, KoboStoreReadingState state)
         {
             states[bookUuid] = state;

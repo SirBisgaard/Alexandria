@@ -10,6 +10,7 @@ public interface IAuthorRepository
     Task<Guid> GetOrCreate(string name);
     Task SetBookAuthors(Guid bookUuid, List<string> authorNames);
     Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid);
+    Task<Dictionary<Guid, List<Author>>> GetAuthorsForAllBooks();
     Task RemoveOrphanedAuthors();
     Task Update(Author author);
     Task ReassignBooks(Guid sourceUuid, Guid targetUuid);

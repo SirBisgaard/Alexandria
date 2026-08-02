@@ -296,6 +296,7 @@ public sealed class SeriesServiceTests
         public Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index) => Task.CompletedTask;
         public Task RemoveBookSeries(Guid bookUuid) => Task.CompletedTask;
         public Task<Series?> GetSeriesByBookUuid(Guid bookUuid) => Task.FromResult<Series?>(null);
+        public Task<Dictionary<Guid, Series>> GetSeriesForAllBooks() => Task.FromResult(new Dictionary<Guid, Series>());
 
         public Task RemoveOrphanedSeries()
         {

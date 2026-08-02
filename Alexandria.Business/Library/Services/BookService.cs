@@ -12,9 +12,10 @@ public class BookService(IBookRepository bookRepository, IReadingStateRepository
     public async Task<List<Book>> GetBooks(BookSortOptions? sortOptions = null)
     {
         var books = await bookRepository.GetAll();
+        var progressByBook = await readingStateRepository.GetAllReadingProgress();
         foreach (var book in books)
         {
-            book.ReadingProgress = await readingStateRepository.GetReadingProgress(book.BookUuid);
+            book.ReadingProgress = progressByBook.GetValueOrDefault(book.BookUuid);
         }
         return AlexandriaLibraryHelper.SortBooks(books, sortOptions ?? new BookSortOptions());
     }

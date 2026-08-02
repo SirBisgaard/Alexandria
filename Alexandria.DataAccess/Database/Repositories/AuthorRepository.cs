@@ -134,6 +134,32 @@ public class AuthorRepository(ISqliteConnectionProvider connectionProvider) : IA
         });
     }
 
+    public async Task<Dictionary<Guid, List<Author>>> GetAuthorsForAllBooks()
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT ba.BookUuid, a.AuthorUuid, a.Name, a.CreatedAt, a.ModifiedAt
+                FROM Authors a
+                JOIN BookAuthors ba ON a.AuthorUuid = ba.AuthorUuid
+                ORDER BY ba.BookUuid, a.Name
+                """;
+
+            using var reader = cmd.ExecuteReader();
+            var result = new Dictionary<Guid, List<Author>>();
+            while (reader.Read())
+            {
+                var bookUuid = Guid.Parse(reader.GetString(0));
+                if (!result.TryGetValue(bookUuid, out var authors))
+                    result[bookUuid] = authors = [];
+                authors.Add(MapAuthor(reader));
+            }
+
+            return result;
+        });
+    }
+
     public async Task RemoveOrphanedAuthors()
     {
         await connectionProvider.Write(connection =>

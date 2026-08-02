@@ -92,6 +92,28 @@ public sealed class ReadingStateRepositoryTests : DatabaseTestBase
     }
 
     [TestMethod]
+    public async Task ReadingStateRepository_GetAllReadingProgress_ReturnsRowPerBook()
+    {
+        var reading = Guid.NewGuid();
+        var finished = Guid.NewGuid();
+        await repository.Upsert(reading, BuildState(status: "Reading", progress: 42));
+        await repository.Upsert(finished, BuildState(status: "Finished", progress: 100));
+
+        var all = await repository.GetAllReadingProgress();
+
+        Assert.HasCount(2, all);
+        Assert.AreEqual(ReadingStatus.Reading, all[reading].Status);
+        Assert.AreEqual(42, all[reading].ProgressPercent);
+        Assert.AreEqual(ReadingStatus.Finished, all[finished].Status);
+    }
+
+    [TestMethod]
+    public async Task ReadingStateRepository_GetAllReadingProgress_EmptyTable_ReturnsEmpty()
+    {
+        Assert.IsEmpty(await repository.GetAllReadingProgress());
+    }
+
+    [TestMethod]
     public async Task ReadingStateRepository_DeleteByBookUuid_RemovesTheRow()
     {
         var bookUuid = Guid.NewGuid();

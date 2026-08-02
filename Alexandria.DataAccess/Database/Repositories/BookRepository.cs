@@ -28,16 +28,29 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
                 result.Add(MapBook(reader));
             }
 
+            var identifiers = LoadStringSubTableForAll(connection, "BookIdentifiers");
+            var subjects = LoadStringSubTableForAll(connection, "BookSubjects");
+            var contributors = LoadContributorsForAll(connection);
+            var chapters = LoadChaptersForAll(connection);
+
             foreach (var book in result)
-                LoadSubTableData(connection, book);
+            {
+                book.Identifiers = identifiers.GetValueOrDefault(book.BookUuid, []);
+                book.Subjects = subjects.GetValueOrDefault(book.BookUuid, []);
+                book.Contributors = contributors.GetValueOrDefault(book.BookUuid, []);
+                if (book.File.MediaType == MediaType.Audiobook)
+                    book.Chapters = chapters.GetValueOrDefault(book.BookUuid, []);
+            }
 
             return result;
         });
 
+        var authorsByBook = await authorRepository.GetAuthorsForAllBooks();
+        var seriesByBook = await seriesRepository.GetSeriesForAllBooks();
         foreach (var book in books)
         {
-            book.Authors = await authorRepository.GetAuthorsByBookUuid(book.BookUuid);
-            book.Series = await seriesRepository.GetSeriesByBookUuid(book.BookUuid);
+            book.Authors = authorsByBook.GetValueOrDefault(book.BookUuid, []);
+            book.Series = seriesByBook.GetValueOrDefault(book.BookUuid);
         }
 
         return books;
@@ -340,6 +353,69 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         book.Contributors = LoadContributors(connection, book.BookUuid);
         if (book.File.MediaType == MediaType.Audiobook)
             book.Chapters = LoadChapters(connection, book.BookUuid);
+    }
+
+    private static Dictionary<Guid, List<string>> LoadStringSubTableForAll(SqliteConnection connection, string tableName)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = $"SELECT BookUuid, Value FROM {tableName}";
+
+        using var reader = cmd.ExecuteReader();
+        var result = new Dictionary<Guid, List<string>>();
+        while (reader.Read())
+        {
+            var bookUuid = Guid.Parse(reader.GetString(0));
+            if (!result.TryGetValue(bookUuid, out var values))
+                result[bookUuid] = values = [];
+            values.Add(reader.GetString(1));
+        }
+        return result;
+    }
+
+    private static Dictionary<Guid, List<Contributor>> LoadContributorsForAll(SqliteConnection connection)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT BookUuid, Name, Role FROM BookContributors";
+
+        using var reader = cmd.ExecuteReader();
+        var result = new Dictionary<Guid, List<Contributor>>();
+        while (reader.Read())
+        {
+            var bookUuid = Guid.Parse(reader.GetString(0));
+            if (!result.TryGetValue(bookUuid, out var contributors))
+                result[bookUuid] = contributors = [];
+            contributors.Add(new Contributor
+            {
+                Name = reader.GetString(1),
+                Role = reader.IsDBNull(2) ? null : reader.GetString(2)
+            });
+        }
+        return result;
+    }
+
+    private static Dictionary<Guid, List<AudiobookChapter>> LoadChaptersForAll(SqliteConnection connection)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT BookUuid, ChapterIndex, Title, Duration, StartTime, EndTime, FileName FROM AudiobookChapters ORDER BY BookUuid, ChapterIndex";
+
+        using var reader = cmd.ExecuteReader();
+        var result = new Dictionary<Guid, List<AudiobookChapter>>();
+        while (reader.Read())
+        {
+            var bookUuid = Guid.Parse(reader.GetString(0));
+            if (!result.TryGetValue(bookUuid, out var chapters))
+                result[bookUuid] = chapters = [];
+            chapters.Add(new AudiobookChapter
+            {
+                ChapterIndex = reader.GetInt32(1),
+                Title = reader.GetString(2),
+                Duration = reader.GetDouble(3),
+                StartTime = reader.GetDouble(4),
+                EndTime = reader.GetDouble(5),
+                FileName = reader.IsDBNull(6) ? null : reader.GetString(6)
+            });
+        }
+        return result;
     }
 
     private static List<string> LoadStringSubTable(SqliteConnection connection, string tableName, Guid bookUuid)

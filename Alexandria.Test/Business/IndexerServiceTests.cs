@@ -655,6 +655,7 @@ public sealed class IndexerServiceTests
         }
 
         public Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid) => Task.FromResult(byBook.GetValueOrDefault(bookUuid, []));
+        public Task<Dictionary<Guid, List<Author>>> GetAuthorsForAllBooks() => Task.FromResult(new Dictionary<Guid, List<Author>>(byBook));
 
         public Task RemoveOrphanedAuthors()
         {
@@ -706,6 +707,18 @@ public sealed class IndexerServiceTests
             if (byBook.TryGetValue(bookUuid, out var entry) && byUuid.TryGetValue(entry.SeriesUuid, out var series))
                 return Task.FromResult<Series?>(new Series { SeriesUuid = series.SeriesUuid, Name = series.Name, Index = entry.Index });
             return Task.FromResult<Series?>(null);
+        }
+
+        public async Task<Dictionary<Guid, Series>> GetSeriesForAllBooks()
+        {
+            var result = new Dictionary<Guid, Series>();
+            foreach (var bookUuid in byBook.Keys)
+            {
+                var series = await GetSeriesByBookUuid(bookUuid);
+                if (series is not null)
+                    result[bookUuid] = series;
+            }
+            return result;
         }
 
         public Task RemoveOrphanedSeries()

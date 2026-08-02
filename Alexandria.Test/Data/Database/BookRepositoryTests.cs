@@ -207,6 +207,34 @@ public sealed class BookRepositoryTests : DatabaseTestBase
     }
 
     [TestMethod]
+    public async Task BookRepository_GetAll_MultipleBooks_SubDataDoesNotBleedBetweenBooks()
+    {
+        var withEverything = BuildBook(title: "Rich", isbn: "9780000000010", mediaType: MediaType.Audiobook);
+        withEverything.Chapters = [new AudiobookChapter { ChapterIndex = 0, Title = "Ch1", Duration = 10, StartTime = 0, EndTime = 10 }];
+        var bare = BuildBook(title: "Bare", isbn: null);
+        bare.Subjects = [];
+        await repository.Add(withEverything);
+        await repository.Add(bare);
+        await authorRepository.SetBookAuthors(withEverything.BookUuid, ["Only Rich Author"]);
+        var seriesUuid = await seriesRepository.GetOrCreate("Rich Series");
+        await seriesRepository.SetBookSeries(withEverything.BookUuid, seriesUuid, 1m);
+
+        var all = await repository.GetAll();
+        var rich = all.Single(b => b.BookUuid == withEverything.BookUuid);
+        var empty = all.Single(b => b.BookUuid == bare.BookUuid);
+
+        Assert.HasCount(1, rich.Identifiers);
+        Assert.HasCount(1, rich.Authors);
+        Assert.HasCount(1, rich.Chapters);
+        Assert.IsNotNull(rich.Series);
+        Assert.IsEmpty(empty.Identifiers);
+        Assert.IsEmpty(empty.Subjects);
+        Assert.IsEmpty(empty.Authors);
+        Assert.IsEmpty(empty.Chapters);
+        Assert.IsNull(empty.Series);
+    }
+
+    [TestMethod]
     public async Task BookRepository_Remove_DeletesBookAndAllSubTableRows()
     {
         var book = BuildBook();

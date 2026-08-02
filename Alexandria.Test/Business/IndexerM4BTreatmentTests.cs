@@ -289,6 +289,7 @@ public sealed class IndexerM4BTreatmentTests
         }
 
         public Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid) => Task.FromResult(byBook.GetValueOrDefault(bookUuid, []));
+        public Task<Dictionary<Guid, List<Author>>> GetAuthorsForAllBooks() => Task.FromResult(new Dictionary<Guid, List<Author>>(byBook));
         public Task RemoveOrphanedAuthors() => Task.CompletedTask;
         public Task Update(Author author) => Task.CompletedTask;
         public Task ReassignBooks(Guid sourceUuid, Guid targetUuid) => Task.CompletedTask;
@@ -303,6 +304,7 @@ public sealed class IndexerM4BTreatmentTests
         public Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index) => Task.CompletedTask;
         public Task RemoveBookSeries(Guid bookUuid) => Task.CompletedTask;
         public Task<Series?> GetSeriesByBookUuid(Guid bookUuid) => Task.FromResult<Series?>(null);
+        public Task<Dictionary<Guid, Series>> GetSeriesForAllBooks() => Task.FromResult(new Dictionary<Guid, Series>());
         public Task RemoveOrphanedSeries() => Task.CompletedTask;
         public Task Update(Series series) => Task.CompletedTask;
         public Task ReassignBooks(Guid sourceUuid, Guid targetUuid) => Task.CompletedTask;

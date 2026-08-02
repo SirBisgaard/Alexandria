@@ -52,6 +52,32 @@ public class ReadingStateRepository(ISqliteConnectionProvider connectionProvider
         });
     }
 
+    public async Task<Dictionary<Guid, ReadingProgress>> GetAllReadingProgress()
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT BookUuid, StatusInfoStatus, ProgressPercent, SpentReadingMinutes, RemainingTimeMinutes, CreatedAt, ModifiedAt FROM KoboReadingStates";
+
+            using var reader = cmd.ExecuteReader();
+            var result = new Dictionary<Guid, ReadingProgress>();
+            while (reader.Read())
+            {
+                result[Guid.Parse(reader.GetString(0))] = new ReadingProgress
+                {
+                    Status = Enum.Parse<ReadingStatus>(reader.GetString(1)),
+                    ProgressPercent = reader.IsDBNull(2) ? null : reader.GetDecimal(2),
+                    SpentReadingMinutes = reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                    RemainingTimeMinutes = reader.IsDBNull(4) ? null : reader.GetInt32(4),
+                    CreatedAt = DateTimeOffset.Parse(reader.GetString(5)),
+                    ModifiedAt = DateTimeOffset.Parse(reader.GetString(6))
+                };
+            }
+
+            return result;
+        });
+    }
+
     public async Task<bool> Upsert(Guid bookUuid, KoboStoreReadingState state)
     {
         return await connectionProvider.Write(connection =>

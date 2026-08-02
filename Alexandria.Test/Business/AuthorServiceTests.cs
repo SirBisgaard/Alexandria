@@ -313,6 +313,7 @@ public sealed class AuthorServiceTests
 
         public Task SetBookAuthors(Guid bookUuid, List<string> authorNames) => Task.CompletedTask;
         public Task<List<Author>> GetAuthorsByBookUuid(Guid bookUuid) => Task.FromResult(new List<Author>());
+        public Task<Dictionary<Guid, List<Author>>> GetAuthorsForAllBooks() => Task.FromResult(new Dictionary<Guid, List<Author>>());
 
         public Task RemoveOrphanedAuthors()
         {

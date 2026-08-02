@@ -10,6 +10,7 @@ public interface ISeriesRepository
     Task SetBookSeries(Guid bookUuid, Guid seriesUuid, decimal? index);
     Task RemoveBookSeries(Guid bookUuid);
     Task<Series?> GetSeriesByBookUuid(Guid bookUuid);
+    Task<Dictionary<Guid, Series>> GetSeriesForAllBooks();
     Task RemoveOrphanedSeries();
     Task<Series?> FindByName(string name);
     Task Update(Series series);
