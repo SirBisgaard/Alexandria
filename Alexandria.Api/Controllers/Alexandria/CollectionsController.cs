@@ -1,3 +1,4 @@
+using Alexandria.Api.Filters;
 using Alexandria.Api.Models;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models.Others;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/collections")]
+[ServiceFilter<LibraryETagFilter>]
 public class CollectionsController(ICollectionService collectionService, IBookService bookService) : AlexandriaControllerBase
 {
     [HttpGet]

@@ -1,3 +1,4 @@
+using Alexandria.Api.Filters;
 using Alexandria.Api.Models;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Business.KoboStoreProxy.Extensions;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/books")]
+[ServiceFilter<LibraryETagFilter>]
 public class BooksController(IBookService bookService, IBookActivityEventRepository activityEventRepository, ILogger<BooksController> logger) : AlexandriaControllerBase
 {
     [HttpGet]

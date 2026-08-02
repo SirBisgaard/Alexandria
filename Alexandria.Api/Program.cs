@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json.Serialization;
 using Alexandria.Api.Authentication;
+using Alexandria.Api.Filters;
 using Alexandria.Api.Middleware;
 using Alexandria.Api.Sync;
 using Alexandria.Business.Authentication;
@@ -52,6 +53,8 @@ builder.Services.AddSingleton<ISqliteConnectionProvider>(sp => sp.GetRequiredSer
 // Add repositories to the container.
 builder.Services.AddTransient<IDatabaseInitializer, DatabaseInitializer>();
 
+builder.Services.AddTransient<ILibraryVersionRepository, LibraryVersionRepository>();
+builder.Services.AddTransient<LibraryETagFilter>();
 builder.Services.AddTransient<IKoboTrafficLogRepository, KoboTrafficLogRepository>();
 builder.Services.AddTransient<IKoboDeviceSyncRepository, KoboDeviceSyncRepository>();
 builder.Services.AddTransient<IBookActivityEventRepository, BookActivityEventRepository>();

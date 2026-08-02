@@ -1,3 +1,4 @@
+using Alexandria.Api.Filters;
 using Alexandria.Api.Models;
 using Alexandria.Api.Models.Requests;
 using Alexandria.Business.Library.Interfaces;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alexandria.Api.Controllers.Alexandria;
 
 [Route("/api/alexandria/series")]
+[ServiceFilter<LibraryETagFilter>]
 public class SeriesController(ISeriesService seriesService, ILogger<SeriesController> logger) : AlexandriaControllerBase
 {
     [HttpGet]
