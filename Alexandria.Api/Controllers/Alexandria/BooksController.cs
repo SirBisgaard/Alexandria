@@ -81,7 +81,7 @@ public class BooksController(IBookService bookService, IBookActivityEventReposit
         var cover = await bookService.GetBookCover(uuid, width, height);
         if (cover is null)
             return NotFound();
-        Response.Headers.CacheControl = "public, max-age=604800, immutable";
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
         return File(cover, "image/jpeg");
     }
 
