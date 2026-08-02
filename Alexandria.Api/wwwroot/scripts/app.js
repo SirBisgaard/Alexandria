@@ -1,8 +1,28 @@
+// ===== View Toggle (Cover / List) =====
+function updateViewToggleMenu(activeView) {
+    $("[data-view-toggle]").each(function () {
+        if ($(this).data("view-toggle") === activeView)
+            $(this).closest("li").addClass("d-none");
+        else
+            $(this).closest("li").removeClass("d-none");
+    });
+}
+
+// Applies the persisted grid/list preference to the freshly mounted view — router.js calls
+// this after each mount because the view containers are recreated per navigation.
+function applySavedViewMode() {
+    var savedView = localStorage.getItem("view") || "grid";
+    var $grid = $(".view-grid-container");
+    var $list = $(".view-list-container");
+    if ($grid.length && $list.length && savedView === "list") {
+        $grid.addClass("d-none");
+        $list.removeClass("d-none");
+    }
+    updateViewToggleMenu(savedView);
+}
+
 // ===== App Initialization =====
 $(function () {
-    // ===== Inject sort arrow spans into sort dropdown items =====
-    $(".dropdown-item[data-sort]").append(' <span class="sort-arrow"></span>');
-
     // ===== Inject Modal HTML =====
     $("body").append(
         '<div class="book-modal-backdrop" id="book-modal-backdrop">' +
@@ -467,25 +487,6 @@ $(function () {
 
         if (pageReload) { pageReload(); }
     });
-
-    // ===== View Toggle (Cover / List) =====
-    function updateViewToggleMenu(activeView) {
-        $("[data-view-toggle]").each(function () {
-            if ($(this).data("view-toggle") === activeView)
-                $(this).closest("li").addClass("d-none");
-            else
-                $(this).closest("li").removeClass("d-none");
-        });
-    }
-
-    var savedView = localStorage.getItem("view") || "grid";
-    var $gridInit = $(".view-grid-container");
-    var $listInit = $(".view-list-container");
-    if ($gridInit.length && $listInit.length && savedView === "list") {
-        $gridInit.addClass("d-none");
-        $listInit.removeClass("d-none");
-    }
-    updateViewToggleMenu(savedView);
 
     $(document).on("click", "[data-view-toggle]", function (e) {
         e.preventDefault();

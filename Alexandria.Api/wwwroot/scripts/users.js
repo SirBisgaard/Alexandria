@@ -29,7 +29,7 @@ function showMessageModal(title, message) {
 
 var currentUserUuid = null;
 
-$(function () {
+function initUsersView() {
     $.get("/api/alexandria/auth/me", function (me) {
         currentUserUuid = me.userUuid;
         loadUsers();
@@ -56,7 +56,7 @@ $(function () {
         e.preventDefault();
         saveUser();
     });
-});
+}
 
 function loadUsers() {
     $.get("/api/alexandria/users", function (users) {

@@ -128,6 +128,7 @@ function saveEntityEdit() {
     }
 
     var sourceUuid = entityEditType === "author" ? entityEditData.authorUuid : entityEditData.seriesUuid;
+    var isAuthor = entityEditType === "author";
 
     var $save = $("#entity-edit-save");
     $save.data("original-text", $save.text()).text("Loading...").prop("disabled", true);
@@ -143,8 +144,7 @@ function saveEntityEdit() {
             closeEntityEditModal();
             var returnedUuid = data[uuidKey];
             if (returnedUuid && returnedUuid !== sourceUuid) {
-                var detailPage = entityEditType === "author" ? "author-detail.html" : "series-detail.html";
-                window.location.href = detailPage + "?id=" + returnedUuid;
+                window.location.hash = (isAuthor ? "#/authors/" : "#/series/") + returnedUuid;
             } else {
                 if (pageReload) { pageReload(); }
             }

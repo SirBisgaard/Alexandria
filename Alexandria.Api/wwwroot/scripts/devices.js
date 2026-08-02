@@ -27,7 +27,7 @@ function showMessageModal(title, message) {
     });
 }
 
-$(function () {
+function initDevicesView() {
     loadDevices();
 
     $("#confirm-modal-backdrop").on("click", function (e) {
@@ -90,7 +90,7 @@ $(function () {
             setTimeout(function () { $("#device-copy-url-btn").text("Copy Url"); }, 2000);
         });
     });
-});
+}
 
 function openPairModal() {
     $("#pair-nickname").removeClass("bm-edit-input-invalid");

@@ -34,10 +34,10 @@ function openBookModal(uuid) {
             $("#bm-cover-inner").append(AUDIOBOOK_BADGE);
         $("#bm-cover-frame").show();
         $("#bm-title").text(book.title);
-        var seriesHtml = seriesName ? ('<a href="series-detail.html?uuid=' + book.series.seriesUuid + '">' + escapeHtml(series) + '</a>') : "";
+        var seriesHtml = seriesName ? ('<a href="#/series/' + book.series.seriesUuid + '">' + escapeHtml(series) + '</a>') : "";
         $("#bm-series").html(seriesHtml).toggle(!!seriesName);
         var authorLinks = (book.authors || []).map(function(a) {
-            return '<a href="author-detail.html?uuid=' + a.authorUuid + '">' + escapeHtml(a.name) + '</a>';
+            return '<a href="#/authors/' + a.authorUuid + '">' + escapeHtml(a.name) + '</a>';
         }).join(", ");
         $("#bm-author").html(authorLinks);
         var contributorHtml = (book.contributors || []).map(function(c) {
