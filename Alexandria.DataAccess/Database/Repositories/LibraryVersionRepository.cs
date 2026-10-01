@@ -20,7 +20,7 @@ public class LibraryVersionRepository(ISqliteConnectionProvider connectionProvid
                     (SELECT COUNT(*) FROM KoboReadingStates), (SELECT MAX(ModifiedAt) FROM KoboReadingStates),
                     (SELECT COUNT(*) FROM Collections), (SELECT MAX(ModifiedAt) FROM Collections),
                     (SELECT COUNT(*) FROM CollectionBooks), (SELECT MAX(ModifiedAt) FROM CollectionBooks),
-                    (SELECT COUNT(*) FROM BookActivityEvents), (SELECT MAX(ReceivedAt) FROM BookActivityEvents)
+                    (SELECT COUNT(*) FROM BookActivityEvents), (SELECT MAX(ReceivedAt) FROM BookActivityEvents), (SELECT TOTAL(julianday(EventTimestamp)) FROM BookActivityEvents)
                 """;
 
             using var reader = cmd.ExecuteReader();

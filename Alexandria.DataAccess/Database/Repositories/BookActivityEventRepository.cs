@@ -1,6 +1,7 @@
 using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.DataAccess.Database.Interfaces;
+using Microsoft.Data.Sqlite;
 
 namespace Alexandria.DataAccess.Database.Repositories;
 
@@ -43,19 +44,40 @@ public class BookActivityEventRepository(ISqliteConnectionProvider connectionPro
             using var reader = cmd.ExecuteReader();
             var result = new List<BookActivityEvent>();
             while (reader.Read())
-            {
-                result.Add(new BookActivityEvent
-                {
-                    EventId = reader.GetString(0),
-                    BookUuid = Guid.Parse(reader.GetString(1)),
-                    DeviceUuid = reader.GetString(2),
-                    EventType = reader.GetString(3),
-                    EventTimestamp = DateTimeOffset.Parse(reader.GetString(4)),
-                    Body = reader.GetString(5),
-                    ReceivedAt = DateTimeOffset.Parse(reader.GetString(6))
-                });
-            }
+                result.Add(ReadEvent(reader));
             return result;
+        });
+    }
+
+    public async Task<BookActivityEvent?> GetLatest(Guid bookUuid)
+    {
+        return await connectionProvider.Read(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT EventId, BookUuid, DeviceUuid, EventType, EventTimestamp, Body, ReceivedAt
+                FROM BookActivityEvents
+                WHERE BookUuid = @bookUuid
+                ORDER BY EventTimestamp DESC
+                LIMIT 1
+                """;
+            cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
+
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() ? ReadEvent(reader) : null;
+        });
+    }
+
+    public async Task UpdateTimestampAndBody(string eventId, DateTimeOffset eventTimestamp, string body)
+    {
+        await connectionProvider.Write(connection =>
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE BookActivityEvents SET EventTimestamp = @eventTimestamp, Body = @body WHERE EventId = @eventId";
+            cmd.Parameters.AddWithValue("@eventId", eventId);
+            cmd.Parameters.AddWithValue("@eventTimestamp", eventTimestamp.ToString("O"));
+            cmd.Parameters.AddWithValue("@body", body);
+            cmd.ExecuteNonQuery();
         });
     }
 
@@ -68,4 +90,15 @@ public class BookActivityEventRepository(ISqliteConnectionProvider connectionPro
             return cmd.ExecuteNonQuery();
         });
     }
+
+    private static BookActivityEvent ReadEvent(SqliteDataReader reader) => new()
+    {
+        EventId = reader.GetString(0),
+        BookUuid = Guid.Parse(reader.GetString(1)),
+        DeviceUuid = reader.GetString(2),
+        EventType = reader.GetString(3),
+        EventTimestamp = DateTimeOffset.Parse(reader.GetString(4)),
+        Body = reader.GetString(5),
+        ReceivedAt = DateTimeOffset.Parse(reader.GetString(6))
+    };
 }

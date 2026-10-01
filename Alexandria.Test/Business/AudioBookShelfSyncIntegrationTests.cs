@@ -201,7 +201,96 @@ public sealed class AudioBookShelfSyncIntegrationTests
         Assert.IsTrue(handler.HasRequest(HttpMethod.Post, "/api/items/abs-1/play"), "manual sync should ignore the cutoff and push anyway");
     }
 
+    [TestMethod]
+    public async Task Sync_PullWithinSessionGap_ExtendsExistingProgressRow()
+    {
+        SeedEnabledIntegration();
+        var book = SeedAudiobook("Fellowship.m4b", duration: 100, progressPercent: 10m, modifiedAt: DateTimeOffset.UtcNow.AddHours(-2));
+        var absLastUpdate = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.AddMinutes(-1).ToUnixTimeMilliseconds());
+        var sessionStart = absLastUpdate.AddMinutes(-20);
+        activityEventRepository.Seed(BuildProgressEvent(book.BookUuid, "session-row", sessionStart, sessionStart));
+        RegisterPull("abs-1", "Fellowship.m4b", absLastUpdate, progress: 0.75);
+
+        await sut.Sync(CancellationToken.None);
+
+        var row = Assert.ContainsSingle(activityEventRepository.Events);
+        Assert.AreEqual("session-row", row.EventId);
+        Assert.AreEqual(sessionStart, row.ReceivedAt);
+        Assert.AreEqual(absLastUpdate, row.EventTimestamp);
+        Assert.AreEqual("Pulled \"Fellowship.m4b\" ← ABS at 75.0% · session 20m", row.Body);
+    }
+
+    [TestMethod]
+    public async Task Sync_PushWithinSessionGapOfPull_ExtendsExistingProgressRow()
+    {
+        SeedEnabledIntegration();
+        var localModifiedAt = DateTimeOffset.UtcNow;
+        var book = SeedAudiobook("Fellowship.m4b", duration: 100, progressPercent: 50m, modifiedAt: localModifiedAt);
+        var sessionStart = localModifiedAt.AddMinutes(-65);
+        activityEventRepository.Seed(BuildProgressEvent(book.BookUuid, "session-row", sessionStart, localModifiedAt.AddMinutes(-30)));
+        RegisterAbsLibraryWithItems((itemId: "abs-1", relPath: "Fellowship.m4b"));
+        handler.RegisterJson(HttpMethod.Get, "/api/me", HttpStatusCode.OK, """{"mediaProgress":[]}""");
+        RegisterSessionEndpoints("abs-1", "session-1");
+
+        await sut.Sync(CancellationToken.None);
+
+        var row = Assert.ContainsSingle(activityEventRepository.Events);
+        Assert.AreEqual("Pushed \"Fellowship.m4b\" → ABS at 50.0% · session 1h 5m", row.Body);
+    }
+
+    [TestMethod]
+    public async Task Sync_PullBeyondSessionGap_InsertsNewRow()
+    {
+        SeedEnabledIntegration();
+        var book = SeedAudiobook("Fellowship.m4b", duration: 100, progressPercent: 10m, modifiedAt: DateTimeOffset.UtcNow.AddHours(-2));
+        var absLastUpdate = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var previous = absLastUpdate.AddMinutes(-38);
+        activityEventRepository.Seed(BuildProgressEvent(book.BookUuid, "old-session", previous, previous));
+        RegisterPull("abs-1", "Fellowship.m4b", absLastUpdate, progress: 0.75);
+
+        await sut.Sync(CancellationToken.None);
+
+        Assert.HasCount(2, activityEventRepository.Events);
+        var inserted = activityEventRepository.Events.Single(e => e.EventId != "old-session");
+        Assert.AreEqual(inserted.ReceivedAt, inserted.EventTimestamp);
+        Assert.AreEqual("Pulled \"Fellowship.m4b\" ← ABS at 75.0% · session < 5m", inserted.Body);
+    }
+
+    [TestMethod]
+    public async Task Sync_OtherDeviceEventSinceLastProgressRow_InsertsNewRow()
+    {
+        SeedEnabledIntegration();
+        var book = SeedAudiobook("Fellowship.m4b", duration: 100, progressPercent: 10m, modifiedAt: DateTimeOffset.UtcNow.AddHours(-2));
+        var absLastUpdate = DateTimeOffset.UtcNow.AddMinutes(-1);
+        activityEventRepository.Seed(BuildProgressEvent(book.BookUuid, "abs-row", absLastUpdate.AddMinutes(-10), absLastUpdate.AddMinutes(-10)));
+        activityEventRepository.Seed(BuildProgressEvent(book.BookUuid, "kobo-row", absLastUpdate.AddMinutes(-5), absLastUpdate.AddMinutes(-5)) with { DeviceUuid = "kobo-device", EventType = "Playback" });
+        RegisterPull("abs-1", "Fellowship.m4b", absLastUpdate, progress: 0.75);
+
+        await sut.Sync(CancellationToken.None);
+
+        Assert.HasCount(3, activityEventRepository.Events);
+        Assert.AreEqual(absLastUpdate.AddMinutes(-10), activityEventRepository.Events.Single(e => e.EventId == "abs-row").EventTimestamp);
+    }
+
     // ----- helpers -----
+
+    private void RegisterPull(string itemId, string relPath, DateTimeOffset absLastUpdate, double progress)
+    {
+        RegisterAbsLibraryWithItems((itemId, relPath));
+        handler.RegisterJson(HttpMethod.Get, "/api/me", HttpStatusCode.OK,
+            $$"""{"mediaProgress":[{"libraryItemId":"{{itemId}}","lastUpdate":{{absLastUpdate.ToUnixTimeMilliseconds()}},"progress":{{progress.ToString(System.Globalization.CultureInfo.InvariantCulture)}},"isFinished":false,"currentTime":75,"duration":100}]}""");
+    }
+
+    private static BookActivityEvent BuildProgressEvent(Guid bookUuid, string eventId, DateTimeOffset receivedAt, DateTimeOffset eventTimestamp) => new()
+    {
+        EventId = eventId,
+        BookUuid = bookUuid,
+        DeviceUuid = "AudioBookShelfIntegration",
+        EventType = "AbsProgressUpdated",
+        EventTimestamp = eventTimestamp,
+        Body = "previous",
+        ReceivedAt = receivedAt
+    };
 
     private AudioBookShelfIntegration SeedEnabledIntegration()
     {
@@ -447,8 +536,20 @@ public sealed class AudioBookShelfSyncIntegrationTests
             return Task.CompletedTask;
         }
 
+        public void Seed(BookActivityEvent activityEvent) => events.Add(activityEvent);
+
         public Task<List<BookActivityEvent>> GetByBookUuid(Guid bookUuid) =>
             Task.FromResult(events.Where(e => e.BookUuid == bookUuid).OrderByDescending(e => e.EventTimestamp).ToList());
+
+        public Task<BookActivityEvent?> GetLatest(Guid bookUuid) =>
+            Task.FromResult(events.Where(e => e.BookUuid == bookUuid).OrderByDescending(e => e.EventTimestamp).FirstOrDefault());
+
+        public Task UpdateTimestampAndBody(string eventId, DateTimeOffset eventTimestamp, string body)
+        {
+            var index = events.FindIndex(e => e.EventId == eventId);
+            events[index] = events[index] with { EventTimestamp = eventTimestamp, Body = body };
+            return Task.CompletedTask;
+        }
 
         public Task<int> DeleteAll()
         {

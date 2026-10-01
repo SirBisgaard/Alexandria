@@ -1,3 +1,4 @@
+using Alexandria.Business.KoboStoreProxy.Models;
 using Alexandria.Business.KoboStoreProxy.Models.Store;
 using Alexandria.DataAccess.Database.Repositories;
 
@@ -81,6 +82,22 @@ public sealed class LibraryVersionRepositoryTests : DatabaseTestBase
             Statistics = new KoboStoreStatistics { LastModified = now },
             CurrentBookmark = new KoboStoreBookmark { LastModified = now }
         });
+
+        Assert.AreNotEqual(before, await repository.GetVersionToken());
+    }
+
+    [TestMethod]
+    public async Task GetVersionToken_AfterOlderActivityEventTimestampBumped_Changes()
+    {
+        var bookUuid = Guid.NewGuid();
+        await InsertBookShell(bookUuid);
+        var activityEventRepository = new BookActivityEventRepository(ConnectionProvider);
+        var now = DateTimeOffset.UtcNow;
+        await activityEventRepository.Insert(new BookActivityEvent { EventId = "session", BookUuid = bookUuid, DeviceUuid = "abs", EventType = "AbsProgressUpdated", EventTimestamp = now.AddHours(-2), Body = "body", ReceivedAt = now.AddHours(-2) });
+        await activityEventRepository.Insert(new BookActivityEvent { EventId = "newer", BookUuid = bookUuid, DeviceUuid = "kobo", EventType = "Playback", EventTimestamp = now, Body = "body", ReceivedAt = now });
+        var before = await repository.GetVersionToken();
+
+        await activityEventRepository.UpdateTimestampAndBody("session", now.AddHours(-1), "body");
 
         Assert.AreNotEqual(before, await repository.GetVersionToken());
     }

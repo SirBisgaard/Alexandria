@@ -16,6 +16,9 @@ namespace Alexandria.DataAccess.Integrations;
 public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShelfSyncIntegrationRepository repository, IBookRepository bookRepository, IReadingStateRepository readingStateRepository, IBookActivityEventRepository activityEventRepository, ILogger<AudioBookShelfSyncIntegration> logger) : IAudioBookShelfSyncIntegration
 {
     private const string AbsDeviceUuid = "AudioBookShelfIntegration";
+    private const string ProgressEventType = "AbsProgressUpdated";
+
+    private static readonly TimeSpan SessionGap = TimeSpan.FromMinutes(37);
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -263,19 +266,10 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
         if (!applied)
             return;
 
-        var pullMessage = string.Format(
-            "Pulled \"{0}\" ← ABS at {1:F1}% ({2}, {3})",
-            book.Title, abs.Progress * 100, FormatAudiobookStatus(status), FormatDuration(abs.CurrentTime));
+        var pullMessage = string.Format("Pulled \"{0}\" ← ABS at {1:F1}%", book.Title, abs.Progress * 100);
         logger.LogInformation(pullMessage);
-        await RecordActivity(book.BookUuid, "AbsProgressUpdated", pullMessage);
+        await RecordProgressActivity(book.BookUuid, pullMessage, abs.LastUpdateUtc);
     }
-
-    private static string FormatAudiobookStatus(ReadingStatus status) => status switch
-    {
-        ReadingStatus.Reading => "Listening",
-        ReadingStatus.ReadyToRead => "Unplayed",
-        _ => status.ToString()
-    };
 
     private async Task RecordActivity(Guid bookUuid, string eventType, string message)
     {
@@ -292,13 +286,41 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
         });
     }
 
-    private static string FormatDuration(double seconds)
+    /// <summary>
+    /// Records an ABS progress push or pull as one row per listening session. When the book's
+    /// newest activity row (from any device) is an ABS progress row less than <see cref="SessionGap"/>
+    /// old, that row is extended instead of inserting a new one: <c>EventTimestamp</c> moves to the
+    /// latest update while <c>ReceivedAt</c> keeps the session start, so the session length is
+    /// always <c>EventTimestamp - ReceivedAt</c>. Any other event in between starts a new session.
+    /// </summary>
+    private async Task RecordProgressActivity(Guid bookUuid, string progressMessage, DateTimeOffset eventTime)
     {
-        if (seconds <= 0)
-            return "0m";
-        var hours = (int)(seconds / 3600);
-        var minutes = (int)Math.Round((seconds % 3600) / 60.0);
-        return hours > 0 ? $"{hours}h {minutes}m" : $"{minutes}m";
+        var latest = await activityEventRepository.GetLatest(bookUuid);
+        if (latest is { DeviceUuid: AbsDeviceUuid, EventType: ProgressEventType } && eventTime - latest.EventTimestamp <= SessionGap)
+        {
+            var sessionEnd = eventTime > latest.EventTimestamp ? eventTime : latest.EventTimestamp;
+            await activityEventRepository.UpdateTimestampAndBody(latest.EventId, sessionEnd, $"{progressMessage} · session {FormatSessionLength(sessionEnd - latest.ReceivedAt)}");
+            return;
+        }
+
+        await activityEventRepository.Insert(new BookActivityEvent
+        {
+            EventId = Guid.NewGuid().ToString(),
+            BookUuid = bookUuid,
+            DeviceUuid = AbsDeviceUuid,
+            EventType = ProgressEventType,
+            EventTimestamp = eventTime,
+            Body = $"{progressMessage} · session {FormatSessionLength(TimeSpan.Zero)}",
+            ReceivedAt = eventTime
+        });
+    }
+
+    private static string FormatSessionLength(TimeSpan length)
+    {
+        var minutes = (int)length.TotalMinutes;
+        if (minutes < 5)
+            return "< 5m";
+        return minutes >= 60 ? $"{minutes / 60}h {minutes % 60}m" : $"{minutes}m";
     }
 
     private async Task PushToAbs(MatchedAudiobook match, AudioBookShelfIntegration integration, CancellationToken cancellationToken)
@@ -338,11 +360,9 @@ public class AudioBookShelfSyncIntegration(HttpClient httpClient, IAudioBookShel
         if (progress.Status == ReadingStatus.Finished)
             await PatchIsFinished(integration.ServerUrl, integration.ApiToken, match.AbsItem.Id, cancellationToken);
 
-        var pushMessage = string.Format(
-            "Pushed \"{0}\" → ABS at {1:F1}% ({2}{3})",
-            book.Title, progressFraction * 100, FormatDuration(currentTime), progress.Status == ReadingStatus.Finished ? ", finished" : "");
+        var pushMessage = string.Format("Pushed \"{0}\" → ABS at {1:F1}%", book.Title, progressFraction * 100);
         logger.LogInformation(pushMessage);
-        await RecordActivity(book.BookUuid, "AbsProgressUpdated", pushMessage);
+        await RecordProgressActivity(book.BookUuid, pushMessage, progress.ModifiedAt);
     }
 
     private List<MatchedAudiobook> MatchByFilename(List<Book> localAudiobooks, List<AbsItem> absItems, Dictionary<string, AbsMediaProgress> absProgressByItemId)
