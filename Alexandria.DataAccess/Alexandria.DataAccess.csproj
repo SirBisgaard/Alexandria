@@ -11,10 +11,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.13.1" />
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.8" />
-        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
-        <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
+        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.17.2" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
+        <PackageReference Include="System.IO.Hashing" Version="10.0.12" />
     </ItemGroup>
 
     <!-- kepubify is a Go binary that has to match the host OS at runtime. The default copy is the
