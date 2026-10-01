@@ -6,6 +6,62 @@ namespace Alexandria.Business.KoboStoreProxy.Extensions;
 
 public static class BookActivityEventExtensions
 {
+    private const string PlaybackSessionEventType = "PlaybackSession";
+
+    private static readonly TimeSpan PlaybackSessionGap = TimeSpan.FromMinutes(37);
+
+    private static readonly HashSet<string> PlayerEventTypes = ["Playback", "OpenPlayerScreen", "TableOfContents", "PlaybackSpeedChange"];
+
+    extension(IReadOnlyList<BookActivityEvent> events)
+    {
+        /// <summary>
+        /// Turns a book's newest-first activity events into display entries, collapsing each Kobo
+        /// audiobook listening session into a single entry. A session is a run of player events from
+        /// the same device. The device reports nothing while audio is playing, so between a playback
+        /// Start and its Pause there is no gap limit; after a Pause the next player event must follow
+        /// within <see cref="PlaybackSessionGap"/>. Any other event ends the session. Listened time is
+        /// the sum of the Pause events' SecondsListened; session time is wall-clock from first to
+        /// last event, pauses included.
+        /// </summary>
+        public List<BookActivityEntry> ToActivityEntries()
+        {
+            var sessions = new List<List<BookActivityEvent>>();
+            List<BookActivityEvent>? current = null;
+            var playing = false;
+
+            for (var i = events.Count - 1; i >= 0; i--)
+            {
+                var activityEvent = events[i];
+                if (!PlayerEventTypes.Contains(activityEvent.EventType))
+                {
+                    sessions.Add([activityEvent]);
+                    current = null;
+                    continue;
+                }
+
+                var playback = ReadPlayback(activityEvent);
+                if (current is not null && current[0].DeviceUuid == activityEvent.DeviceUuid && (playing || activityEvent.EventTimestamp - current[^1].EventTimestamp <= PlaybackSessionGap))
+                {
+                    current.Add(activityEvent);
+                }
+                else
+                {
+                    current = [activityEvent];
+                    sessions.Add(current);
+                    playing = false;
+                }
+
+                if (playback.Description == "Start")
+                    playing = true;
+                else if (playback.Description == "Pause")
+                    playing = false;
+            }
+
+            sessions.Reverse();
+            return sessions.Select(session => session.Count == 1 ? ToEntry(session[0]) : ToSessionEntry(session)).ToList();
+        }
+    }
+
     extension(BookActivityEvent activityEvent)
     {
         public string Describe()
@@ -48,6 +104,62 @@ public static class BookActivityEventExtensions
         }
     }
 
+    private static BookActivityEntry ToEntry(BookActivityEvent activityEvent) => new()
+    {
+        EventId = activityEvent.EventId,
+        EventType = activityEvent.EventType,
+        EventTimestamp = activityEvent.EventTimestamp,
+        ReceivedAt = activityEvent.ReceivedAt,
+        Description = activityEvent.Describe()
+    };
+
+    private static BookActivityEntry ToSessionEntry(List<BookActivityEvent> session)
+    {
+        var playbacks = session.Select(ReadPlayback).ToList();
+        var listened = playbacks.Where(p => p.Description == "Pause").Sum(p => p.SecondsListened ?? 0);
+        var startPercent = playbacks.Select(p => p.ProgressPercent).FirstOrDefault(p => p is not null);
+        var endPercent = playbacks.Select(p => p.ProgressPercent).LastOrDefault(p => p is not null);
+        var start = session[0].EventTimestamp;
+        var end = session[^1].EventTimestamp;
+
+        return new BookActivityEntry
+        {
+            EventId = session[0].EventId,
+            EventType = PlaybackSessionEventType,
+            EventTimestamp = end,
+            ReceivedAt = start,
+            Description = $"Listened {FormatLength(listened)} · {FormatPercent(startPercent)} → {FormatPercent(endPercent)} · session {FormatLength((long)(end - start).TotalSeconds)}"
+        };
+    }
+
+    private static PlaybackInfo ReadPlayback(BookActivityEvent activityEvent)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(activityEvent.Body);
+            var attrs = doc.RootElement.TryGetProperty("Attributes", out var a) ? a : default;
+            return new PlaybackInfo
+            {
+                Description = ReadString(attrs, "Description"),
+                ProgressPercent = ReadString(attrs, "ProgressPercent"),
+                SecondsListened = long.TryParse(ReadString(attrs, "SecondsListened"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds) ? seconds : null
+            };
+        }
+        catch (JsonException)
+        {
+            return new PlaybackInfo();
+        }
+    }
+
+    private static string FormatLength(long seconds)
+    {
+        if (seconds < 60)
+            return $"{seconds}s";
+        var hours = seconds / 3600;
+        var minutes = (seconds % 3600) / 60;
+        return hours > 0 ? $"{hours}h {minutes}m" : $"{minutes}m";
+    }
+
     private static string DescribePlayback(JsonElement attrs, JsonElement metrics)
     {
         var description = ReadString(attrs, "Description");
@@ -57,8 +169,8 @@ public static class BookActivityEventExtensions
             return $"Started at {percent} ({elapsed} in)";
         if (description == "Pause")
         {
-            var listened = ReadString(attrs, "SecondsListened");
-            var suffix = !string.IsNullOrEmpty(listened) ? $" — listened {listened}s" : "";
+            var listened = long.TryParse(ReadString(attrs, "SecondsListened"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds) ? seconds : (long?)null;
+            var suffix = listened is not null ? $" — listened {FormatElapsed(listened)}" : "";
             return $"Paused at {percent} ({elapsed} in){suffix}";
         }
         return $"Playback at {percent} ({elapsed} in)";
@@ -126,5 +238,12 @@ public static class BookActivityEventExtensions
             parts.Add($"{minutes}m");
         parts.Add($"{secs}s");
         return string.Join(" ", parts);
+    }
+
+    private sealed record PlaybackInfo
+    {
+        public string? Description { get; init; }
+        public string? ProgressPercent { get; init; }
+        public long? SecondsListened { get; init; }
     }
 }

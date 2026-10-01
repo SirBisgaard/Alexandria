@@ -44,13 +44,13 @@ public class BooksController(IBookService bookService, IBookActivityEventReposit
     public async Task<IActionResult> GetBookEvents(Guid uuid)
     {
         var events = await activityEventRepository.GetByBookUuid(uuid);
-        var response = events.Select(e => new
+        var response = events.ToActivityEntries().Select(e => new
         {
             eventId = e.EventId,
             eventType = e.EventType,
             eventTimestamp = e.EventTimestamp,
             receivedAt = e.ReceivedAt,
-            description = e.Describe()
+            description = e.Description
         });
         return Ok(response);
     }

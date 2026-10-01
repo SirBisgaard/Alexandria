@@ -37,7 +37,7 @@ public class BookActivityEventRepository(ISqliteConnectionProvider connectionPro
                 SELECT EventId, BookUuid, DeviceUuid, EventType, EventTimestamp, Body, ReceivedAt
                 FROM BookActivityEvents
                 WHERE BookUuid = @bookUuid
-                ORDER BY EventTimestamp DESC
+                ORDER BY EventTimestamp DESC, rowid DESC
                 """;
             cmd.Parameters.AddWithValue("@bookUuid", bookUuid.ToString());
 
