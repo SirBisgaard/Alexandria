@@ -78,7 +78,11 @@ function openBookModal(uuid) {
         if (book.language) { details += "<div class='detail-row'>Language: " + escapeHtml(languageName(book.language)) + "</div>"; }
         if (book.file.fileName) { details += "<div class='detail-row'>File Name: " + escapeHtml(book.file.fileName) + "</div>"; }
         if (book.file.totalFileSize) { details += "<div class='detail-row'>File Size: " + formatFileSize(book.file.totalFileSize) + "</div>"; }
-        details += "<div class='detail-row'>File Format: " + (book.file.mediaType === "Audiobook" ? "AUDIOBOOK" : "KOBO EPUB") + "</div>";
+        if (book.file.mediaType === "Comic") {
+            details += "<div class='detail-row'>Reading Direction: " + (book.file.readingDirection === "RightToLeft" ? "Right to left" : "Left to right") + "</div>";
+            details += "<div class='detail-row'>Colour: " + comicColorModeText(book.file.colorMode) + "</div>";
+        }
+        details += "<div class='detail-row'>File Format: " + (book.file.mediaType === "Audiobook" ? "AUDIOBOOK" : book.file.mediaType === "Comic" ? "COMIC (FIXED-LAYOUT EPUB)" : "KOBO EPUB") + "</div>";
         $("#bm-details").html(details || "No details available.");
 
         // Data

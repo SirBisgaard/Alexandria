@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
+using Alexandria.Api.Sync;
 using Alexandria.Business.Interfaces;
+using Alexandria.Business.Library.Models;
 using Alexandria.DataAccess.Database.Repositories;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -13,8 +15,10 @@ namespace Alexandria.Api.Authentication;
 /// The Device Key is a GUID pre-registered by the user in Alexandria's UI.
 /// On first contact, the device's serial number (from <c>x-kobo-deviceid</c> header) is bound
 /// to the key. If a different serial is seen later, the device is locked and returns 401.
+/// Binding a device whose screen profile no other device shares queues a library sync, which
+/// builds the comic renditions that device will download.
 /// </summary>
-public partial class KoboDeviceAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory loggerFactory, UrlEncoder encoder, IKoboDeviceRepository deviceRepository) : AuthenticationHandler<AuthenticationSchemeOptions>(options, loggerFactory, encoder)
+public partial class KoboDeviceAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory loggerFactory, UrlEncoder encoder, IKoboDeviceRepository deviceRepository, IComicRenditionStore comicRenditionStore, ILibraryTaskBroker libraryTaskBroker) : AuthenticationHandler<AuthenticationSchemeOptions>(options, loggerFactory, encoder)
 {
     public const string SchemeName = "KoboDevice";
 
@@ -45,7 +49,11 @@ public partial class KoboDeviceAuthHandler(IOptionsMonitor<AuthenticationSchemeO
                     firmware = match.Groups[2].Value;
                     modelName = KoboDeviceRepository.GetModelName(modelCode);
                 }
+                var profile = ComicDeviceProfile.ForModelCode(modelCode);
+                var isNewProfile = profile is not null && !(await comicRenditionStore.GetActiveProfiles()).Contains(profile);
                 await deviceRepository.BindDevice(deviceUuid, serialNumber, modelName, modelCode, firmware);
+                if (isNewProfile)
+                    QueueComicRenditions(profile!);
             }
             else if (!string.Equals(device.SerialNumber, serialNumber, StringComparison.Ordinal))
             {
@@ -56,6 +64,14 @@ public partial class KoboDeviceAuthHandler(IOptionsMonitor<AuthenticationSchemeO
 
         Context.Items["Device"] = device;
         return AuthenticateResult.Success(CreateTicket(deviceUuid.ToString()));
+    }
+
+    private void QueueComicRenditions(ComicDeviceProfile profile)
+    {
+        if (libraryTaskBroker.TryEnqueue(typeof(SyncTask)))
+            Logger.LogInformation("New device screen profile {Profile}: queued library sync to build comic renditions", profile.Key);
+        else
+            Logger.LogWarning("New device screen profile {Profile}: a library task is already running, comic renditions will be built on the next library sync", profile.Key);
     }
 
     private static AuthenticationTicket CreateTicket(string deviceUuid)

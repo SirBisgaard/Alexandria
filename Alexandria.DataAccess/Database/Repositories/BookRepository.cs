@@ -9,7 +9,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 {
     private const string SelectBooksWithFiles = """
         SELECT b.BookUuid, b.EntitlementUuid, b.Title, b.Subtitle, b.Language, b.Isbn, b.PublicationDate, b.Description, b.Publisher, b.CreatedAt, b.ModifiedAt, b.IsArchived, b.Rights, b.Source, b.Type, b.Relation, b.Coverage, b.Format,
-               f.MediaType, f.SourcePath, f.CoverFilePath, f.KepubFilePath, f.TotalFileSize, f.PageCount, f.WordCount, f.Duration, f.IsAbridged, f.AudioCodec, f.AudioBitrate
+               f.MediaType, f.SourcePath, f.CoverFilePath, f.KepubFilePath, f.TotalFileSize, f.PageCount, f.WordCount, f.Duration, f.IsAbridged, f.AudioCodec, f.AudioBitrate, f.ReadingDirection, f.ColorMode
         FROM Books b
         INNER JOIN BookFiles f ON b.BookUuid = f.BookUuid
         """;
@@ -175,8 +175,8 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 
             using var fileCmd = connection.CreateCommand();
             fileCmd.CommandText = """
-                INSERT INTO BookFiles (BookUuid, MediaType, SourcePath, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, AudioCodec, AudioBitrate)
-                VALUES (@bookUuid, @mediaType, @sourcePath, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @audioCodec, @audioBitrate)
+                INSERT INTO BookFiles (BookUuid, MediaType, SourcePath, CoverFilePath, KepubFilePath, TotalFileSize, PageCount, WordCount, Duration, IsAbridged, AudioCodec, AudioBitrate, ReadingDirection, ColorMode)
+                VALUES (@bookUuid, @mediaType, @sourcePath, @coverFilePath, @kepubFilePath, @totalFileSize, @pageCount, @wordCount, @duration, @isAbridged, @audioCodec, @audioBitrate, @readingDirection, @colorMode)
                 """;
             AddBookFileParameters(fileCmd, book);
             fileCmd.ExecuteNonQuery();
@@ -199,7 +199,7 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
 
             using var fileCmd = connection.CreateCommand();
             fileCmd.CommandText = """
-                UPDATE BookFiles SET MediaType = @mediaType, SourcePath = @sourcePath, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, AudioCodec = @audioCodec, AudioBitrate = @audioBitrate
+                UPDATE BookFiles SET MediaType = @mediaType, SourcePath = @sourcePath, CoverFilePath = @coverFilePath, KepubFilePath = @kepubFilePath, TotalFileSize = @totalFileSize, PageCount = @pageCount, WordCount = @wordCount, Duration = @duration, IsAbridged = @isAbridged, AudioCodec = @audioCodec, AudioBitrate = @audioBitrate, ReadingDirection = @readingDirection, ColorMode = @colorMode
                 WHERE BookUuid = @bookUuid
                 """;
             AddBookFileParameters(fileCmd, book);
@@ -304,6 +304,8 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
         cmd.Parameters.AddWithValue("@isAbridged", book.File.IsAbridged.HasValue ? (book.File.IsAbridged.Value ? 1 : 0) : DBNull.Value);
         cmd.Parameters.AddWithValue("@audioCodec", (object?)book.File.AudioCodec ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@audioBitrate", (object?)book.File.AudioBitrate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@readingDirection", (object?)book.File.ReadingDirection?.ToString() ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@colorMode", (object?)book.File.ColorMode?.ToString() ?? DBNull.Value);
     }
 
     private static Book MapBook(SqliteDataReader reader)
@@ -341,7 +343,9 @@ public class BookRepository(ISqliteConnectionProvider connectionProvider, IAutho
                 Duration = reader.IsDBNull(reader.GetOrdinal("Duration")) ? null : reader.GetInt32(reader.GetOrdinal("Duration")),
                 IsAbridged = reader.IsDBNull(reader.GetOrdinal("IsAbridged")) ? null : reader.GetInt32(reader.GetOrdinal("IsAbridged")) == 1,
                 AudioCodec = reader.IsDBNull(reader.GetOrdinal("AudioCodec")) ? null : reader.GetString(reader.GetOrdinal("AudioCodec")),
-                AudioBitrate = reader.IsDBNull(reader.GetOrdinal("AudioBitrate")) ? null : reader.GetInt32(reader.GetOrdinal("AudioBitrate"))
+                AudioBitrate = reader.IsDBNull(reader.GetOrdinal("AudioBitrate")) ? null : reader.GetInt32(reader.GetOrdinal("AudioBitrate")),
+                ReadingDirection = reader.IsDBNull(reader.GetOrdinal("ReadingDirection")) ? null : Enum.Parse<ComicReadingDirection>(reader.GetString(reader.GetOrdinal("ReadingDirection"))),
+                ColorMode = reader.IsDBNull(reader.GetOrdinal("ColorMode")) ? null : Enum.Parse<ComicColorMode>(reader.GetString(reader.GetOrdinal("ColorMode")))
             }
         };
     }

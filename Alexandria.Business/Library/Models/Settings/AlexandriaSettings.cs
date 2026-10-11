@@ -14,7 +14,7 @@ public record AlexandriaSettings
     /// <summary>Root directory for application data (database, covers, kepubs).</summary>
     public required string DataFolder { get; init; }
 
-    /// <summary>Directory containing EPUB source files.</summary>
+    /// <summary>Directory containing EPUB and CBZ/CBR source files.</summary>
     public required string EbookFolder { get; init; }
 
     /// <summary>Directory containing M4B source files.</summary>
@@ -34,6 +34,9 @@ public record AlexandriaSettings
 
     /// <summary>Directory for pre-transcoded audiobook chapter MP3s.</summary>
     public string ChaptersFolder => Path.Combine(DataFolder, "chapters");
+
+    /// <summary>Directory for per-device-profile fixed-layout EPUB renditions of comics.</summary>
+    public string ComicsFolder => Path.Combine(DataFolder, "comics");
 
     /// <summary>Optional override for the initial M4bFileTreatment value seeded into the database.</summary>
     public M4BFileTreatment? M4BFileTreatment { get; init; }

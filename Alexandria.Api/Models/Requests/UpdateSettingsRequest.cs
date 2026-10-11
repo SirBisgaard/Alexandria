@@ -22,4 +22,7 @@ public record UpdateSettingsRequest
     [MinLength(1, ErrorMessage = "File rename template must not be empty.")]
     [MaxLength(500, ErrorMessage = "File rename template must be 500 characters or fewer.")]
     public string FileRenameTemplate { get; set; } = string.Empty;
+
+    /// <summary>Null keeps the current comic rendering settings.</summary>
+    public ComicRenderingSettingsRequest? ComicRendering { get; set; }
 }

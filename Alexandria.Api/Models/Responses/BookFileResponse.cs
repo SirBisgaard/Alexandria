@@ -14,4 +14,6 @@ public class BookFileResponse
     public bool? IsAbridged { get; set; }
     public string? AudioCodec { get; set; }
     public int? AudioBitrate { get; set; }
+    public ComicReadingDirection? ReadingDirection { get; set; }
+    public ComicColorMode? ColorMode { get; set; }
 }

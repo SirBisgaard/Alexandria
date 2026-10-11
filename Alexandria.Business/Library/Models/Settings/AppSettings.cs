@@ -30,4 +30,7 @@ public class AppSettings
 
     /// <summary>Template used by the file-management feature to normalize filenames. Seeded with <see cref="FileNameTemplate.DefaultTemplate"/> by the V2 migration.</summary>
     public string FileRenameTemplate { get; set; } = FileNameTemplate.DefaultTemplate;
+
+    /// <summary>Tuning of comic rendition building, edited on the Settings page. Changing any value rebuilds all comic renditions on the next library sync.</summary>
+    public ComicRenderingSettings ComicRendering { get; set; } = new();
 }

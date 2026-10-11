@@ -50,7 +50,7 @@ public sealed class DatabaseInitializerTests : DatabaseTestBase
             return Convert.ToInt32(cmd.ExecuteScalar());
         });
 
-        Assert.AreEqual(4, version);
+        Assert.AreEqual(5, version);
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public sealed class DatabaseInitializerTests : DatabaseTestBase
             return (v, reader.GetString(0));
         });
 
-        Assert.AreEqual(4, version, "Upgrade path should land on the latest schema version.");
+        Assert.AreEqual(5, version, "Upgrade path should land on the latest schema version.");
         Assert.AreEqual("<Authors> - (<Serie> #<SerieIndex> - )<Title>", template);
     }
 
@@ -160,7 +160,7 @@ public sealed class DatabaseInitializerTests : DatabaseTestBase
             return Convert.ToInt32(cmd.ExecuteScalar());
         });
 
-        Assert.AreEqual(4, versionRowCount, "Re-running Initialize should keep exactly one row per applied migration.");
+        Assert.AreEqual(5, versionRowCount, "Re-running Initialize should keep exactly one row per applied migration.");
         Assert.AreEqual(1, userCount, "Re-running Initialize should not insert a duplicate default user.");
         Assert.AreEqual(1, settingsCount, "Re-running Initialize should not insert a duplicate Settings row.");
     }

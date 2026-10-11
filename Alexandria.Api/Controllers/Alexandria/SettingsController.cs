@@ -21,7 +21,8 @@ public class SettingsController(ISettingsService settingsService, ILogger<Settin
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
     {
         logger.LogInformation("Updating application settings");
-        await settingsService.UpdateSettings(ApiMapper.ToAppSettings(request));
+        var current = await settingsService.Get();
+        await settingsService.UpdateSettings(ApiMapper.ToAppSettings(request, current.ComicRendering));
         return NoContent();
     }
 

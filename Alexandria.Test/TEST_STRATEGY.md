@@ -14,6 +14,7 @@ All test data must be **copyright-free**. The repository ships a small set of fi
 | `TestData/test.m4b` | M4B (AAC, ~8s, embedded tags + cover) | M4B metadata and cover extraction, chapter transcoding under each `M4BFileTreatment` |
 | `TestData/1.mp3` … `TestData/4.mp3` | MP3 with ID3v2.3 tags (track 1/4 … 4/4) | MP3 folder audiobook (place all four into one subdirectory of `AudiobookFolder` to form a single audiobook) |
 | `TestData/cover.jpg` | JPEG, 564×900 | Cover upload/replacement tests, `CoverThumbnailService` resize tests |
+| `TestData/ComicFixtures.cs` (generated) | CBZ / stored RAR 4 built at test time from drawn pages | Comic metadata, CBR→CBZ conversion, fixed-layout EPUB builder, comic sync. Gray page widths encode the page number so tests can read page order off image sizes |
 
 Known fixture metadata (use these values in assertions):
 

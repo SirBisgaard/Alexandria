@@ -57,9 +57,11 @@ public class KoboDeviceController(IKoboLibrarySyncService librarySyncService, IK
     }
 
     /// <summary>
-    /// Serves KEPUB file downloads for local books. Store-purchased book downloads are proxied to Kobo.
+    /// Serves KEPUB file downloads for local ebooks and fixed-layout EPUB renditions for local comics.
+    /// Store-purchased book downloads are proxied to Kobo.
     /// </summary>
     [HttpGet("download/{uuid:guid}/kepub")]
+    [HttpGet("download/{uuid:guid}/epub")]
     public async Task Download(string devicekey, Guid uuid)
     {
         logger.LogInformation("Kobo: downloading book {Uuid}", uuid);

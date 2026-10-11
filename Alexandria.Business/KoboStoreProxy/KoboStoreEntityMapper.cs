@@ -40,7 +40,11 @@ public static class KoboStoreEntityMapper
 
     /// <summary>
     /// Creates Kobo metadata for a book. Download format is "MANIFEST" for audiobooks (two-step:
-    /// manifest then chapters on demand) or "KEPUB" for ebooks (single-file download).
+    /// manifest then chapters on demand), "KEPUB" for ebooks (single-file download), or "EPUB3FL"
+    /// for comics. EPUB3FL is what makes Nickel open the book in its fixed-layout comic reader —
+    /// synced books skip the OPF layout detection sideloaded files get. A comic is downloaded as
+    /// the rendition built for the requesting device's screen, so the caller passes that file's
+    /// size as <paramref name="downloadSize"/>; it overrides <see cref="BookFile.TotalFileSize"/>.
     /// CoverImageId is a deterministic UUID v5 of BookUuid + ModifiedAt, so the cover URL changes
     /// on every metadata/cover edit and the device refetches instead of serving a stale cached image.
     /// Series index uses "G29" format (no trailing zeros: 1.0→"1", 2.5→"2.5") to match Kobo's display.
@@ -48,13 +52,14 @@ public static class KoboStoreEntityMapper
     /// Download URLs use the device-scoped base URL (<c>/api/kobo/{devicekey}/…</c>) so the
     /// device's content fetcher is authenticated by the Device Key in the route.
     /// </summary>
-    public static KoboStoreBookMetadata ToMetadata(Book book, string deviceBaseUrl, Guid? relatedGroupId = null)
+    public static KoboStoreBookMetadata ToMetadata(Book book, string deviceBaseUrl, Guid? relatedGroupId = null, long? downloadSize = null)
     {
         var entitlementUuid = book.EntitlementUuid.ToString();
 
         var (format, downloadUrl) = book.File.MediaType switch
         {
             MediaType.Audiobook => ("MANIFEST", $"{deviceBaseUrl}/download/{entitlementUuid}/manifest"),
+            MediaType.Comic => ("EPUB3FL", $"{deviceBaseUrl}/download/{entitlementUuid}/epub"),
             _ => ("KEPUB", $"{deviceBaseUrl}/download/{entitlementUuid}/kepub")
         };
 
@@ -68,7 +73,7 @@ public static class KoboStoreEntityMapper
                 new KoboStoreDownloadUrl
                 {
                     Format = format,
-                    Size = book.File.TotalFileSize,
+                    Size = downloadSize ?? book.File.TotalFileSize,
                     Url = downloadUrl
                 }
             ],
@@ -115,10 +120,10 @@ public static class KoboStoreEntityMapper
     /// properties for ebook (BookEntitlement/BookMetadata) vs audiobook (AudiobookEntitlement/AudiobookMetadata).
     /// Using the wrong property type causes the device to silently ignore the item during sync.
     /// </summary>
-    public static KoboStoreEntitlement ToStoreEntitlement(Book book, string deviceBaseUrl, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null)
+    public static KoboStoreEntitlement ToStoreEntitlement(Book book, string deviceBaseUrl, KoboStoreReadingState? readingState = null, Guid? relatedGroupId = null, long? downloadSize = null)
     {
         var entitlement = ToEntitlement(book);
-        var metadata = ToMetadata(book, deviceBaseUrl, relatedGroupId);
+        var metadata = ToMetadata(book, deviceBaseUrl, relatedGroupId, downloadSize);
 
         return book.File.MediaType switch
         {

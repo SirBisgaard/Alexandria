@@ -23,6 +23,7 @@ using Alexandria.DataAccess.Externals.Interfaces;
 using Alexandria.DataAccess.Files;
 using Alexandria.DataAccess.Integrations;
 using Alexandria.DataAccess.Files.Books.Audiobooks;
+using Alexandria.DataAccess.Files.Books.Comics;
 using Alexandria.DataAccess.Files.Books.Ebooks;
 using Alexandria.DataAccess.Files.Interfaces;
 using Alexandria.DataAccess.Files.Services;
@@ -84,11 +85,18 @@ builder.Services.AddTransient<FileMp3AudiobookMediaHandler>();
 builder.Services.AddTransient<IFileContentIndexer, FileMp3AudiobookIndexer>();
 builder.Services.AddTransient<IFileContentMediaHandler, FileMp3AudiobookMediaHandler>();
 builder.Services.AddTransient<IFileConverter, FileMp3AudiobookConverter>();
+builder.Services.AddTransient<ICbzFileHandler, CbzFileHandler>();
+builder.Services.AddTransient<IComicEpubBuilder, ComicEpubBuilder>();
+builder.Services.AddTransient<IComicRenditionStore, ComicRenditionStore>();
+builder.Services.AddTransient<IFileContentIndexer, FileComicIndexer>();
+builder.Services.AddTransient<IFileContentMediaHandler, FileComicMediaHandler>();
+builder.Services.AddTransient<IFileConverter, FileCbrComicConverter>();
 builder.Services.AddTransient<IFileContentManager, FileContentManager>();
 
 builder.Services.AddTransient<IFileRenamer, EbookFileRenamer>();
 builder.Services.AddTransient<IFileRenamer, M4BFileRenamer>();
 builder.Services.AddTransient<IFileRenamer, Mp3FolderFileRenamer>();
+builder.Services.AddTransient<IFileRenamer, ComicFileRenamer>();
 
 // Add services to the container.
 builder.Services.AddSingleton<IKoboDeviceSyncTokenService, KoboDeviceSyncTokenService>();

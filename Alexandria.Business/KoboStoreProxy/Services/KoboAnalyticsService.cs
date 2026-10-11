@@ -176,9 +176,9 @@ public class KoboAnalyticsService(IKoboProxyService koboProxyService, IBookServi
 
     private async Task HandleEbookProgress(Book book, KoboStoreAnalyticsEvent analyticsEvent)
     {
-        if (book.File.MediaType != MediaType.Ebook)
+        if (book.File.MediaType == MediaType.Audiobook)
         {
-            logger.LogInformation("AnalyticsEvent: dropping {EventType} for non-ebook '{Title}'", analyticsEvent.EventType, book.Title);
+            logger.LogInformation("AnalyticsEvent: dropping {EventType} for audiobook '{Title}'", analyticsEvent.EventType, book.Title);
             return;
         }
         var integerPercent = ParseDecimalAttribute(analyticsEvent, "progress");

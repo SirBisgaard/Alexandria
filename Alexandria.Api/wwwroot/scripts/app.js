@@ -106,7 +106,14 @@ $(function () {
                 '<div class="book-modal-title-bar">Settings</div>' +
                 '<button class="book-modal-close" id="settings-close">&times;</button>' +
                 '<div class="settings-modal-content">' +
+                    '<ul class="nav nav-underline book-modal-tabs settings-tabs">' +
+                        '<li class="nav-item"><a class="nav-link active" href="#" data-settings-tab="general">General</a></li>' +
+                        '<li class="nav-item"><a class="nav-link" href="#" data-settings-tab="audiobooks">Audiobooks</a></li>' +
+                        '<li class="nav-item"><a class="nav-link" href="#" data-settings-tab="files">Files</a></li>' +
+                        '<li class="nav-item"><a class="nav-link" href="#" data-settings-tab="comics">Comics</a></li>' +
+                    '</ul>' +
                     '<div class="settings-tiles">' +
+                        '<div data-settings-pane="general">' +
                         '<div class="settings-tile">' +
                             '<div class="settings-tile-label">Sync batch size</div>' +
                             '<input type="number" class="bm-edit-input" data-setting="syncBatchSize" min="1" max="1000">' +
@@ -142,6 +149,8 @@ $(function () {
                             '</div>' +
                             '<div class="settings-tile-desc">Sync the library when the application starts. Default is off.</div>' +
                         '</div>' +
+                        '</div>' +
+                        '<div data-settings-pane="audiobooks" style="display:none;">' +
                         '<div class="settings-tile">' +
                             '<div class="settings-tile-label">M4B file treatment</div>' +
                             '<select class="bm-edit-input" data-setting="m4bFileTreatment">' +
@@ -151,6 +160,8 @@ $(function () {
                             '</select>' +
                             '<div class="settings-tile-desc settings-m4b-desc"></div>' +
                         '</div>' +
+                        '</div>' +
+                        '<div data-settings-pane="files" style="display:none;">' +
                         '<div class="settings-tile">' +
                             '<div class="settings-tile-label">Filename template</div>' +
                             '<div class="settings-tile-inline">' +
@@ -161,7 +172,10 @@ $(function () {
                             '<div class="settings-tile-validate-result" data-validate-result></div>' +
                             '<div class="settings-tile-error"></div>' +
                         '</div>' +
-
+                        '</div>' +
+                        '<div data-settings-pane="comics" style="display:none;">' +
+                        comicRenderingTilesHtml() +
+                        '</div>' +
                     '</div>' +
                     '<div class="settings-error-banner"></div>' +
                     '<div class="settings-footer">' +

@@ -24,7 +24,8 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
                 (1, conn => MigrateV1_UnifiedSchema(conn, passwordHasher, alexandriaSettings, logger)),
                 (2, conn => MigrateV2_FileRenameTemplate(conn, logger)),
                 (3, conn => MigrateV3_AudioBookShelfIntegration(conn, logger)),
-                (4, conn => MigrateV4_BookActivityEvents(conn, logger))
+                (4, conn => MigrateV4_BookActivityEvents(conn, logger)),
+                (5, conn => MigrateV5_ComicSettings(conn, logger))
             };
 
             foreach (var migration in migrations.Where(m => m.Version > currentVersion).OrderBy(m => m.Version))
@@ -456,5 +457,38 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         deviceIdx.ExecuteNonQuery();
 
         logger.LogInformation("V4: created BookActivityEvents table");
+    }
+
+    private static void MigrateV5_ComicSettings(SqliteConnection connection, ILogger logger)
+    {
+        var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var columnsCmd = connection.CreateCommand())
+        {
+            columnsCmd.CommandText = "SELECT name FROM pragma_table_info('BookFiles')";
+            using var reader = columnsCmd.ExecuteReader();
+            while (reader.Read())
+                existingColumns.Add(reader.GetString(0));
+        }
+
+        foreach (var column in new[] { "ReadingDirection", "ColorMode" })
+        {
+            if (existingColumns.Contains(column))
+                continue;
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"ALTER TABLE BookFiles ADD COLUMN {column} TEXT";
+            cmd.ExecuteNonQuery();
+        }
+
+        logger.LogInformation("V5: added BookFiles.ReadingDirection and BookFiles.ColorMode columns for comics");
+
+        using var settingsColumnsCmd = connection.CreateCommand();
+        settingsColumnsCmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Settings') WHERE name = 'ComicRendering'";
+        if (Convert.ToInt32(settingsColumnsCmd.ExecuteScalar()) == 0)
+        {
+            using var renderingCmd = connection.CreateCommand();
+            renderingCmd.CommandText = "ALTER TABLE Settings ADD COLUMN ComicRendering TEXT NOT NULL DEFAULT '{}'";
+            renderingCmd.ExecuteNonQuery();
+        }
+        logger.LogInformation("V5: added Settings.ComicRendering column");
     }
 }

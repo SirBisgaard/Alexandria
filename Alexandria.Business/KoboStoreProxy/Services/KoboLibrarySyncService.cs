@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, ICollectionService collectionService, ISettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceRepository koboDeviceRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
+public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, ICollectionService collectionService, ISettingsService settingsService, IReadingStateRepository readingStateRepository, IKoboDeviceSyncRepository koboDeviceSyncRepository, IKoboDeviceRepository koboDeviceRepository, IKoboDeviceSyncTokenService koboDeviceSyncTokenService, IComicRenditionStore comicRenditionStore, ILogger<KoboLibrarySyncService> logger) : IKoboLibrarySyncService
 {
     /// <summary>
     /// Rewrites 4 resource URLs (library_sync, image_host, image_url_template, image_url_quality_template)
@@ -124,6 +124,7 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         var batchSize = appSettings.SyncBatchSize;
         var batchUuids = koboDeviceSyncTokenService.GetNextBatch(deviceKey, batchSize);
         var hasMore = koboDeviceSyncTokenService.HasMore(deviceKey);
+        var comicProfile = await GetComicProfile(deviceKey);
 
         foreach (var uuid in batchUuids)
         {
@@ -133,14 +134,26 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
 
             var previouslySynced = syncedDates.TryGetValue(book.BookUuid, out var storedModifiedAt);
             var readingState = await GetDeviceReadingState(book);
+            var action = Classify(book, previouslySynced, storedModifiedAt, alexandriaToken.LastSync);
 
-            List<KoboStoreSyncResultItem> items = Classify(book, previouslySynced, storedModifiedAt, alexandriaToken.LastSync) switch
+            long? downloadSize = null;
+            if (book.File.MediaType == MediaType.Comic && action is BookSyncAction.AddToDevice or BookSyncAction.ReplaceOnDevice or BookSyncAction.ConfirmOnDevice)
             {
-                BookSyncAction.AddToDevice => await AddBookToDevice(deviceKey, book, deviceBaseUrl, readingState, workGroupIds),
+                downloadSize = await FindComicDownloadSize(book, comicProfile);
+                if (downloadSize is null)
+                {
+                    logger.LogInformation("LibrarySync: holding back comic '{Title}' ({Uuid}) — no rendition for this device's screen yet", book.Title, book.BookUuid);
+                    continue;
+                }
+            }
+
+            List<KoboStoreSyncResultItem> items = action switch
+            {
+                BookSyncAction.AddToDevice => await AddBookToDevice(deviceKey, book, deviceBaseUrl, readingState, workGroupIds, downloadSize),
                 BookSyncAction.RemoveFromDevice => await RemoveBookFromDevice(deviceKey, book, deviceBaseUrl),
-                BookSyncAction.ReplaceOnDevice => await ReplaceBookOnDevice(deviceKey, book, deviceBaseUrl, readingState, workGroupIds),
+                BookSyncAction.ReplaceOnDevice => await ReplaceBookOnDevice(deviceKey, book, deviceBaseUrl, readingState, workGroupIds, downloadSize),
                 BookSyncAction.ReadingStateOnly => SyncReadingStateToDevice(readingState),
-                BookSyncAction.ConfirmOnDevice => ConfirmBookOnDevice(book, deviceBaseUrl, readingState, workGroupIds),
+                BookSyncAction.ConfirmOnDevice => ConfirmBookOnDevice(book, deviceBaseUrl, readingState, workGroupIds, downloadSize),
                 _ => []
             };
             syncResults.AddRange(items);
@@ -183,9 +196,10 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         var allBooks = await bookService.GetBooks();
         var relatedGroupId = GetRelatedGroupId(book, BuildWorkGroupLookup(allBooks));
         var deviceBaseUrl = $"{alexandriaSettings.KoboApiUrl}/{request.DeviceKey}";
+        var downloadSize = book.File.MediaType == MediaType.Comic ? await FindComicDownloadSize(book, await GetComicProfile(request.DeviceKey!)) : null;
 
         logger.LogInformation("Metadata: serving metadata for '{Title}' ({Uuid})", book.Title, uuid);
-        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, deviceBaseUrl, relatedGroupId) });
+        return KoboProxyResponseHelper.JsonResponse(StatusCodes.Status200OK, new[] { KoboStoreEntityMapper.ToMetadata(book, deviceBaseUrl, relatedGroupId, downloadSize) });
     }
 
     /// <summary>
@@ -234,6 +248,23 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         return BookSyncAction.ConfirmOnDevice;
     }
 
+    private async Task<ComicDeviceProfile?> GetComicProfile(string deviceKey)
+    {
+        var device = await koboDeviceRepository.GetByUuid(Guid.Parse(deviceKey));
+        return ComicDeviceProfile.ForModelCode(device?.ModelCode);
+    }
+
+    /// <summary>
+    /// Size of the comic rendition built for this device's screen, or null when none exists yet
+    /// (unknown model, or the library sync that builds it hasn't run since the device registered).
+    /// A comic without a rendition is held back rather than advertised with a size the download
+    /// won't match; it stays unsynced and is offered again on the next sync.
+    /// </summary>
+    private async Task<long?> FindComicDownloadSize(Book book, ComicDeviceProfile? profile)
+    {
+        return profile is null ? null : (await comicRenditionStore.FindRendition(book, profile))?.Length;
+    }
+
     /// <summary>Loads the book's reading state re-keyed to the EntitlementUuid the device knows the book by.</summary>
     private async Task<KoboStoreReadingState?> GetDeviceReadingState(Book book)
     {
@@ -241,9 +272,9 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         return readingState is null ? null : readingState with { EntitlementId = book.EntitlementUuid.ToString() };
     }
 
-    private async Task<List<KoboStoreSyncResultItem>> AddBookToDevice(string deviceKey, Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds)
+    private async Task<List<KoboStoreSyncResultItem>> AddBookToDevice(string deviceKey, Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds, long? downloadSize)
     {
-        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, readingState, GetRelatedGroupId(book, workGroupIds));
+        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, readingState, GetRelatedGroupId(book, workGroupIds), downloadSize);
         await koboDeviceSyncRepository.UpsertSyncedFile(deviceKey, book.BookUuid, book.ModifiedAt);
         return [new KoboStoreSyncResultItem { NewEntitlement = entitlement }];
     }
@@ -261,9 +292,9 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
     /// sent as Remove + New. The reading state rides along as a separate ChangedReadingState item
     /// because the device ignores it inside entitlements.
     /// </summary>
-    private async Task<List<KoboStoreSyncResultItem>> ReplaceBookOnDevice(string deviceKey, Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds)
+    private async Task<List<KoboStoreSyncResultItem>> ReplaceBookOnDevice(string deviceKey, Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds, long? downloadSize)
     {
-        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: GetRelatedGroupId(book, workGroupIds));
+        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: GetRelatedGroupId(book, workGroupIds), downloadSize: downloadSize);
         var items = new List<KoboStoreSyncResultItem>
         {
             new() { ChangedEntitlement = KoboStoreEntityMapper.WithRemoved(entitlement) },
@@ -287,9 +318,9 @@ public class KoboLibrarySyncService(AlexandriaSettings alexandriaSettings, IKobo
         return [new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } }];
     }
 
-    private static List<KoboStoreSyncResultItem> ConfirmBookOnDevice(Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds)
+    private static List<KoboStoreSyncResultItem> ConfirmBookOnDevice(Book book, string deviceBaseUrl, KoboStoreReadingState? readingState, HashSet<Guid> workGroupIds, long? downloadSize)
     {
-        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: GetRelatedGroupId(book, workGroupIds));
+        var entitlement = KoboStoreEntityMapper.ToStoreEntitlement(book, deviceBaseUrl, relatedGroupId: GetRelatedGroupId(book, workGroupIds), downloadSize: downloadSize);
         var items = new List<KoboStoreSyncResultItem> { new() { ChangedEntitlement = entitlement } };
         if (readingState is not null)
             items.Add(new KoboStoreSyncResultItem { ChangedReadingState = new KoboStoreChangedReadingState { ReadingState = readingState } });

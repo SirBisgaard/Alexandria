@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alexandria.Business.KoboStoreProxy.Services;
 
-public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, IFileContentManager contentManager, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
+public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, IKoboProxyService koboProxyService, IBookService bookService, IFileContentManager contentManager, IKoboDeviceRepository koboDeviceRepository, IComicRenditionStore comicRenditionStore, ILogger<KoboContentDeliveryService> logger) : IKoboContentDeliveryService
 {
     /// <summary>
     /// Serves KEPUB file for local books, proxies to Kobo for store books.
@@ -26,6 +26,9 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
             return await koboProxyService.Proxy(request);
         }
 
+        if (book.File.MediaType == MediaType.Comic)
+            return await DownloadComic(request, book);
+
         var fileBytes = await contentManager.GetContentFile(book);
         if (fileBytes is null)
             return new KoboProxyResponse { StatusCode = StatusCodes.Status404NotFound, Headers = new Dictionary<string, string[]>(), Body = [] };
@@ -40,6 +43,35 @@ public class KoboContentDeliveryService(AlexandriaSettings alexandriaSettings, I
                 { "Content-Disposition", [$"attachment; filename*=UTF-8''{Uri.EscapeDataString(book.Title)}.kepub.epub"] }
             },
             Body = fileBytes
+        };
+    }
+
+    /// <summary>
+    /// Serves the fixed-layout EPUB rendition built for the requesting device's screen profile.
+    /// 404 when the device's model is unknown or the rendition hasn't been built — sync never
+    /// advertises a comic in that state, so this only happens if the rendition was removed since.
+    /// </summary>
+    private async Task<KoboProxyResponse> DownloadComic(KoboProxyRequest request, Book book)
+    {
+        var device = await koboDeviceRepository.GetByUuid(Guid.Parse(request.DeviceKey!));
+        var profile = ComicDeviceProfile.ForModelCode(device?.ModelCode);
+        var rendition = profile is null ? null : await comicRenditionStore.FindRendition(book, profile);
+        if (rendition is null)
+        {
+            logger.LogWarning("Download: no comic rendition of '{Title}' for device {DeviceKey}", book.Title, request.DeviceKey);
+            return new KoboProxyResponse { StatusCode = StatusCodes.Status404NotFound, Headers = new Dictionary<string, string[]>(), Body = [] };
+        }
+
+        logger.LogInformation("Download: serving {Profile} comic rendition of '{Title}' ({Uuid})", profile!.Key, book.Title, book.EntitlementUuid);
+        return new KoboProxyResponse
+        {
+            StatusCode = StatusCodes.Status200OK,
+            Headers = new Dictionary<string, string[]>
+            {
+                { "Content-Type", ["application/epub+zip"] },
+                { "Content-Disposition", [$"attachment; filename*=UTF-8''{Uri.EscapeDataString(book.Title)}.epub"] }
+            },
+            Body = await File.ReadAllBytesAsync(rendition.FullName)
         };
     }
 

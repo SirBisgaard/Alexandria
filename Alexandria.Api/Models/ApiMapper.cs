@@ -42,7 +42,9 @@ public static class ApiMapper
             Duration = book.File.Duration,
             IsAbridged = book.File.IsAbridged,
             AudioCodec = book.File.AudioCodec,
-            AudioBitrate = book.File.AudioBitrate
+            AudioBitrate = book.File.AudioBitrate,
+            ReadingDirection = book.File.ReadingDirection,
+            ColorMode = book.File.ColorMode
         },
         Subtitle = book.Subtitle,
         Isbn = book.Isbn,
@@ -138,7 +140,8 @@ public static class ApiMapper
         SyncLibraryAtBoot = settings.SyncLibraryAtBoot,
         M4BFileTreatment = settings.M4BFileTreatment.ToString(),
         FileRenameTemplate = settings.FileRenameTemplate,
-        Version = BuildVersion
+        Version = BuildVersion,
+        ComicRendering = settings.ComicRendering
     };
 
     public static Author ToAuthor(UpdateAuthorRequest request) => new()
@@ -151,14 +154,29 @@ public static class ApiMapper
         Name = request.Name.Trim()
     };
 
-    public static AppSettings ToAppSettings(UpdateSettingsRequest request) => new()
+    /// <summary>
+    /// <paramref name="currentComicRendering"/> is kept when the request omits the comic rendering
+    /// section, so older clients and scripts don't reset it to defaults.
+    /// </summary>
+    public static AppSettings ToAppSettings(UpdateSettingsRequest request, ComicRenderingSettings currentComicRendering) => new()
     {
         SyncBatchSize = request.SyncBatchSize,
         ProxyLoggingEnabled = request.ProxyLoggingEnabled,
         WordsPerPage = request.WordsPerPage,
         SyncLibraryAtBoot = request.SyncLibraryAtBoot,
         M4BFileTreatment = request.M4BFileTreatment,
-        FileRenameTemplate = request.FileRenameTemplate.Trim()
+        FileRenameTemplate = request.FileRenameTemplate.Trim(),
+        ComicRendering = request.ComicRendering is null ? currentComicRendering : ToComicRenderingSettings(request.ComicRendering)
+    };
+
+    public static ComicRenderingSettings ToComicRenderingSettings(ComicRenderingSettingsRequest request) => new()
+    {
+        SpreadHandling = request.SpreadHandling,
+        MarginCropping = request.MarginCropping,
+        CroppingStrength = request.CroppingStrength,
+        PreserveMarginPercent = request.PreserveMarginPercent,
+        JpegQuality = request.JpegQuality,
+        AutoContrast = request.AutoContrast
     };
 
     public static FileManagementPlanResponse ToFileManagementPlanResponse(FileManagementPlan plan) => new()
@@ -198,6 +216,11 @@ public static class ApiMapper
         book.Description = request.Description;
         book.Publisher = request.Publisher;
         book.File.IsAbridged = request.IsAbridged;
+        if (book.File.MediaType == MediaType.Comic)
+        {
+            book.File.ReadingDirection = request.ReadingDirection ?? book.File.ReadingDirection;
+            book.File.ColorMode = request.ColorMode ?? book.File.ColorMode;
+        }
         book.Contributors = request.Contributors?.Select(c => new Contributor { Name = c.Name.Trim(), Role = c.Role?.Trim() }).ToList() ?? [];
         book.Series = !string.IsNullOrEmpty(request.SeriesName) ? new Series { Name = request.SeriesName, Index = request.Index } : null;
     }

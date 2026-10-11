@@ -73,11 +73,13 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
                 metadata.BookUuid = bookUuid;
                 metadata.File.CoverFilePath = contentManager.SaveCover(metadata.File.SourcePath, coverBytes, bookUuid);
                 var book = metadata;
+                var existingMatch = existingAtPath ?? existingBooks.FirstOrDefault(b => b.BookUuid == bookUuid);
+                if (existingMatch is not null)
+                    PreserveUserEdits(book, existingMatch);
                 discoveredBooks.Add(book);
                 await contentManager.CreateDerivativeFiles(book);
 
                 // Classify and persist.
-                var existingMatch = existingAtPath ?? existingBooks.FirstOrDefault(b => b.BookUuid == bookUuid);
                 if (existingMatch is not null && existingAtPath is not null)
                 {
                     logger.LogInformation("Reindexing externally modified file: {Title} ({SourcePath})", existingMatch.Title, metadata.File.SourcePath);
@@ -128,7 +130,7 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
                 await contentManager.UpdateBook(bookToUpdate, coverUpdate);
             }
 
-            var refreshed = await contentManager.GetBook(existing);
+            var refreshed = await contentManager.GetBook(desiredMetadata ?? existing);
             refreshed.EntitlementUuid = existing.EntitlementUuid;
             refreshed.CreatedAt = existing.CreatedAt;
             refreshed.ModifiedAt = DateTimeOffset.UtcNow;
@@ -244,6 +246,9 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
     /// Restores user-edited fields that can't round-trip through the source file format. EPUB supports
     /// all Dublin Core fields so nothing extra is needed. M4B only supports standard ID3/MP4 tags, so
     /// Language, Identifiers, Source, Type, Relation, Coverage, and Format are preserved from the database.
+    /// ComicInfo.xml has no slot for Rights, Source, Type, Relation, Coverage, Format, Identifiers or the
+    /// comic colour mode, so those always come from the database. Runs before derivatives are built
+    /// because comic renditions depend on the colour mode.
     /// </summary>
     private static void PreserveUserEdits(Book discovered, Book existing)
     {
@@ -271,6 +276,17 @@ public class IndexerService(IFileContentManager contentManager, IBookRepository 
                 discovered.Coverage = existing.Coverage;
             if (string.IsNullOrEmpty(discovered.Format))
                 discovered.Format = existing.Format;
+        }
+        else if (discovered.File.MediaType == MediaType.Comic)
+        {
+            discovered.Rights = existing.Rights;
+            discovered.Source = existing.Source;
+            discovered.Type = existing.Type;
+            discovered.Relation = existing.Relation;
+            discovered.Coverage = existing.Coverage;
+            discovered.Format = existing.Format;
+            discovered.Identifiers = existing.Identifiers;
+            discovered.File.ColorMode = existing.File.ColorMode ?? ComicColorMode.Auto;
         }
     }
 

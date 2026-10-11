@@ -50,6 +50,11 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
             indexer.CleanupOrphanedFiles(currentUuids, validCoverPaths);
     }
 
+    /// <summary>
+    /// Re-reads <paramref name="book"/>'s source file. Properties the format cannot store are
+    /// carried over from <paramref name="book"/> before derivatives are built, because some
+    /// derivatives depend on them (a comic's colour mode shapes its device renditions).
+    /// </summary>
     public async Task<Book> GetBook(Book book)
     {
         var indexer = GetIndexerFor(book.File.SourcePath);
@@ -57,6 +62,7 @@ public class FileContentManager(IEnumerable<IFileContentIndexer> indexers, IEnum
         freshBook.BookUuid = book.BookUuid;
         freshBook.File.SourcePath = book.File.SourcePath;
         freshBook.File.CoverFilePath = indexer.SaveCover(coverBytes, book.BookUuid);
+        GetHandlerFor(book.File.SourcePath).PreservePropertiesNotStoredInFile(book, freshBook);
         await indexer.CreateDerivativeFiles(freshBook, book.File.SourcePath);
         return freshBook;
     }

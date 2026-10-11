@@ -99,7 +99,8 @@ function openEditModal(uuid) {
         comboSeries = (seriesRes[0] || []).map(function (s) { return s.name; });
         comboPublishers = publishersRes[0] || [];
         var allRoles = rolesRes[0] || [];
-        currentContributorRoles = book.file.mediaType === "Audiobook" ? ["Narrator"] : allRoles;
+        var isComic = book.file.mediaType === "Comic";
+        currentContributorRoles = book.file.mediaType === "Audiobook" ? ["Narrator"] : isComic ? COMIC_CONTRIBUTOR_ROLES : allRoles;
 
         currentModalUuid = book.bookUuid;
         currentModalModifiedAt = book.modifiedAt;
@@ -116,11 +117,13 @@ function openEditModal(uuid) {
                 '<div class="bm-edit-cover-col">' +
                     '<div class="cover-frame book-modal-cover" style="cursor:pointer;position:relative;"><img id="bm-edit-cover-img" src="' + coverSrc + '" alt="" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.book-cover\').style.display=\'flex\';">' +
                     '<div class="book-cover" style="display:none;background:' + fallbackColor(book.bookUuid) + ';">' + escapeHtml(book.title) + '<small>' + escapeHtml(authors) + '</small></div>' +
-                    (book.file.hasCover ? '<button class="bm-edit-cover-remove" id="bm-edit-cover-remove" title="Remove cover">&times;</button>' : '') + '</div>' +
+                    (book.file.hasCover && !isComic ? '<button class="bm-edit-cover-remove" id="bm-edit-cover-remove" title="Remove cover">&times;</button>' : '') + '</div>' +
+                    (isComic ? '' :
                     '<label class="bm-edit-btn bm-edit-cover-upload">' +
                         '<input type="file" id="bm-edit-cover-file" accept="image/*" style="display:none;">' +
                         '<span>Upload Cover</span>' +
-                    '</label>' +
+                    '</label>') +
+                    (isComic ? comicSettingsHtml(book) : '') +
                     (book.file.mediaType === "Audiobook" ? '<div class="bm-edit-field" style="margin-top:12px;"><div class="bm-edit-label">Is Abridged</div><label class="bm-edit-checkbox"><input type="checkbox" id="bm-edit-abridged"' + (book.file.isAbridged ? ' checked' : '') + '><span class="bm-edit-checkmark"></span></label></div>' : '') +
                 '</div>' +
                 '<div class="bm-edit-fields">' +
@@ -202,9 +205,36 @@ function hideEditLoading(target) {
     $(".bm-edit-input, .bm-edit-textarea, #bm-edit-abridged").prop("disabled", false).removeClass("bm-edit-input-disabled");
 }
 
+var COMIC_CONTRIBUTOR_ROLES = ["Penciller", "Inker", "Colorist", "Letterer", "Cover Artist", "Editor", "Translator"];
+
+function comicSettingsHtml(book) {
+    var direction = book.file.readingDirection || "LeftToRight";
+    var colorMode = book.file.colorMode || "Auto";
+    function option(value, label, current) {
+        return '<option value="' + value + '"' + (value === current ? ' selected' : '') + '>' + label + '</option>';
+    }
+    return '<div class="bm-edit-field" style="margin-top:12px;">' +
+            '<div class="bm-edit-label">Reading Direction</div>' +
+            '<select class="bm-edit-input" id="bm-edit-reading-direction">' +
+                option("LeftToRight", "Left to right", direction) +
+                option("RightToLeft", "Right to left (manga)", direction) +
+            '</select>' +
+        '</div>' +
+        '<div class="bm-edit-field" style="margin-top:12px;">' +
+            '<div class="bm-edit-label">Colour <span class="bm-edit-hint">Colour screens only</span></div>' +
+            '<select class="bm-edit-input" id="bm-edit-color-mode">' +
+                option("Auto", comicColorModeText("Auto"), colorMode) +
+                option("Color", comicColorModeText("Color"), colorMode) +
+                option("Grayscale", comicColorModeText("Grayscale"), colorMode) +
+            '</select>' +
+        '</div>';
+}
+
 function saveBookMetadata(uuid) {
     var seriesIdx = $("#bm-edit-series-index").val();
     var $abridged = $("#bm-edit-abridged");
+    var $readingDirection = $("#bm-edit-reading-direction");
+    var $colorMode = $("#bm-edit-color-mode");
     var contributors = [];
     $(".bm-edit-contributor-row").each(function () {
         var name = $(this).find(".bm-edit-contributor-name").val().trim();
@@ -222,6 +252,8 @@ function saveBookMetadata(uuid) {
         publicationDate: $("#bm-edit-pub-date").val(),
         description: $("#bm-edit-description").val(),
         isAbridged: $abridged.length ? $abridged.is(":checked") : null,
+        readingDirection: $readingDirection.length ? $readingDirection.val() : null,
+        colorMode: $colorMode.length ? $colorMode.val() : null,
         contributors: contributors
     };
 

@@ -6,6 +6,7 @@ using Alexandria.Business.KoboStoreProxy.Interfaces;
 using Alexandria.Business.Library.Interfaces;
 using Alexandria.Business.Library.Models;
 using Alexandria.Business.Library.Models.Others;
+using Alexandria.DataAccess.Externals;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -96,6 +97,9 @@ public class BooksController(IBookService bookService, IBookActivityEventReposit
         if (existing.File.MediaType == MediaType.Audiobook && request.Contributors is not null && request.Contributors.Any(c => c.Role is not null && !string.Equals(c.Role, "Narrator", StringComparison.OrdinalIgnoreCase)))
             return BadRequest("Audiobooks only support the Narrator contributor role.");
 
+        if (existing.File.MediaType == MediaType.Comic && request.Contributors is not null && request.Contributors.Any(c => c.Role is not null && !CbzFileHandler.ContributorRoleNames.Contains(c.Role, StringComparer.OrdinalIgnoreCase)))
+            return BadRequest($"Comics only support the contributor roles: {string.Join(", ", CbzFileHandler.ContributorRoleNames)}.");
+
         ApiMapper.ApplyToBook(request, existing);
 
         var result = await bookService.UpdateBookMetadata(existing);
@@ -119,6 +123,8 @@ public class BooksController(IBookService bookService, IBookActivityEventReposit
         var existing = await bookService.GetBookByUuid(uuid);
         if (existing is null)
             return NotFound();
+        if (existing.File.MediaType == MediaType.Comic)
+            return BadRequest("A comic's cover is its first page and cannot be replaced.");
 
         using var ms = new MemoryStream();
         await cover.CopyToAsync(ms);
@@ -131,6 +137,9 @@ public class BooksController(IBookService bookService, IBookActivityEventReposit
     public async Task<IActionResult> RemoveBookCover(Guid uuid)
     {
         logger.LogInformation("Removing cover for book {Uuid}", uuid);
+        var existing = await bookService.GetBookByUuid(uuid);
+        if (existing?.File.MediaType == MediaType.Comic)
+            return BadRequest("A comic's cover is its first page and cannot be removed.");
         var result = await bookService.RemoveBookCover(uuid);
         if (result is null)
             return NotFound();

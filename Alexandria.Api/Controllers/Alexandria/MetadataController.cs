@@ -19,6 +19,8 @@ public class MetadataController(IBookService bookService) : AlexandriaController
     {
         if (string.Equals(mediaType, "Audiobook", StringComparison.OrdinalIgnoreCase))
             return Ok(new[] { "Narrator" });
+        if (string.Equals(mediaType, "Comic", StringComparison.OrdinalIgnoreCase))
+            return Ok(CbzFileHandler.ContributorRoleNames);
 
         return Ok(EpubFileHandler.ContributorRoleNames);
     }

@@ -26,7 +26,7 @@ public class BookFile
     /// <summary>File size in bytes. For ebooks this is the KEPUB derivative size; for audiobooks, the M4B source size.</summary>
     public long TotalFileSize { get; set; }
 
-    /// <summary>Estimated page count. Computed from WordCount / WordsPerPage setting. Ebooks only.</summary>
+    /// <summary>Estimated page count. Computed from WordCount / WordsPerPage setting for ebooks; the number of page images for comics.</summary>
     public int? PageCount { get; set; }
 
     /// <summary>Total word count extracted from EPUB content. Null for audiobooks.</summary>
@@ -43,4 +43,10 @@ public class BookFile
 
     /// <summary>Audio bitrate in bits per second as reported by ffprobe. Null for ebooks.</summary>
     public int? AudioBitrate { get; set; }
+
+    /// <summary>Page-turn direction of a comic. Null for ebooks and audiobooks.</summary>
+    public ComicReadingDirection? ReadingDirection { get; set; }
+
+    /// <summary>Colour handling for a comic's device renditions. Null for ebooks and audiobooks.</summary>
+    public ComicColorMode? ColorMode { get; set; }
 }

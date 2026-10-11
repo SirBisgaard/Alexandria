@@ -10,5 +10,8 @@ public enum MediaType
     Ebook,
 
     /// <summary>M4B audiobook, delivered as streamed chapters via manifest.</summary>
-    Audiobook
+    Audiobook,
+
+    /// <summary>CBZ comic, delivered to Kobo as a fixed-layout EPUB rendered per device screen profile.</summary>
+    Comic
 }

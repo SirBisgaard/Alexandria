@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Alexandria.Business.Interfaces;
 using Alexandria.Business.Library.Models.Settings;
 using Alexandria.DataAccess.Database.Interfaces;
@@ -11,7 +12,7 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
         return await connectionProvider.Read(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot, M4bFileTreatment, FileRenameTemplate FROM Settings WHERE Id = 1";
+            cmd.CommandText = "SELECT UuidSeed, LastIndexedTimestamp, SyncBatchSize, ProxyLoggingEnabled, WordsPerPage, SyncLibraryAtBoot, M4bFileTreatment, FileRenameTemplate, ComicRendering FROM Settings WHERE Id = 1";
 
             using var reader = cmd.ExecuteReader();
             reader.Read();
@@ -25,7 +26,8 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
                 WordsPerPage = reader.GetInt32(reader.GetOrdinal("WordsPerPage")),
                 SyncLibraryAtBoot = reader.GetInt32(reader.GetOrdinal("SyncLibraryAtBoot")) == 1,
                 M4BFileTreatment = Enum.Parse<M4BFileTreatment>(reader.GetString(reader.GetOrdinal("M4bFileTreatment"))),
-                FileRenameTemplate = reader.GetString(reader.GetOrdinal("FileRenameTemplate"))
+                FileRenameTemplate = reader.GetString(reader.GetOrdinal("FileRenameTemplate")),
+                ComicRendering = JsonSerializer.Deserialize<ComicRenderingSettings>(reader.GetString(reader.GetOrdinal("ComicRendering"))) ?? new ComicRenderingSettings()
             };
         });
     }
@@ -46,13 +48,14 @@ public class SettingsRepository(ISqliteConnectionProvider connectionProvider) : 
         await connectionProvider.Write(connection =>
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage, SyncLibraryAtBoot = @syncLibraryAtBoot, M4bFileTreatment = @m4bFileTreatment, FileRenameTemplate = @fileRenameTemplate WHERE Id = 1";
+            cmd.CommandText = "UPDATE Settings SET SyncBatchSize = @syncBatchSize, ProxyLoggingEnabled = @proxyLoggingEnabled, WordsPerPage = @wordsPerPage, SyncLibraryAtBoot = @syncLibraryAtBoot, M4bFileTreatment = @m4bFileTreatment, FileRenameTemplate = @fileRenameTemplate, ComicRendering = @comicRendering WHERE Id = 1";
             cmd.Parameters.AddWithValue("@syncBatchSize", settings.SyncBatchSize);
             cmd.Parameters.AddWithValue("@proxyLoggingEnabled", settings.ProxyLoggingEnabled ? 1 : 0);
             cmd.Parameters.AddWithValue("@wordsPerPage", settings.WordsPerPage);
             cmd.Parameters.AddWithValue("@syncLibraryAtBoot", settings.SyncLibraryAtBoot ? 1 : 0);
             cmd.Parameters.AddWithValue("@m4bFileTreatment", settings.M4BFileTreatment.ToString());
             cmd.Parameters.AddWithValue("@fileRenameTemplate", settings.FileRenameTemplate);
+            cmd.Parameters.AddWithValue("@comicRendering", JsonSerializer.Serialize(settings.ComicRendering));
             cmd.ExecuteNonQuery();
         });
     }

@@ -42,7 +42,7 @@ function renderBooks(books) {
                     '<div class="book-list-read-status">' + escapeHtml(status) + '</div>' +
                     archivedListLabel +
                     (book.readingProgress && book.readingProgress.remainingTimeMinutes ? '<div class="book-list-time-remaining">' + escapeHtml(readingRemainingText(book.readingProgress)) + '</div>' : '') +
-                    '<div class="book-list-format">' + (book.file.mediaType === "Audiobook" ? "AUDIOBOOK" : "KEPUB") + ' - ' + formatFileSize(book.file.totalFileSize) + '</div>' +
+                    '<div class="book-list-format">' + mediaFormatLabel(book.file.mediaType) + ' - ' + formatFileSize(book.file.totalFileSize) + '</div>' +
                     '<div class="dropdown book-menu-dropdown">' +
                         '<button class="book-menu" data-bs-toggle="dropdown">&middot;&middot;&middot;</button>' +
                         '<ul class="dropdown-menu dropdown-menu-end">' +

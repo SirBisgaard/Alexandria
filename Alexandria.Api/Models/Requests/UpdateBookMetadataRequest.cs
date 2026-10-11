@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Alexandria.Business.Library.Models;
 
 namespace Alexandria.Api.Models.Requests;
 
@@ -23,6 +24,12 @@ public class UpdateBookMetadataRequest : IValidatableObject
     public decimal? Index { get; set; }
 
     public bool? IsAbridged { get; set; }
+
+    /// <summary>Comics only; ignored for other media types. Null keeps the current value.</summary>
+    public ComicReadingDirection? ReadingDirection { get; set; }
+
+    /// <summary>Comics only; ignored for other media types. Null keeps the current value.</summary>
+    public ComicColorMode? ColorMode { get; set; }
 
     public List<ContributorRequest>? Contributors { get; set; }
 

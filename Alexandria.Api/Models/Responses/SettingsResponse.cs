@@ -1,3 +1,5 @@
+using Alexandria.Business.Library.Models.Settings;
+
 namespace Alexandria.Api.Models.Responses;
 
 public class SettingsResponse
@@ -11,4 +13,8 @@ public class SettingsResponse
     public string M4BFileTreatment { get; set; } = string.Empty;
     public string FileRenameTemplate { get; set; } = string.Empty;
     public string? Version { get; set; }
+    public ComicRenderingSettings ComicRendering { get; set; } = new();
+
+    /// <summary>Built-in values, for the Settings page's reset button.</summary>
+    public ComicRenderingSettings ComicRenderingDefaults { get; set; } = new();
 }

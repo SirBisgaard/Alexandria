@@ -52,10 +52,12 @@ function formatFileSize(bytes) {
 }
 
 function bookCountText(books) {
-    var ebooks = 0, audiobooks = 0;
+    var ebooks = 0, audiobooks = 0, comics = 0;
     for (var i = 0; i < books.length; i++) {
         if (books[i].file.mediaType === "Audiobook")
             audiobooks++;
+        else if (books[i].file.mediaType === "Comic")
+            comics++;
         else
             ebooks++;
     }
@@ -64,7 +66,25 @@ function bookCountText(books) {
         parts.push(ebooks + (ebooks === 1 ? " book" : " books"));
     if (audiobooks > 0)
         parts.push(audiobooks + (audiobooks === 1 ? " audiobook" : " audiobooks"));
+    if (comics > 0)
+        parts.push(comics + (comics === 1 ? " comic" : " comics"));
     return parts.join(", ") || "0 books";
+}
+
+function comicColorModeText(colorMode) {
+    if (colorMode === "Color")
+        return "Always colour";
+    if (colorMode === "Grayscale")
+        return "Always black & white";
+    return "Auto (per page)";
+}
+
+function mediaFormatLabel(mediaType) {
+    if (mediaType === "Audiobook")
+        return "AUDIOBOOK";
+    if (mediaType === "Comic")
+        return "COMIC";
+    return "KEPUB";
 }
 
 function readingStatusText(progress, mediaType) {
