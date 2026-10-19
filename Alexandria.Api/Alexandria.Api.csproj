@@ -26,7 +26,7 @@
       <Folder Include="wwwroot\styles\" />
     </ItemGroup>
 
-    <Target Name="SetKepubifyPermissions" AfterTargets="Build">
+    <Target Name="SetKepubifyPermissions" AfterTargets="Build" Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
         <Exec Command="chmod +x $(OutputPath)/kepubify" />
     </Target>
 

@@ -324,7 +324,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
             """;
         settingsCreateCmd.ExecuteNonQuery();
 
-        // Generate a unique per-install UUID seed. Doubles as UUID v5 namespace, JWT HMAC key seed, and password hashing salt.
+        // Generate a unique per-install UUID seed. Doubles as UUID v5 namespace and the login-token HMAC key seed, so it must never be logged.
         var uuidSeed = Guid.NewGuid();
         const int syncBatchSize = 60;
         const int proxyLoggingEnabled = 0;
@@ -344,7 +344,7 @@ public class DatabaseInitializer(ISqliteConnectionProvider connectionProvider, I
         settingsSeedCmd.Parameters.AddWithValue("@syncLibraryAtBoot", syncLibraryAtBoot);
         settingsSeedCmd.Parameters.AddWithValue("@m4bFileTreatment", m4BFileTreatment);
         settingsSeedCmd.ExecuteNonQuery();
-        logger.LogInformation("Database seeded with settings — UuidSeed: {UuidSeed}, SyncBatchSize: {SyncBatchSize}, ProxyLoggingEnabled: {ProxyLoggingEnabled}, WordsPerPage: {WordsPerPage}, SyncLibraryAtBoot: {SyncLibraryAtBoot}, M4bFileTreatment: {M4bFileTreatment}", uuidSeed, syncBatchSize, proxyLoggingEnabled, wordsPerPage, syncLibraryAtBoot, m4BFileTreatment);
+        logger.LogInformation("Database seeded with settings — SyncBatchSize: {SyncBatchSize}, ProxyLoggingEnabled: {ProxyLoggingEnabled}, WordsPerPage: {WordsPerPage}, SyncLibraryAtBoot: {SyncLibraryAtBoot}, M4bFileTreatment: {M4bFileTreatment}", syncBatchSize, proxyLoggingEnabled, wordsPerPage, syncLibraryAtBoot, m4BFileTreatment);
 
         using var usersCmd = connection.CreateCommand();
         usersCmd.CommandText = """

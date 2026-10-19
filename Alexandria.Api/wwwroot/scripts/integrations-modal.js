@@ -8,14 +8,14 @@ $(function () {
                     '<div class="settings-tiles">' +
                         '<div class="settings-tile integration-tile" data-integration="audiobookshelf">' +
                             '<div class="integration-tile-header">' +
-                                '<div class="integration-tile-name">AudioBookShelf</div>' +
+                                '<div class="integration-tile-name">Audiobookshelf</div>' +
                                 '<div class="integration-tile-enable">' +
                                     '<span class="integration-tile-enable-label">Enable</span>' +
                                     '<label class="settings-toggle"><input type="checkbox" data-integration-field="enabled"><span class="settings-toggle-slider"></span></label>' +
                                 '</div>' +
                             '</div>' +
                             '<div class="integration-tile-field">' +
-                                '<div class="settings-tile-label">Server url</div>' +
+                                '<div class="settings-tile-label">Server URL</div>' +
                                 '<input type="text" class="bm-edit-input" data-integration-field="serverUrl" placeholder="https://abs.example.com">' +
                             '</div>' +
                             '<div class="integration-tile-field">' +
