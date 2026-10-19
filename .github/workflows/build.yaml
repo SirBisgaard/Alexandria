@@ -1,0 +1,84 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]"
+  pull_request:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/alexandria
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Restore dependencies
+        run: dotnet restore Alexandria.slnx
+
+      - name: Build
+        run: dotnet build Alexandria.slnx --no-restore
+
+      - name: Test
+        run: |
+          chmod +x Alexandria.Test/bin/Debug/net10.0/kepubify
+          dotnet test Alexandria.Test/Alexandria.Test.csproj --no-build
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Validate tag (YYYYMMDDnn)
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          date -d "${tag:0:8}" +%Y%m%d >/dev/null 2>&1 || { echo "Tag $tag does not start with a valid YYYYMMDD date"; exit 1; }
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Alexandria.Api/Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            VERSION=${{ github.ref_name }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes --notes "Docker image: \`${IMAGE}:${GITHUB_REF_NAME}\`"

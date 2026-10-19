@@ -1,7 +1,7 @@
 services:
   alexandria:
     container_name: alexandria
-    image: <registry>/alexandria:latest
+    image: ghcr.io/sirbisgaard/alexandria:latest
     platform: linux/amd64
     ports:
       - 8080:8080

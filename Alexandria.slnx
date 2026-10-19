@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Solution Files/">
-    <File Path=".forgejo\workflows\build.yaml" />
+    <File Path=".github\workflows\build.yaml" />
     <File Path=".gitignore" />
     <File Path="CLAUDE.md" />
     <File Path="compose.yaml" />

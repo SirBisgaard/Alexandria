@@ -1,129 +1,110 @@
 # Alexandria
 
-## Introduction
+Your own books and audiobooks on your Kobo, just like the ones you bought from the store.
 
-Alexandria is named after the ancient Library of Alexandria — a place that gathered knowledge in one roof so readers did not have to chase it across the world. The project carries the same intent: one place for your books, one device to read them on.
-
-It exists because no other project offered stable large-library management for a Kobo — ebooks and audiobooks, wirelessly and over the internet — in one place. Alexandria sits between the Kobo and the Kobo store, injects the personal library into the sync flow, and lets the device behave the way it already knows how to.
-
-If you own your media and want it to just show up on your Kobo, this is for you.
+Alexandria is a small self-hosted library for Kobo e-readers. Put your EPUBs, comics and audiobooks in a folder, and they show up on your Kobo with covers, series and reading progress. There's no USB and no sideloading. Your Kobo syncs the way it always does.
 
 ![Alexandria tour](Screenshots/tour.gif)
 
 ## Features
 
-### Kobo device features
+### On your Kobo
 
-- **Ebook sync.** Drop EPUBs into the library folder; they appear on the device alongside store purchases, with covers, series, authors, and reading progress preserved. Conversion to KEPUB happens automatically via the bundled `kepubify` so the Kobo's native reader treats them as first-class.
-- **Audiobook sync.** Both M4B files and per-chapter MP3 folders are supported. Chapters, covers, and metadata are extracted and served to the device through the same sync flow the Kobo already understands.
-- **Reading state round-trip.** Progress, finished-status, and bookmarks flow both ways between the device and Alexandria — start a book on one Kobo, pick it up on another.
-- **Transparent pass-through.** Any Kobo endpoint Alexandria does not intercept is proxied straight to `storeapi.kobo.com`, so the store, firmware updates, and account features keep working.
+- **Ebooks**: EPUBs are converted to KEPUB automatically, so they open in the Kobo's own reader.
+- **Audiobooks**: M4B files and folders of MP3 chapters play in the Kobo's audiobook player.
+- **Comics**: CBZ and CBR files are turned into fixed-layout books that fit your device's screen.
+- **Covers, series and authors**: books look the same as store purchases.
+- **Reading progress**: progress and finished status sync both ways, so you can start on one Kobo and pick up on another.
+- **The Kobo store still works**: anything Alexandria doesn't handle is passed through to Kobo unchanged.
 
-### Frontend features
+### In the browser
 
-- **Media management.** A Kobo device inspired design, searching, and editing the library — books, authors, series, collections, and covers.
-- **Metadata editing.** Edit titles, authors, series, publishers, contributors, and subjects; changes are embedded back into the source file and re-indexed, so the library file stays the source of truth.
-- **Cover management.** Upload, replace, or remove covers; cache-busting is handled so the Kobo picks up the new art on the next sync.
-- **Library sync control.** Trigger reindexing on demand and watch progress stream live.
-- **Device and user administration.** Register Kobo devices, manage Alexandria user accounts, and tune application settings from the UI.
+- Browse and search books, authors, series and collections.
+- Edit titles, authors, series and covers. Changes are written back into your files.
+- Sync your library on demand and watch it happen live.
+- Manage devices, users and settings.
+- Light and dark mode.
 
-## Who this is for — and who it isn't
+## Getting started
 
-**It is for** people who enjoy owning their own media and enjoy spending time with their Kobo. The project is intentionally slim and focuses on one job: managing your media so the Kobo can enjoy it.
-
-**It is not** going to become a web-based e-reader or a browser audiobook player. Reading and listening belong on the Kobo. Alexandria is the librarian, not the reading room.
-
-## How to run
-
-Alexandria is distributed as a Docker image — pull it from your registry of choice and run it with the bundled `compose.yaml`. The committed file uses placeholders; replace them with your own paths, registry, and public URL before running:
+### 1. Run it
 
 ```yaml
 services:
   alexandria:
-    container_name: alexandria
-    image: <registry>/alexandria:latest
-    platform: linux/amd64
+    image: ghcr.io/sirbisgaard/alexandria:latest
     ports:
       - 8080:8080
-    user: 1000:1000
-    privileged: false
-    pull_policy: always
     restart: always
     volumes:
       - /path/to/your/ebooks:/books/ebooks
       - /path/to/your/audiobooks:/books/audiobooks
       - ./data:/data
     environment:
-      # Logging
-      - Logging__LogLevel__Default=Information
-      # AlexandriaSettings
       - AlexandriaSettings__PublicUrl=https://alexandria.example.com
-      - AlexandriaSettings__M4bFileTreatment=Nothing
       - AlexandriaSettings__DataFolder=/data
       - AlexandriaSettings__EbookFolder=/books/ebooks
       - AlexandriaSettings__AudiobookFolder=/books/audiobooks
 ```
-Once the container is up, point your Kobo's DNS at the host running Alexandria and connect the device.
 
-On first boot Alexandria seeds a default user with username `alexander` and password `TheGreat`. Sign in, then change the password immediately from the user settings — the defaults are public knowledge and anyone who can reach the instance can log in as admin until you do.
-
-### Kobo eReader conf
-
-A few settings need to change in the Kobo's config file.
-
-Located at:
-
-```
-/.kobo/Kobo/Kobo eReader.conf
+```sh
+docker compose up -d
 ```
 
-Update the API to use Alexandria as the source of books. Only change the `api_endpoint` — replace `<your-alexandria-server>` with the host where Alexandria is running, and `<device-uuid-token>` with the UUID token issued for this device.
+`PublicUrl` is the address your Kobo uses to reach Alexandria, so it can't be `localhost`.
+
+### 2. Sign in
+
+Open the web UI and sign in with username `alexander` and password `TheGreat`. **Change the password right away.**
+
+### 3. Connect your Kobo
+
+Pair a new device on the Devices page to get its device key. Then connect the Kobo over USB, open `.kobo/Kobo/Kobo eReader.conf` and change only the `api_endpoint` line:
 
 ```conf
 [OneStoreServices]
-account_page=https://www.kobo.com/account/settings
-account_page_rakuten=https://my.rakuten.co.jp/
-api_endpoint=https://<your-alexandria-server>/api/kobo/<device-uuid-token>
-autocomplete=https://storeapi.kobo.com/v1/products/autocomplete
+api_endpoint=https://alexandria.example.com/api/kobo/<device-key>
 ```
 
-## Settings
+Eject the Kobo and sync. Your library appears.
 
-A few settings are worth knowing about before you start filling up the library folder:
+## Audiobooks
 
-- **`PublicUrl`** — the URL your Kobo will reach Alexandria on. This gets embedded into sync responses (cover URLs, download URLs, manifests), so it must be what the device sees, not `localhost`.
-- **`EbookFolder` / `AudiobookFolder`** — where Alexandria scans for media. EPUBs sit directly in `EbookFolder`. Audiobooks are either M4B files in `AudiobookFolder` or subdirectories of per-chapter MP3s.
-- **`DataFolder`** — where the SQLite database, cover thumbnails, and generated derivatives (KEPUBs, transcoded chapters) live. Mount it as a volume; losing this folder means rebuilding the index.
-- **`M4bFileTreatment`** — this is the one to think about before the first index. M4B audiobooks can be handled in three ways:
-  - **`Nothing`** — chapters are transcoded from AAC to MP3 **on demand** when the Kobo asks for them. Cheapest on disk, but long chapters risk the device timing out mid-transfer.
-  - **`TranscodeAtIndex`** — chapters are pre-transcoded to MP3 during indexing and cached. Costs more disk (you keep both the original M4B and the MP3 chapters) but transfers are reliable.
-  - **`ConvertAtIndex`** — the entire M4B is converted to an MP3 folder at index time and the original M4B is deleted. Best compatibility with the Kobo, roughly the same disk footprint as the original file. This is the recommended choice if you don't need to keep the M4B around.
+M4B audiobooks can be handled in three ways (Settings in the web UI):
 
-Settings can be seeded through `appsettings.json` (or the `AlexandriaSettings__*` environment variables shown in the compose file) and changed at runtime from the web UI.
+- **Convert at index** (recommended): the M4B is turned into MP3 chapters once and the original is removed. This gives the best compatibility on the Kobo.
+- **Transcode at index**: MP3 chapters are made once and the M4B is kept. This uses more disk space.
+- **Nothing**: chapters are converted when the Kobo asks for them. This saves disk space, but long chapters can time out.
 
-## Contributions, Feedback & Ideas
+## Building from source
 
-Contributions are more than welcome — code, bug reports, ideas, feature suggestions, or general feedback. If you have something that would make Alexandria better for you, open an issue or a pull request. The project stays intentionally slim, but it grows in the direction of the vision.
+Requires the .NET 10 SDK and `ffmpeg` on the path.
 
-## Thanks to external projects
+```sh
+dotnet build Alexandria.slnx
+dotnet test Alexandria.Test/Alexandria.Test.csproj
+dotnet run --project Alexandria.Api/Alexandria.Api.csproj
+```
 
-Alexandria stands on the shoulders of a few excellent tools:
+## Thanks
 
-- **[FFmpeg](https://ffmpeg.org/)** — audio decoding, transcoding, and probing for every audiobook that passes through the indexer. Without it there is no audiobook support.
-- **[kepubify](https://pgaskin.net/kepubify/)** — EPUB → KEPUB conversion so the Kobo's native reader gets a first-class experience for personal books. Bundled with the project.
+- **[FFmpeg](https://ffmpeg.org/)** for everything audio.
+- **[kepubify](https://pgaskin.net/kepubify/)** for EPUB to KEPUB conversion (bundled).
+- **Kobo**, for making devices that are a pleasure to read on.
 
-And a special thanks to **Kobo** for making devices that are a genuine pleasure to read on, and for keeping their sync protocol approachable enough that a project like this is possible in the first place.
+## Contributing
 
-## AI Disclosure
+Issues, ideas and pull requests are welcome. Alexandria stays deliberately small: it manages your library, and the Kobo does the reading.
 
-Parts of this project were built with assistance from [Claude](https://claude.ai) (Anthropic).
+## Disclaimer
 
-Used for:
+Alexandria is not associated with Rakuten Kobo Inc. in any way, and is not endorsed or supported by them.
+Kobo is a trademark of Rakuten Kobo Inc.
 
-- Implementing draft work or cookiecutter-style boilerplate.
-- Writing and polishing documentation.
-- Helping reverse-engineer the Kobo sync protocol, enabling audiobooks.
+### Use of LLMs (AI)
 
-## Copyright
+LLMs were used to write parts of this code. I review it, I test it, I'm responsible for it.
 
-Alexandria is released under the European Union Public Licence v. 1.2 (EUPL-1.2). See [LICENSE](./LICENSE) for the full text.
+## License
+
+[EUPL-1.2](./LICENSE)
