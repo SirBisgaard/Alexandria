@@ -2,7 +2,6 @@
   <Folder Name="/Solution Files/">
     <File Path=".github\workflows\build.yaml" />
     <File Path=".gitignore" />
-    <File Path="CLAUDE.md" />
     <File Path="compose.yaml" />
     <File Path="LICENSE" />
     <File Path="README.md" />

@@ -12,6 +12,7 @@ All test data must be **copyright-free**. The repository ships a small set of fi
 |---------|--------|---------|
 | `TestData/J.M. Barrie - Peter Pan.epub` | EPUB 3 (Standard Ebooks, CC0 / US public domain) | Ebook metadata extraction, KEPUB conversion, download endpoint, cover extraction |
 | `TestData/test.m4b` | M4B (AAC, ~8s, embedded tags + cover) | M4B metadata and cover extraction, chapter transcoding under each `M4BFileTreatment` |
+| `TestData/test.mp3` | MP3 with ID3v2.3 tags (~8.6s) | Single-file MP3 metadata and chapter streaming |
 | `TestData/1.mp3` … `TestData/4.mp3` | MP3 with ID3v2.3 tags (track 1/4 … 4/4) | MP3 folder audiobook (place all four into one subdirectory of `AudiobookFolder` to form a single audiobook) |
 | `TestData/cover.jpg` | JPEG, 564×900 | Cover upload/replacement tests, `CoverThumbnailService` resize tests |
 | `TestData/ComicFixtures.cs` (generated) | CBZ / stored RAR 4 built at test time from drawn pages | Comic metadata, CBR→CBZ conversion, fixed-layout EPUB builder, comic sync. Gray page widths encode the page number so tests can read page order off image sizes |
@@ -24,10 +25,11 @@ Known fixture metadata (use these values in assertions):
 
 ### Fixture Loader
 
-A thin helper under `TestData/Fixtures.cs` should expose:
+`TestData/Fixtures.cs` exposes:
 
 - `Fixtures.CopyEpubTo(string destinationFolder)` → copies the Peter Pan EPUB into the destination and returns the new file path
 - `Fixtures.CopyM4BTo(string destinationFolder)` → copies `test.m4b`
+- `Fixtures.CopyMp3To(string destinationFolder)` → copies `test.mp3`
 - `Fixtures.CopyMp3AudiobookTo(string destinationAudiobookFolder, string subfolderName)` → creates the subdirectory and copies `1.mp3` … `4.mp3` into it, returns the subdirectory path
 - `Fixtures.CopyCoverTo(string destinationFolder)` → copies `cover.jpg`
 
@@ -37,7 +39,7 @@ The helper resolves fixtures relative to the test assembly's output directory. T
 
 When a test needs a book with different metadata (e.g. a second ebook to verify sort order, or N books for a batched sync test), copy the fixture into the test's temp folder and then edit the metadata in place using the production `IFileContentMediaHandler` (`EpubFileHandler`, `M4BFileHandler`, `Mp3FileHandler`). This exercises the production embed path as a side effect and keeps tests from depending on external generation logic.
 
-For performance tests that need many copies (50–200 books), the same approach applies: copy the fixture once per book, mutate title/author/series to make each unique, and let the indexer discover them. Copying a ~1.5 MB EPUB 200 times is acceptable; re-encoding audio is not — vary only tags on audiobook fixtures.
+For tests that need many copies (50–200 books), the same approach applies: copy the fixture once per book, mutate title/author/series to make each unique, and let the indexer discover them. Copying a ~1.5 MB EPUB 200 times is acceptable; re-encoding audio is not — vary only tags on audiobook fixtures.
 
 ### File Organization
 
@@ -266,7 +268,9 @@ This is the most critical test category. The Kobo device is a black box with und
 
 ---
 
-### 5. Performance Tests
+### 5. Performance Tests (planned, not implemented)
+
+No performance tests exist yet: there is no `Performance/` folder and no `[TestCategory("Performance")]` in the suite. This section describes the intended design.
 
 **Purpose:** Measure and track the performance of critical operations on synthetic data. These tests are not run in CI by default — they are triggered manually or on a schedule to detect regressions.
 
@@ -351,7 +355,6 @@ Examples:
 - `Index_NewBooks_IndexesAll`
 - `ArchivedBook_PreviouslySynced_SentAsRemoved`
 - `KoboSync_MixedEbookAndAudiobook_CorrectPropertyNames`
-- `Perf_FullIndex_200Books`
 
 ### Parallelization and Isolation
 
@@ -371,53 +374,32 @@ Never use a fixed or shared path for any writable resource. Two tests running in
 
 ## Folder Structure
 
+Test namespaces are `Alexandria.Tests.{Folder}` (e.g. `Alexandria.Tests.KoboProtocol`), so a category can be run with `--filter "FullyQualifiedName~Alexandria.Tests.KoboProtocol"`.
+
 ```
 Alexandria.Test/
 ├── MSTestSettings.cs
 ├── TestData/                 ← Committed copyright-free fixtures (copy-to-output)
-│   ├── Fixtures.cs           ← Helper that copies fixtures into per-test temp folders
+│   ├── Fixtures.cs           ← Copies fixtures into per-test temp folders
+│   ├── ComicFixtures.cs      ← Generates comic pages, CBZ and RAR files at test time
+│   ├── KoboProtocol/         ← Scrubbed recorded Kobo exchanges, {endpoint-family}/NN.json
 │   ├── J.M. Barrie - Peter Pan.epub
-│   ├── test.m4b
-│   ├── 1.mp3
-│   ├── 2.mp3
-│   ├── 3.mp3
-│   ├── 4.mp3
+│   ├── test.m4b, test.mp3, 1.mp3 … 4.mp3
 │   └── cover.jpg
-├── Data/                     ← Data integration tests
-│   ├── EpubMetadataTests.cs
-│   ├── M4BMetadataTests.cs
-│   ├── Mp3MetadataTests.cs
-│   ├── BookRepositoryTests.cs
-│   ├── AuthorRepositoryTests.cs
-│   ├── SeriesRepositoryTests.cs
-│   └── ...
-├── Business/                 ← Business logic tests
-│   ├── IndexerServiceTests.cs
-│   ├── IndexerM4BTreatmentTests.cs
-│   ├── FileMp3AudiobookConverterTests.cs
-│   ├── BookServiceTests.cs
-│   ├── AuthorServiceTests.cs
-│   ├── SeriesServiceTests.cs
-│   ├── CollectionServiceTests.cs
-│   └── SettingsServiceTests.cs
-├── Integration/              ← Full API integration tests
-│   ├── BooksApiTests.cs
-│   ├── AuthApiTests.cs
-│   ├── SyncApiTests.cs
-│   └── ...
-├── KoboProtocol/             ← Kobo device protocol tests
-│   ├── SyncResponseTests.cs
-│   ├── DownloadTests.cs
-│   ├── CoverTests.cs
-│   ├── ReadingStateTests.cs
-│   ├── InitializationTests.cs
-│   ├── ProductTests.cs
-│   └── AnalyticsTests.cs
-└── Performance/              ← Performance benchmarks
-    ├── IndexingPerformanceTests.cs
-    ├── MetadataPerformanceTests.cs
-    ├── DatabasePerformanceTests.cs
-    └── ApiPerformanceTests.cs
+├── Data/                     ← File handlers, wrappers, comics, renamers
+│   ├── EpubMetadataTests.cs, M4BMetadataTests.cs, Mp3MetadataTests.cs, CbzMetadataTests.cs, …
+│   └── Database/             ← Repositories against a temp SQLite database (DatabaseTestBase)
+│       ├── BookRepositoryTests.cs, ReadingStateRepositoryTests.cs, DatabaseInitializerTests.cs, …
+├── Business/                 ← Services with hand-rolled fakes
+│   ├── IndexerServiceTests.cs, IndexerM4BTreatmentTests.cs, BookServiceTests.cs,
+│   ├── FileManagementServiceTests.cs, AudioBookShelfSyncIntegrationTests.cs, …
+├── Integration/              ← Full API via WebApplicationFactory<Program> (IntegrationTestBase)
+│   ├── BooksApiTests.cs, AuthApiTests.cs, SyncApiTests.cs, ETagCachingTests.cs, …
+└── KoboProtocol/             ← Kobo device protocol parity (KoboProtocolTestBase, FakeKoboUpstreamHandler)
+    ├── SyncResponseTests.cs, SyncReadingStateOnlyTests.cs, ComicSyncTests.cs, CoverImageTests.cs,
+    ├── ReadingStateTests.cs, InitializationTests.cs, ProductTests.cs, AnalyticsEventTests.cs, …
+    ├── Shape/                ← JSON shape comparison
+    └── Tools/ExtractFixtures.cs   ← [Ignore]d one-shot fixture extractor
 ```
 
 ---
@@ -427,7 +409,6 @@ Alexandria.Test/
 - Every new service method should have business tests covering its happy path and meaningful edge cases.
 - Bug fixes should include a test that reproduces the bug before the fix is applied.
 - Kobo protocol tests should be updated whenever a controller response format changes — the proxy logs are the source of truth for what the device expects.
-- Performance tests should be run before and after changes to indexing, metadata handling, or database queries to detect regressions.
 - Prefer testing behavior over implementation — tests should not break when internal refactoring preserves the same external behavior.
 
 ---
@@ -454,10 +435,10 @@ Tested rules are documented by the tests themselves — find them by name under 
 - Work grouping (ebook + audiobook of same work share `RelatedGroupId`) drives the device's "switch format" navigation
 - `GET /v1/initialization` rewrites exactly four resource URLs: `library_sync`, `image_host`, `image_url_template`, `image_url_quality_template`
 - `x-kobo-apitoken` is set to `e30=` (base64 `{}`) on initialization rewrite
-- Recommendations endpoint returns empty stub to suppress the "Recommended for you" store advertisements
+- `GET v1/user/recommendations` returns an empty stub to suppress the "Recommended for you" store advertisements; per-book `v1/products/{id}/recommendations` returns up to five local picks of the same media type
 - Batch prices for local books return `price = 0`
 - Local books in mixed batches return only local prices (store books are filtered out before proxy)
-- `CoverImageId` in sync responses is `{EntitlementUuid}--v{unix_seconds}` (cache-busting); bare `EntitlementUuid` in product endpoints
+- `CoverImageId` is a UUID v5 of `cover:{BookUuid}:{ModifiedAt unix seconds}` (cache-busting, `BookExtensions.CoverImageUuid`); incoming cover IDs resolve by recomputation with fallback to `BookUuid`/`EntitlementUuid`
 - `Drm` object is present but empty with `DrmType=""` — required shape even with no DRM
 - Audiobook manifest requires both `Navigation` and `Spine` sections even though they overlap
 
@@ -470,7 +451,7 @@ Tested rules are documented by the tests themselves — find them by name under 
 
 ### Analytics (`KoboAnalyticsService`)
 
-- `MarkAsFinished` is the only locally-handled analytics event; all other local event types (BookOpened, etc.) are dropped as cosmetic
+- Every local analytics event is stored in `BookActivityEvents` (deduplicated by event ID); `MarkAsFinished`, `MarkAsUnread`, `Playback` and `OpenContent`/`LeaveContent` also update reading state; `BookProgress` is deliberately ignored (chapter-relative)
 - In mixed batches, store-targeted events are forwarded to Kobo with recalculated `Content-Length`
 - `MarkAsFinished` uses the event's timestamp for `LastModified` when available; `PriorityTimestamp` is always server now
 
@@ -484,7 +465,7 @@ Tested rules are documented by the tests themselves — find them by name under 
 ### Indexer / service-layer policy
 
 - Fast path: unchanged books (metadata + cover identical) bypass derivative regeneration
-- `IndexingProgressService` is Scoped DI (not Singleton) — controller and consumers within the same request scope share one sink
+- `IProgressService` is Scoped DI (not Singleton) — controller and consumers within the same request scope share one sink
 - `ReportSubTask` reuses the cached outer snapshot; each new outer tick clears previous sub-task by emitting a fresh report
 
 ### Sync token / session (`KoboDeviceSyncTokenService`)

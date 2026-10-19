@@ -6,19 +6,26 @@ services:
     ports:
       - 8080:8080
     user: 1000:1000
-    privileged: false
-    pull_policy: always
     restart: always
     volumes:
       - /path/to/your/ebooks:/books/ebooks
       - /path/to/your/audiobooks:/books/audiobooks
       - ./data:/data
     environment:
-      # Logging
-      - Logging__LogLevel__Default=Information
-      # AlexandriaSettings
-      - AlexandriaSettings__PublicUrl=https://alexandria.example.com
-      - AlexandriaSettings__M4bFileTreatment=Nothing
+      # Address your Kobo uses to reach Alexandria, without a trailing slash (not localhost).
+      # At home: http://<this machine's LAN IP>:8080. Away from home: an https:// address behind a reverse proxy.
+      - AlexandriaSettings__PublicUrl=http://192.168.1.20:8080
+      # Database, KEPUBs, transcoded chapters and comic renditions
       - AlexandriaSettings__DataFolder=/data
+      # EPUB, CBZ and CBR files
       - AlexandriaSettings__EbookFolder=/books/ebooks
+      # M4B files and folders of MP3 chapters
       - AlexandriaSettings__AudiobookFolder=/books/audiobooks
+      # Initial M4B handling (only applied on first start; change it later under More → Settings → Audiobooks):
+      #   Nothing          - convert chapters to MP3 when the Kobo asks for them (least disk, long chapters can time out)
+      #   TranscodeAtIndex - convert chapters to MP3 once while indexing and keep the M4B (most disk, reliable)
+      #   ConvertAtIndex   - turn the M4B into an MP3 folder while indexing and DELETE the M4B (best Kobo compatibility)
+      - AlexandriaSettings__M4BFileTreatment=Nothing
+      # Log level, from most to least output:
+      #   Trace, Debug, Information, Warning, Error, Critical, None
+      - Logging__LogLevel__Default=Information
