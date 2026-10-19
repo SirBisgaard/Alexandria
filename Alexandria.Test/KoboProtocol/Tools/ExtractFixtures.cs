@@ -31,7 +31,8 @@ namespace Alexandria.Tests.KoboProtocol.Tools;
 ///     <c>x-forwarded-for</c>, <c>Referer</c>, <c>Origin</c>, <c>Host</c> are dropped.
 ///     <c>x-kobo-deviceid</c> → <c>TEST-SERIAL</c>. <c>x-kobo-synctoken</c> →
 ///     <c>SYNC-TOKEN-PLACEHOLDER</c>. JWT-shaped and <c>kobo_user_id</c> leaks are regex-replaced
-///     with <c>REDACTED</c>.</description>
+///     with <c>REDACTED</c>. Body fields <c>AccessToken</c>, <c>RefreshToken</c>, <c>UserKey</c> and
+///     <c>SerialNumber</c> are replaced with placeholders in requests and responses alike.</description>
 ///   </item>
 ///   <item>
 ///     <description>UUIDs: the recorded device UUID maps to the fixed synthetic
@@ -593,6 +594,10 @@ public sealed class ExtractFixtures
                 "Contributors" => Replace(out replaced, "Scrubbed Author"),
                 "Name" when parentFieldName == "Series" => Replace(out replaced, "Scrubbed Series"),
                 "Name" when parentFieldName == "Tag" => Replace(out replaced, "Scrubbed Collection"),
+                "AccessToken" => Replace(out replaced, "ACCESS-TOKEN-PLACEHOLDER"),
+                "RefreshToken" => Replace(out replaced, "REFRESH-TOKEN-PLACEHOLDER"),
+                "UserKey" => Replace(out replaced, "USER-KEY-PLACEHOLDER"),
+                "SerialNumber" => Replace(out replaced, "TEST-SERIAL"),
                 _ => false
             };
         }
