@@ -70,7 +70,7 @@ jobs:
           file: Alexandria.Api/Dockerfile
           platforms: linux/amd64
           build-args: |
-            VERSION=${{ github.ref_name }}
+            ALEXANDRIA_VERSION=${{ github.ref_name }}
           push: true
           tags: |
             ${{ env.IMAGE }}:${{ github.ref_name }}

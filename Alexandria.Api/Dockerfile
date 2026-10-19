@@ -15,8 +15,8 @@ RUN dotnet build "./Alexandria.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-ARG VERSION=
-RUN dotnet publish "./Alexandria.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false ${VERSION:+/p:InformationalVersion=$VERSION}
+ARG ALEXANDRIA_VERSION=
+RUN dotnet publish "./Alexandria.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false ${ALEXANDRIA_VERSION:+/p:AlexandriaVersion=$ALEXANDRIA_VERSION}
 
 FROM base AS final
 WORKDIR /app
